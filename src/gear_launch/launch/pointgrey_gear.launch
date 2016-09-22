@@ -1,0 +1,31 @@
+<launch>
+  <!--Common parameters-->
+  <arg name="frame_rate"        default="15"/>
+
+  <!--pointgrey1 parameters-->
+  <arg name="p1_base_name"       value="p1"/>
+  <arg name="p1_camera_serial"  value="14432831"/>
+  <arg name="p1_machine"    	value="localhost"/>
+
+  <!--pointgrey2 parameters-->
+  <arg name="p2_base_name"       value="p2"/>
+  <arg name="p2_camera_serial"  value="14432839"/>
+  <arg name="p2_machine"        value="localhost"/>
+
+  <!--pointgrey1-->
+  <include file="$(find gear_launch)/launch/pointgrey.launch">
+    <arg name="base_name"       value="$(arg p1_base_name)"/>
+    <arg name="camera_serial"   value="$(arg p1_camera_serial)"/>
+    <arg name="machine"         value="$(arg p1_machine)"/>
+    <arg name="frame_rate"       value="$(arg frame_rate)"/>
+  </include>
+
+  <!--pointgrey2-->
+  <include file="$(find gear_launch)/launch/pointgrey.launch">
+    <arg name="base_name"       value="$(arg p2_base_name)"/>
+    <arg name="camera_serial"   value="$(arg p2_camera_serial)"/>
+    <arg name="machine"         value="$(arg p2_machine)"/>
+    <arg name="frame_rate"       value="$(arg frame_rate)"/>
+  </include>
+</launch>
+
