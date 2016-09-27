@@ -1,0 +1,33 @@
+<?xml version="1.0"?>
+<package>
+  <name>gear_image_handler</name>
+  <version>0.0.0</version>
+  <description>The gear_image_handler package</description>
+  <maintainer email="kan.prasanna@gmail.com">Prasanna kannappan</maintainer>
+  <license>TODO</license>
+
+  <buildtool_depend>catkin</buildtool_depend>
+  <build_depend>cv_bridge</build_depend>
+  <build_depend>roscpp</build_depend>
+  <build_depend>rospy</build_depend>
+  <build_depend>sensor_msgs</build_depend>
+  <build_depend>std_msgs</build_depend>
+  <build_depend>nodelet</build_depend>
+  <build_depend>image_transport</build_depend>
+  <build_depend>pluginlib</build_depend>
+  <build_depend>std_srvs</build_depend>
+  
+  <run_depend>cv_bridge</run_depend>
+  <run_depend>roscpp</run_depend>
+  <run_depend>rospy</run_depend>
+  <run_depend>sensor_msgs</run_depend>
+  <run_depend>std_msgs</run_depend>
+  <run_depend>nodelet</run_depend>
+  <run_depend>image_transport</run_depend>
+  <run_depend>pluginlib</run_depend>
+  <run_depend>std_srvs</run_depend>
+
+  <export>
+    <nodelet plugin="${prefix}/nodelets.xml"/>
+  </export>
+</package>
