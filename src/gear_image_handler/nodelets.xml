@@ -1,0 +1,9 @@
+<library path="lib/libimage_logger">
+  <class name="gear_image_handler/ImageLogger"
+         type="gear_image_handler::ImageLogger"
+         base_class_type="nodelet::Nodelet">
+    <description>
+      A functionality to log images.
+    </description>
+  </class>
+</library>

@@ -1,0 +1,87 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<launch>
+  <!--Common parameters-->
+  <arg name="session_id"      default="test"/>
+  <arg name="data_dir"        default="/mnt/md0/gear_data"/>
+  <arg name="image_extn"      default=".png"/>
+  <arg name="start_manager"   default="true"/>  
+  
+  <!-- Parameters to control sensor -->
+  <arg name="enable_kinect1"        default="true"/>
+  <arg name="enable_kinect2"        default="true"/>
+  <arg name="enable_kinect3"        default="true"/>
+  <arg name="enable_pointgrey1"     default="true"/>
+  <arg name="enable_pointgrey2"     default="true"/>
+  
+
+  <!--kinect1 color-->
+  <include file="$(find gear_image_handler)/launch/image_logger.launch" if="$(arg enable_kinect1)">
+    <arg name="base_name"       value="k1"/>
+    <arg name="kinect"          value="true"/>
+    <arg name="image_type"      value="color"/>
+    <arg name="image_def"       value="hd"/>      
+    <arg name="session_id"      value="$(arg session_id)"/>
+  </include>
+
+  <!--kinect1 depth-->
+  <include file="$(find gear_image_handler)/launch/image_logger.launch" if="$(arg enable_kinect1)">
+    <arg name="base_name"       value="k1"/>
+    <arg name="kinect"          value="true"/>
+    <arg name="image_type"      value="depth"/>
+    <arg name="image_def"       value="sd"/>      
+    <arg name="session_id"      value="$(arg session_id)"/>
+  </include>
+
+  <!--kinect2 color-->
+  <include file="$(find gear_image_handler)/launch/image_logger.launch" if="$(arg enable_kinect2)">
+    <arg name="base_name"       value="k2"/>
+    <arg name="kinect"          value="true"/>
+    <arg name="image_type"      value="color"/>
+    <arg name="image_def"       value="hd"/>      
+    <arg name="session_id"      value="$(arg session_id)"/>
+  </include>
+
+  <!--kinect2 depth-->
+  <include file="$(find gear_image_handler)/launch/image_logger.launch" if="$(arg enable_kinect2)">
+    <arg name="base_name"       value="k2"/>
+    <arg name="kinect"          value="true"/>
+    <arg name="image_type"      value="depth"/>
+    <arg name="image_def"       value="sd"/>      
+    <arg name="session_id"      value="$(arg session_id)"/>
+  </include>
+
+  <!--kinect3 color-->
+  <include file="$(find gear_image_handler)/launch/image_logger.launch" if="$(arg enable_kinect3)">
+    <arg name="base_name"       value="k3"/>
+    <arg name="kinect"          value="true"/>
+    <arg name="image_type"      value="color"/>
+    <arg name="image_def"       value="hd"/>      
+    <arg name="session_id"      value="$(arg session_id)"/>
+  </include>
+
+  <!--kinect3 depth-->
+  <include file="$(find gear_image_handler)/launch/image_logger.launch" if="$(arg enable_kinect3)">
+    <arg name="base_name"       value="k3"/>
+    <arg name="kinect"          value="true"/>
+    <arg name="image_type"      value="depth"/>
+    <arg name="image_def"       value="sd"/>      
+    <arg name="session_id"      value="$(arg session_id)"/>
+  </include>
+
+  <!--pointgrey1 color-->
+  <include file="$(find gear_image_handler)/launch/image_logger.launch" if="$(arg enable_pointgrey1)">
+    <arg name="base_name"       value="p1"/>
+    <arg name="pointgrey"       value="true"/>
+    <arg name="image_type"      value="color"/>
+    <arg name="session_id"      value="$(arg session_id)"/>
+  </include>
+
+  <!--pointgrey2 color-->
+  <include file="$(find gear_image_handler)/launch/image_logger.launch" if="$(arg enable_pointgrey2)">
+    <arg name="base_name"       value="p2"/>
+    <arg name="pointgrey"       value="true"/>
+    <arg name="image_type"      value="color"/>
+    <arg name="session_id"      value="$(arg session_id)"/>
+  </include>
+</launch>
+  
