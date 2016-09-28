@@ -26,9 +26,11 @@
   <arg name="respawn"           default="true"/>
   <arg name="do_pointcloud"	    default="true"/>
   <arg name="do_acquisition"   	default="true"/>
+  <arg name="remote_user"       default="ubuntu"/>
 
-  <machine name="$(arg base_name)_machine" address="$(arg acq_machine)"/>
-  <machine name="pc_machine"  address="$(arg pc_machine)"/>
+  <machine name="$(arg base_name)_machine" address="$(arg acq_machine)" user="$(arg remote_user)" 
+           env-loader="/home/$(arg remote_user)/gear/devel/env.sh"/>
+  <machine name="$(arg base_name)_pc_machine"  address="$(arg pc_machine)"/>
 
   <node pkg="nodelet" type="nodelet" name="$(arg nodelet_manager)" args="manager"
         if="$(arg start_manager)" machine="$(arg base_name)_machine" output="screen"/>
@@ -57,10 +59,13 @@
     <param name="edge_aware_filter" type="bool"   value="$(arg edge_aware_filter)"/>
     <param name="worker_threads"    type="int"    value="$(arg worker_threads)"/>
   </node>
+
+  <node pkg="nodelet" type="nodelet" name="$(arg nodelet_manager)_pc" args="manager"
+        if="$(arg do_pointcloud)" machine="$(arg base_name)_machine" output="screen"/>
   
   <!-- sd point cloud (512 x 424) -->
-  <node pkg="nodelet" type="nodelet" name="$(arg base_name)_points_xyzrgb_sd" machine="pc_machine"
-        args="load depth_image_proc/point_cloud_xyzrgb $(arg nodelet_manager)" respawn="$(arg respawn)"
+  <node pkg="nodelet" type="nodelet" name="$(arg base_name)_points_xyzrgb_sd" machine="$(arg base_name)_pc_machine"
+        args="load depth_image_proc/point_cloud_xyzrgb $(arg nodelet_manager)_pc" respawn="$(arg respawn)"
 	if="$(arg do_pointcloud)">
     <remap from="rgb/camera_info"             to="$(arg base_name)/sd/camera_info"/>
     <remap from="rgb/image_rect_color"        to="$(arg base_name)/sd/image_color_rect"/>
@@ -70,8 +75,8 @@
   </node>
 
   <!-- qhd point cloud (960 x 540) -->
-  <node pkg="nodelet" type="nodelet" name="$(arg base_name)_points_xyzrgb_qhd" machine="pc_machine"
-        args="load depth_image_proc/point_cloud_xyzrgb $(arg nodelet_manager)" respawn="$(arg respawn)"
+  <node pkg="nodelet" type="nodelet" name="$(arg base_name)_points_xyzrgb_qhd" machine="$(arg base_name)_pc_machine"
+        args="load depth_image_proc/point_cloud_xyzrgb $(arg nodelet_manager)_pc" respawn="$(arg respawn)"
 	if="$(arg do_pointcloud)">
     <remap from="rgb/camera_info"             to="$(arg base_name)/qhd/camera_info"/>
     <remap from="rgb/image_rect_color"        to="$(arg base_name)/qhd/image_color_rect"/>
@@ -81,8 +86,8 @@
   </node>
 
   <!-- hd point cloud (1920 x 1080) -->
-  <node pkg="nodelet" type="nodelet" name="$(arg base_name)_points_xyzrgb_hd" machine="pc_machine"
-        args="load depth_image_proc/point_cloud_xyzrgb $(arg nodelet_manager)" respawn="$(arg respawn)"
+  <node pkg="nodelet" type="nodelet" name="$(arg base_name)_points_xyzrgb_hd" machine="$(arg base_name)_pc_machine"
+        args="load depth_image_proc/point_cloud_xyzrgb $(arg nodelet_manager)_pc" respawn="$(arg respawn)"
 	if="$(arg do_pointcloud)">
     <remap from="rgb/camera_info"             to="$(arg base_name)/hd/camera_info"/>
     <remap from="rgb/image_rect_color"        to="$(arg base_name)/hd/image_color_rect"/>
