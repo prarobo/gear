@@ -7,24 +7,28 @@
   <arg name="pc_machine"        default="localhost"/>
 
   <!-- Parameters to enable sensors -->
-  <arg name="enable_kinect1"        default="true"/>
-  <arg name="enable_kinect2"        default="true"/>
-  <arg name="enable_kinect3"        default="true"/>
+  <arg name="enable_kinect1"    default="true"/>
+  <arg name="enable_kinect2"    default="true"/>
+  <arg name="enable_kinect3"    default="true"/>
 
   <!--kinect1 parameters-->
   <arg name="k1_base_name"      value="k1"/>
   <arg name="k1_sensor"         value="308780235147"/>
-  <arg name="k1_acq_machine"    value="tegra-ubuntu"/>
+  <arg name="k1_acq_machine"    value="localhost"/>
+  <arg name="k1_remote_user"    value="cooplab-gear"/>
+
 
   <!--kinect2 parameters-->
   <arg name="k2_base_name"      value="k2"/>
   <arg name="k2_sensor"         value="024208544747"/>
   <arg name="k2_acq_machine"    value="localhost"/>
+  <arg name="k2_remote_user"    value="ubuntu"/>
 
   <!--kinect3 parameters-->
   <arg name="k3_base_name"      value="k3"/>
   <arg name="k3_sensor"         value="025872444747"/>
-  <arg name="k3_acq_machine"    value="localhost"/>
+  <arg name="k3_acq_machine"    value="tegra-ubuntu"/>
+  <arg name="k3_remote_user"    value="ubuntu"/>
     
   <!--kinect1-->
   <include file="$(find gear_launch)/launch/kinect.launch" if="$(arg enable_kinect1)">        
@@ -35,6 +39,7 @@
     <arg name="do_pointcloud"   value="$(arg do_pointcloud)"/>
     <arg name="do_acquisition"  value="$(arg do_acquisition)"/>
     <arg name="pc_machine"      value="$(arg pc_machine)"/>
+    <arg name="remote_user"     value="$(arg k1_remote_user)"/>
   </include>
 
   <!--kinect2-->
@@ -46,6 +51,7 @@
     <arg name="do_pointcloud"   value="$(arg do_pointcloud)"/>
     <arg name="do_acquisition"  value="$(arg do_acquisition)"/>
     <arg name="pc_machine"      value="$(arg pc_machine)"/>
+    <arg name="remote_user"     value="$(arg k2_remote_user)"/>
  </include>
 
   <!--kinect3-->
@@ -57,6 +63,7 @@
     <arg name="do_pointcloud"   value="$(arg do_pointcloud)"/>
     <arg name="do_acquisition"  value="$(arg do_acquisition)"/>
     <arg name="pc_machine"      value="$(arg pc_machine)"/>
+    <arg name="remote_user"     value="$(arg k3_remote_user)"/>
   </include>
 </launch>
 

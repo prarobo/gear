@@ -8,9 +8,9 @@
   <arg name="enable_pointgrey2"     default="true"/>
   
   <!-- Session wide arguments -->
-  <arg name="session_id"          default="test"/>
-  <arg name="activity_id"         default="act"/>
-  <arg name="trial_id"            default="1"/>  
+  <arg name="session_id"            default="test"/>
+  <arg name="activity_id"           default="act"/>
+  <arg name="trial_id"              default="1"/>  
   
   <!-- Setting session wide parameters -->
   <param name="session_id"          value="$(arg session_id)"/>
