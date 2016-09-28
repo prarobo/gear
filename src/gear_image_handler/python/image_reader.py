@@ -6,6 +6,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import cv2
 import shutil
+import rospy
 from decimal import Decimal, getcontext
 
 COMPOSITION_KEYS = ["k3_color", "p1_color", "p2_color"]
@@ -28,9 +29,9 @@ class ImageReader(object):
         
         # Record inputs
         self.image_root_path_ = os.path.join(data_dir, session_id, 
-                                             activity_id+'_'+trial_id, image_root_name)
+                                             activity_id+'_'+str(trial_id), image_root_name)
         self.video_root_path_ = os.path.join(data_dir, session_id, 
-                                             activity_id+'_'+trial_id, video_root_name)
+                                             activity_id+'_'+str(trial_id), video_root_name)
         self.image_prefix_ = image_prefix
 
         self.image_extn_ = image_extn
@@ -146,7 +147,7 @@ class ImageReader(object):
         rospy.loginfo("Min time = {min_time}".format(min_time=self.start_time))
         rospy.loginfo("Max time = {max_time}".format(max_time=self.end_time))
         rospy.loginfo("Time difference = {time_diff}".format(time_diff=self.time_diff))
-        rospy.loginfo("Number of frames", self.num_frames)
+        rospy.loginfo("Number of frames: "+str(self.num_frames))
         return
     
     def _getVideoInformation(self, sensor_stream):

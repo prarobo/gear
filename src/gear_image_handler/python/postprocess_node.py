@@ -2,6 +2,7 @@
 
 import rospy
 import cv2
+from image_reader import ImageReader
 
 def main():
     # Load parameters
@@ -16,20 +17,20 @@ def main():
 
     image_extn = rospy.get_param("~image_extension", ".jpg")
     video_extn = rospy.get_param("~video_extension", ".avi")
-    fps = rospy.get_param("~frame_rate", "15")
-    time_offset = rospy.get_param("~time_offset", "2")
+    fps = int(rospy.get_param("~frame_rate", "15"))
+    time_offset = int(rospy.get_param("~time_offset", "2"))
     
     video_format = cv2.cv.CV_FOURCC('M','J','P','G')
     
-    rosparam.loginfo("[ImageProcessor] Parameter data_directory: "+data_dir)
-    rosparam.loginfo("[ImageProcessor] Parameter image_directory: "+image_dir)
-    rosparam.loginfo("[ImageProcessor] Parameter video_directory: "+video_dir)
-    rosparam.loginfo("[ImageProcessor] Parameter image_prefix: "+image_prefix)
-    rosparam.loginfo("[ImageProcessor] Parameter image_extn: "+image_extn)
-    rosparam.loginfo("[ImageProcessor] Parameter video_extn: "+video_extn)
-    rosparam.loginfo("[ImageProcessor] Parameter frame_rate: "+fps)
-    rosparam.loginfo("[ImageProcessor] Parameter time_offset: "+time_offset)
-    rosparam.loginfo("[ImageProcessor] Parameter video_format: "+video_format)
+    rospy.loginfo("[ImageProcessor] Parameter data_directory: "+data_dir)
+    rospy.loginfo("[ImageProcessor] Parameter image_directory: "+image_root_name)
+    rospy.loginfo("[ImageProcessor] Parameter video_directory: "+video_root_name)
+    rospy.loginfo("[ImageProcessor] Parameter image_prefix: "+image_prefix)
+    rospy.loginfo("[ImageProcessor] Parameter image_extn: "+image_extn)
+    rospy.loginfo("[ImageProcessor] Parameter video_extn: "+video_extn)
+    rospy.loginfo("[ImageProcessor] Parameter frame_rate: "+str(fps))
+    rospy.loginfo("[ImageProcessor] Parameter time_offset: "+str(time_offset))
+    rospy.loginfo("[ImageProcessor] Parameter video_format: "+str(video_format))
         
     # Create image reader object
     image_reader = ImageReader(data_dir, image_root_name, video_root_name,
