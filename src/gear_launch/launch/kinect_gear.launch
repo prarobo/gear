@@ -14,8 +14,8 @@
   <!--kinect1 parameters-->
   <arg name="k1_base_name"      value="k1"/>
   <arg name="k1_sensor"         value="308780235147"/>
-  <arg name="k1_acq_machine"    value="localhost"/>
-  <arg name="k1_remote_user"    value="cooplab-gear"/>
+  <arg name="k1_acq_machine"    value="tegra-ubuntu"/>
+  <arg name="k1_remote_user"    value="ubuntu"/>
 
 
   <!--kinect2 parameters-->

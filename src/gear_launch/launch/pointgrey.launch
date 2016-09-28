@@ -4,7 +4,7 @@
        If not specified, defaults to first camera found. -->
   <arg name="camera_serial"     default="0" />
   <arg name="calibrated"        default="0" />
-  <arg name="frame_rate" 	      default="30" />
+  <arg name="frame_rate" 	      default="15" />
   <arg name="base_name"        	default="camera" />
   <arg name="machine"        	  default="localhost" />
   <arg name="nodelet_manager"   default="$(arg base_name)"/>  

@@ -1,11 +1,11 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <launch>
   <!-- Parameters to control sensors -->
-  <arg name="enable_kinect1"        default="true"/>
-  <arg name="enable_kinect2"        default="true"/>
-  <arg name="enable_kinect3"        default="true"/>
-  <arg name="enable_pointgrey1"     default="true"/>
-  <arg name="enable_pointgrey2"     default="true"/>
+  <arg name="enable_kinect1"        default="false"/>
+  <arg name="enable_kinect2"        default="false"/>
+  <arg name="enable_kinect3"        default="false"/>
+  <arg name="enable_pointgrey1"     default="false"/>
+  <arg name="enable_pointgrey2"     default="false"/>
   
   <!-- Session wide arguments -->
   <arg name="session_id"            default="test"/>

@@ -3,6 +3,7 @@
 
 // ROS Dependencies
 #include <ros/ros.h>
+#include <image_transport/image_transport.h>
 #include <nodelet/nodelet.h>
 #include <pluginlib/class_list_macros.h>
 #include <sensor_msgs/Image.h>
@@ -52,7 +53,8 @@ public:
                       std_srvs::Trigger::Response &res);
 
 private:
-  ros::Subscriber image_sub_;
+  boost::shared_ptr<image_transport::ImageTransport> it_;
+  image_transport::Subscriber image_sub_;
   ros::Publisher image_count_pub_;
   ros::ServiceServer toggle_logger_;
   ros::ServiceServer session_info_;

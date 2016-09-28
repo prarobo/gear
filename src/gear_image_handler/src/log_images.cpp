@@ -8,6 +8,7 @@
 // Ros Dependencies
 #include <std_msgs/Int64.h>
 #include <cv_bridge/cv_bridge.h>
+#include <image_transport/transport_hints.h>
 
 // Boost Dependencies
 #include <boost/format.hpp>
@@ -19,8 +20,10 @@ namespace gear_image_handler {
 ImageLogger::ImageLogger(): image_count_(0), enable_(false){};
 
 void ImageLogger::onInit(){
-  image_sub_ = getPrivateNodeHandle().subscribe("/log_image", 5, &ImageLogger::imageCallback, this);
-  image_count_pub_ = getPrivateNodeHandle().advertise<std_msgs::Int64>("/image_count", 15);
+  image_transport::TransportHints hints("compressed", ros::TransportHints());
+  it_.reset(new image_transport::ImageTransport(getNodeHandle()));
+  image_sub_ = it_->subscribe("/log_image", 5, &ImageLogger::imageCallback, this, hints);
+  image_count_pub_ = getNodeHandle().advertise<std_msgs::Int64>("/image_count", 15);
 
   // Getting session wide parameters
   pthread_mutex_lock(&session_param_lock_);
