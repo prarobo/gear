@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <launch>
   <!--Common parameters-->
-  <arg name="fps_limit"         default="15"/>
-  <arg name="do_pointcloud"     default="true"/>
+  <arg name="fps_limit"         default="17"/>
+  <arg name="do_pointcloud"     default="false"/>
   <arg name="do_acquisition"    default="true"/>
   <arg name="pc_machine"        default="localhost"/>
 

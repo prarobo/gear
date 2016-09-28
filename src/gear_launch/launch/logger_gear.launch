@@ -12,7 +12,6 @@
   <arg name="enable_kinect3"        default="true"/>
   <arg name="enable_pointgrey1"     default="true"/>
   <arg name="enable_pointgrey2"     default="true"/>
-  
 
   <!--kinect1 color-->
   <include file="$(find gear_image_handler)/launch/image_logger.launch" if="$(arg enable_kinect1)">

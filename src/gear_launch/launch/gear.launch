@@ -6,6 +6,7 @@
   <arg name="enable_kinect3"        default="false"/>
   <arg name="enable_pointgrey1"     default="false"/>
   <arg name="enable_pointgrey2"     default="false"/>
+  <arg name="enable_loggers"        default="false"/>
   
   <!-- Session wide arguments -->
   <arg name="session_id"            default="test"/>
@@ -31,11 +32,5 @@
   </include>
 
   <!-- Launch loggers -->
-  <include file="$(find gear_launch)/launch/logger_gear.launch">        
-    <arg name="enable_kinect1"      value="$(arg enable_kinect1)"/>
-    <arg name="enable_kinect2"      value="$(arg enable_kinect2)"/>
-    <arg name="enable_kinect3"      value="$(arg enable_kinect3)"/>
-    <arg name="enable_pointgrey1"   value="$(arg enable_pointgrey1)"/>
-    <arg name="enable_pointgrey2"   value="$(arg enable_pointgrey2)"/>
-  </include>
+  <include file="$(find gear_launch)/launch/logger_gear.launch" if="$(arg enable_loggers)"/>        
 </launch>
