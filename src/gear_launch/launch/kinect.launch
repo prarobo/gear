@@ -27,12 +27,9 @@
   <arg name="do_pointcloud"	    default="true"/>
   <arg name="do_acquisition"   	default="true"/>
   <arg name="remote_user"       default="ubuntu"/>
-  <arg name="ros_master"        default="cooplab-gear"/>  
 
   <machine name="$(arg base_name)_machine" address="$(arg acq_machine)" user="$(arg remote_user)" 
-           env-loader="/home/$(arg remote_user)/gear/devel/env.sh">
-    <env name="ROS_MASTER_URI"  value="$(arg ros_master)" />
-  </machine>
+           env-loader="/home/$(arg remote_user)/gear/src/gear_launch/config/env.sh">
   <machine name="$(arg base_name)_pc_machine"  address="$(arg pc_machine)"/>
 
   <node pkg="nodelet" type="nodelet" name="$(arg nodelet_manager)" args="manager"
