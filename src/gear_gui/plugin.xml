@@ -1,0 +1,12 @@
+<library path="src">
+  <class name="ImageCaptureGUI" type="gear_gui.image_capture.ImageCaptureGUI" base_class_type="rqt_gui_py::Plugin">
+    <description>
+      Rqt plugin for starting and stopping image capture.
+    </description>
+    <qtgui>
+      <label>GEAR image capture plugin</label>
+      <icon type="theme">system-help</icon>
+      <statustip>GEAR image capture</statustip>
+    </qtgui>
+  </class>
+</library>

@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <launch>
   <!--Common parameters-->
-  <arg name="fps_limit"         default="17"/>
+  <arg name="fps_limit"         default="30"/>
   <arg name="do_pointcloud"     default="false"/>
   <arg name="do_acquisition"    default="true"/>
   <arg name="pc_machine"        default="localhost"/>
@@ -22,13 +22,13 @@
   <arg name="k2_base_name"      value="k2"/>
   <arg name="k2_sensor"         value="024208544747"/>
   <arg name="k2_acq_machine"    value="localhost"/>
-  <arg name="k2_remote_user"    value="ubuntu"/>
+  <arg name="k2_remote_user"    value="cooplab-gear"/>
 
   <!--kinect3 parameters-->
   <arg name="k3_base_name"      value="k3"/>
   <arg name="k3_sensor"         value="025872444747"/>
-  <arg name="k3_acq_machine"    value="tegra-ubuntu"/>
-  <arg name="k3_remote_user"    value="ubuntu"/>
+  <arg name="k3_acq_machine"    value="localhost"/>
+  <arg name="k3_remote_user"    value="cooplab-gear"/>
     
   <!--kinect1-->
   <include file="$(find gear_launch)/launch/kinect.launch" if="$(arg enable_kinect1)">        
