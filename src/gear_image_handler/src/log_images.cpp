@@ -20,10 +20,6 @@ namespace gear_image_handler {
 ImageLogger::ImageLogger(): image_count_(0), enable_(false){};
 
 void ImageLogger::onInit(){
-  image_transport::TransportHints hints("compressed", ros::TransportHints());
-  it_.reset(new image_transport::ImageTransport(getNodeHandle()));
-  image_sub_ = it_->subscribe("/log_image", 5, &ImageLogger::imageCallback, this, hints);
-  image_count_pub_ = getNodeHandle().advertise<std_msgs::Int64>("/image_count", 15);
 
   // Getting session wide parameters
   pthread_mutex_lock(&session_param_lock_);
@@ -33,10 +29,23 @@ void ImageLogger::onInit(){
   pthread_mutex_unlock(&session_param_lock_);
 
   // Getting node specific parameters
+  bool is_compressed;
   getPrivateNodeHandle().getParam("sensor_id", sensor_id_);
   getPrivateNodeHandle().getParam("data_dir", data_dir_);
   getPrivateNodeHandle().getParam("image_extn", image_extn_);
   getPrivateNodeHandle().getParam("image_type", image_type_);
+  getPrivateNodeHandle().getParam("base_name", base_name_);
+  getPrivateNodeHandle().getParam("is_compressed", is_compressed);
+
+  boost::shared_ptr<image_transport::TransportHints> hints;
+  if (is_compressed) {
+    hints.reset(new image_transport::TransportHints("compressed", ros::TransportHints()));
+  } else {
+    hints.reset(new image_transport::TransportHints("raw", ros::TransportHints()));
+  }
+  it_.reset(new image_transport::ImageTransport(getNodeHandle()));
+  image_sub_ = it_->subscribe("/log_image", 5, &ImageLogger::imageCallback, this, *hints);
+  image_count_pub_ = getNodeHandle().advertise<std_msgs::Int64>("/image_count", 15);
 
   NODELET_INFO_STREAM("[ImageLogger] Parameter session_id: "<<session_id_.c_str());
   NODELET_INFO_STREAM("[ImageLogger] Parameter sensor_id: "<<sensor_id_.c_str());
@@ -54,11 +63,13 @@ void ImageLogger::onInit(){
   }
 
   // Create service to toggle image logging
-  toggle_logger_ = getNodeHandle().advertiseService(ros::this_node::getName()+std::string("_enable"),
+  toggle_logger_ = getNodeHandle().advertiseService(base_name_+std::string("_")+image_type_+
+                                                    std::string("_enable"),
                                                     &ImageLogger::toggleLogger, this);
 
   // Create service to toggle image logging
-  session_info_ = getNodeHandle().advertiseService(ros::this_node::getName()+std::string("_session_info"),
+  session_info_ = getNodeHandle().advertiseService(base_name_+std::string("_")+image_type_+
+                                                   std::string("_session_info"),
                                                    &ImageLogger::setSessionInfo, this);
 }
 
@@ -108,20 +119,20 @@ bool ImageLogger::toggleLogger(std_srvs::SetBool::Request  &req,
     initializeSessionDirectories();
     pthread_mutex_lock(&session_param_lock_);
     NODELET_INFO("[ImageLogger] [%s] Logging images to directory: %s",
-                  ros::this_node::getName().c_str(), image_dir_.string().c_str());
+                  (base_name_+std::string("_")+image_type_).c_str());
     pthread_mutex_unlock(&session_param_lock_);
 
     pthread_mutex_lock(&enable_lock_);
     enable_ = true;
     pthread_mutex_unlock(&enable_lock_);
-    res.message = ros::this_node::getName()+std::string(": ImageLogger ON");
+    res.message = base_name_+std::string("_")+image_type_+std::string(": ImageLogger ON");
   } else {
     ROS_INFO("[ImageLogger] [%s] Turning off image logging",
-              ros::this_node::getName().c_str());
+             (base_name_+std::string("_")+image_type_).c_str());
     pthread_mutex_lock(&enable_lock_);
     enable_ = false;
     pthread_mutex_unlock(&enable_lock_);
-    res.message = ros::this_node::getName()+std::string(": ImageLogger OFF");
+    res.message = base_name_+std::string("_")+image_type_+std::string(": ImageLogger OFF");
   }
 
   res.success = true;
@@ -138,7 +149,7 @@ bool ImageLogger::setSessionInfo(std_srvs::Trigger::Request  &req,
   getNodeHandle().getParam("trial_id", trial_id_);
   pthread_mutex_unlock(&session_param_lock_);
 
-  res.message = ros::this_node::getName()+std::string(": Session parameters SET");
+  res.message = base_name_+std::string("_")+image_type_+std::string(": Session parameters SET");
   res.success = true;
   return true;
 }

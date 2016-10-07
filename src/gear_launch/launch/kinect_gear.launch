@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <launch>
   <!--Common parameters-->
-  <arg name="fps_limit"         default="30"/>
+  <arg name="frame_rate"        default="30"/>
   <arg name="do_pointcloud"     default="false"/>
   <arg name="do_acquisition"    default="true"/>
   <arg name="pc_machine"        default="localhost"/>
@@ -14,8 +14,8 @@
   <!--kinect1 parameters-->
   <arg name="k1_base_name"      value="k1"/>
   <arg name="k1_sensor"         value="308780235147"/>
-  <arg name="k1_acq_machine"    value="tegra-ubuntu"/>
-  <arg name="k1_remote_user"    value="ubuntu"/>
+  <arg name="k1_acq_machine"    value="localhost"/>
+  <arg name="k1_remote_user"    value="cooplab-gear"/>
 
 
   <!--kinect2 parameters-->
@@ -35,7 +35,7 @@
     <arg name="base_name"       value="$(arg k1_base_name)"/>
     <arg name="sensor"          value="$(arg k1_sensor)"/>
     <arg name="acq_machine"     value="$(arg k1_acq_machine)"/>
-    <arg name="fps_limit"       value="$(arg fps_limit)"/>
+    <arg name="fps_limit"       value="$(arg frame_rate)"/>
     <arg name="do_pointcloud"   value="$(arg do_pointcloud)"/>
     <arg name="do_acquisition"  value="$(arg do_acquisition)"/>
     <arg name="pc_machine"      value="$(arg pc_machine)"/>
@@ -47,7 +47,7 @@
     <arg name="base_name"       value="$(arg k2_base_name)"/>
     <arg name="sensor"          value="$(arg k2_sensor)"/>
     <arg name="acq_machine"     value="$(arg k2_acq_machine)"/>
-    <arg name="fps_limit"       value="$(arg fps_limit)"/>
+    <arg name="fps_limit"       value="$(arg frame_rate)"/>
     <arg name="do_pointcloud"   value="$(arg do_pointcloud)"/>
     <arg name="do_acquisition"  value="$(arg do_acquisition)"/>
     <arg name="pc_machine"      value="$(arg pc_machine)"/>
@@ -59,7 +59,7 @@
     <arg name="base_name"       value="$(arg k3_base_name)"/>
     <arg name="sensor"          value="$(arg k3_sensor)"/>
     <arg name="acq_machine"     value="$(arg k3_acq_machine)"/>
-    <arg name="fps_limit"       value="$(arg fps_limit)"/>
+    <arg name="fps_limit"       value="$(arg frame_rate)"/>
     <arg name="do_pointcloud"   value="$(arg do_pointcloud)"/>
     <arg name="do_acquisition"  value="$(arg do_acquisition)"/>
     <arg name="pc_machine"      value="$(arg pc_machine)"/>

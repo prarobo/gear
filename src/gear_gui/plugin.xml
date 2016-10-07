@@ -5,7 +5,7 @@
     </description>
     <qtgui>
       <label>GEAR image capture plugin</label>
-      <icon type="theme">system-help</icon>
+      <icon type="theme">folder-new</icon>
       <statustip>GEAR image capture</statustip>
     </qtgui>
   </class>

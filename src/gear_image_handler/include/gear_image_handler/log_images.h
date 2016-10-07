@@ -67,6 +67,7 @@ private:
   std::string data_dir_;
   std::string image_extn_;
   std::string image_type_;
+  std::string base_name_;
   std::string encoding_;
 
   bool enable_;

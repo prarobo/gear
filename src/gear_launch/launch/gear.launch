@@ -1,12 +1,13 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <launch>
   <!-- Parameters to control sensors -->
-  <arg name="enable_kinect1"        default="false"/>
-  <arg name="enable_kinect2"        default="false"/>
+  <arg name="enable_kinect1"        default="true"/>
+  <arg name="enable_kinect2"        default="true"/>
   <arg name="enable_kinect3"        default="false"/>
-  <arg name="enable_pointgrey1"     default="false"/>
-  <arg name="enable_pointgrey2"     default="false"/>
-  <arg name="enable_loggers"        default="false"/>
+  <arg name="enable_pointgrey1"     default="true"/>
+  <arg name="enable_pointgrey2"     default="true"/>
+  <arg name="enable_loggers"        default="true"/>
+  <arg name="frame_rate"            default="20"/>
   
   <!-- Session wide arguments -->
   <arg name="session_id"            default="test"/>
@@ -23,12 +24,14 @@
     <arg name="enable_kinect1"      value="$(arg enable_kinect1)"/>
     <arg name="enable_kinect2"      value="$(arg enable_kinect2)"/>
     <arg name="enable_kinect3"      value="$(arg enable_kinect3)"/>
+    <arg name="frame_rate"          value="$(arg frame_rate)"/>
   </include>
 
   <!-- Launch pointgreys -->
   <include file="$(find gear_launch)/launch/pointgrey_gear.launch">        
     <arg name="enable_pointgrey1"   value="$(arg enable_pointgrey1)"/>
     <arg name="enable_pointgrey2"   value="$(arg enable_pointgrey2)"/>
+    <arg name="frame_rate"          value="$(arg frame_rate)"/>
   </include>
 
   <!-- Launch loggers -->

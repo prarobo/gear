@@ -28,7 +28,7 @@ class ImageCaptureGUI(Plugin):
             print 'unknowns: ', unknowns
 
         # Create QWidget
-        self._widget = QMainWindow()
+        self._widget = QWidget()
         
         # Get path to UI file which should be in the "resource" folder of this package
         ui_file = os.path.join(rospkg.RosPack().get_path('gear_gui'), 'resource', 'gear_image_capture.ui')
@@ -89,20 +89,34 @@ class ImageCaptureGUI(Plugin):
         Initializing the image capture utility on user request
         '''
         rospy.loginfo("[GearGUI] Starting image capture ...")
-        for serv in self._sensors:
-            sensor_trigger = rospy.ServiceProxy('/'+serv+'_logger_manager_enable', SetBool)
+        for s in self._sensors:
+            service_name = '/'+s+'_enable'
+            try:
+                rospy.wait_for_service(service_name, 1)
+            except rospy.ROSException:
+                rospy.logwarn("[GearGUI] Sensor "+s+" service not available")
+                continue
+
+            sensor_trigger = rospy.ServiceProxy(service_name, SetBool)
             resp = sensor_trigger(True)
-            rospy.loginfo("[GearGUI] Sensor "+serv+" logging started: "+str(resp))
+            rospy.loginfo("[GearGUI] Sensor "+s+" logging started: "+str(resp))
 
     def _onclicked_stop(self):
         '''
         Initializing the image capture utility on user request
         '''
-        rospy.loginfo("[GearGUI] Starting image capture ...")
-        for serv in self._sensors:
-            sensor_trigger = rospy.ServiceProxy('/'+serv+'_logger_manager_enable', SetBool)
+        rospy.loginfo("[GearGUI] Stopping image capture ...")
+        for s in self._sensors:
+            service_name = '/'+s+'_enable'
+            try:
+                rospy.wait_for_service(service_name, 1)
+            except rospy.ROSException:
+                rospy.logwarn("[GearGUI] Sensor "+s+" service not available")
+                continue
+
+            sensor_trigger = rospy.ServiceProxy(service_name, SetBool)
             resp = sensor_trigger(False)
-            rospy.loginfo("[GearGUI] Sensor "+serv+" logging stopped: "+str(resp))
+            rospy.loginfo("[GearGUI] Sensor "+s+" logging stopped: "+str(resp))
             
     def shutdown_plugin(self):
         # TODO unregister all publishers here
