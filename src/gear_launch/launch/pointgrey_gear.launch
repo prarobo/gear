@@ -2,7 +2,8 @@
 <launch>
   <!--Common parameters-->
   <arg name="frame_rate"        default="15"/>
-  <arg name="session_id"        default="session"/>
+  <arg name="start_manager"     default="true"/>
+  <arg name="nodelet_manager"   default="gear"/>
 
   <!-- Parameters to control sensor -->
   <arg name="enable_pointgrey1" default="true"/>
@@ -22,16 +23,18 @@
   <include file="$(find gear_launch)/launch/pointgrey.launch" if="$(arg enable_pointgrey1)">
     <arg name="base_name"       value="$(arg p1_base_name)"/>
     <arg name="camera_serial"   value="$(arg p1_camera_serial)"/>
-    <arg name="machine"         value="$(arg p1_machine)"/>
     <arg name="frame_rate"      value="$(arg frame_rate)"/>
+    <arg name="start_manager"   value="$(arg start_manager)"/>
+    <arg name="nodelet_manager" value="$(arg nodelet_manager)" unless="$(arg start_manager)"/>
   </include>
 
   <!--pointgrey2-->
   <include file="$(find gear_launch)/launch/pointgrey.launch" if="$(arg enable_pointgrey2)">
     <arg name="base_name"       value="$(arg p2_base_name)"/>
     <arg name="camera_serial"   value="$(arg p2_camera_serial)"/>
-    <arg name="machine"         value="$(arg p2_machine)"/>
     <arg name="frame_rate"      value="$(arg frame_rate)"/>
+    <arg name="start_manager"   value="$(arg start_manager)"/>
+    <arg name="nodelet_manager" value="$(arg nodelet_manager)" unless="$(arg start_manager)"/>
   </include>
 </launch>
 
