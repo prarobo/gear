@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 2.8.3)
-project(gear_gui)
+project(gear_session_duration)
 
 ## Find catkin macros and libraries
 ## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
@@ -8,6 +8,7 @@ find_package(catkin REQUIRED COMPONENTS
   rospy
   rqt_gui
   rqt_gui_py
+  message_generation
 )
 
 ## System dependencies are found with CMake's conventions

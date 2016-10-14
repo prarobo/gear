@@ -8,6 +8,7 @@ from qt_gui.plugin import Plugin
 from python_qt_binding import loadUi, QtCore
 from python_qt_binding.QtGui import QWidget, QMainWindow
 from std_srvs.srv._SetBool import SetBool
+from std_srvs.srv._Empty import Empty, EmptyRequest
 
 class ImageCaptureGUI(Plugin):
 
@@ -31,7 +32,7 @@ class ImageCaptureGUI(Plugin):
         self._widget = QWidget()
         
         # Get path to UI file which should be in the "resource" folder of this package
-        ui_file = os.path.join(rospkg.RosPack().get_path('gear_gui'), 'resource', 'gear_image_capture.ui')
+        ui_file = os.path.join(rospkg.RosPack().get_path('gear_image_capture'), 'resource', 'gear_image_capture.ui')
         
         # Extend the widget with all attributes and children from UI file
         loadUi(ui_file, self._widget)
@@ -62,8 +63,8 @@ class ImageCaptureGUI(Plugin):
         Configure the gui element on startup
         '''
         # Load data collection configuration values
-        config_file = os.path.join(rospkg.RosPack().get_path('gear_gui'), 'config', 'data_collection_settings.yaml')
-        rospy.loginfo("[GearGUI] Loading parameters from file: "+config_file)
+        config_file = os.path.join(rospkg.RosPack().get_path('gear_image_capture'), 'config', 'settings.yaml')
+        rospy.loginfo("[GearImageCapture] Loading parameters from file: "+config_file)
         config_data = yaml.load(open(config_file,'r'))
         
         trial_list = [str(i) for i in xrange(1,config_data["MaxTrials"])]
@@ -79,7 +80,7 @@ class ImageCaptureGUI(Plugin):
         '''
         Initializing the image capture utility on user request
         '''
-        rospy.loginfo("[GearGUI] Setting data collection parameters")
+        rospy.loginfo("[GearImageCapture] Setting data collection parameters")
         rospy.set_param("session_id", str(self._widget.txtSession.text()))
         rospy.set_param("activity_id", str(self._widget.comboActivity.currentText()))
         rospy.set_param("trial_id", int(self._widget.comboTrial.currentText()))
@@ -88,36 +89,59 @@ class ImageCaptureGUI(Plugin):
         '''
         Initializing the image capture utility on user request
         '''
-        rospy.loginfo("[GearGUI] Starting image capture ...")
+        rospy.loginfo("[GearImageCapture] Starting image capture ...")
         for s in self._sensors:
             service_name = '/'+s+'_enable'
             try:
                 rospy.wait_for_service(service_name, 1)
             except rospy.ROSException:
-                rospy.logwarn("[GearGUI] Sensor "+s+" service not available")
+                rospy.logwarn("[GearImageCapture] Sensor "+s+" service not available")
                 continue
-
+            
+            # Service call to trigger logging
             sensor_trigger = rospy.ServiceProxy(service_name, SetBool)
             resp = sensor_trigger(True)
-            rospy.loginfo("[GearGUI] Sensor "+s+" logging started: "+str(resp))
+            rospy.loginfo("[GearImageCapture] Sensor "+s+" logging started: "+str(resp))
+            
+        timer_start_service_name = "/start_session_timer"    
+        try:
+            rospy.wait_for_service(timer_start_service_name, 1)
+        except rospy.ROSException:
+            rospy.logwarn("[GearImageCapture] "+timer_start_service_name+" service not available")
+            return
+            
+        # Service call to trigger gui timer
+        timer_start = rospy.ServiceProxy(timer_start_service_name, Empty)
+        resp = timer_start()
 
     def _onclicked_stop(self):
         '''
         Initializing the image capture utility on user request
         '''
-        rospy.loginfo("[GearGUI] Stopping image capture ...")
+        rospy.loginfo("[GearImageCapture] Stopping image capture ...")
         for s in self._sensors:
             service_name = '/'+s+'_enable'
             try:
                 rospy.wait_for_service(service_name, 1)
             except rospy.ROSException:
-                rospy.logwarn("[GearGUI] Sensor "+s+" service not available")
+                rospy.logwarn("[GearImageCapture] Sensor "+s+" service not available")
                 continue
 
             sensor_trigger = rospy.ServiceProxy(service_name, SetBool)
             resp = sensor_trigger(False)
-            rospy.loginfo("[GearGUI] Sensor "+s+" logging stopped: "+str(resp))
+            rospy.loginfo("[GearImageCapture] Sensor "+s+" logging stopped: "+str(resp))
             
+        timer_stop_service_name = "/stop_session_timer"    
+        try:
+            rospy.wait_for_service(timer_stop_service_name, 1)
+        except rospy.ROSException:
+            rospy.logwarn("[GearImageCapture] "+timer_stop_service_name+" service not available")
+            return
+            
+        # Service call to trigger gui timer
+        timer_stop = rospy.ServiceProxy(timer_stop_service_name, Empty)
+        resp = timer_stop()
+
     def shutdown_plugin(self):
         # TODO unregister all publishers here
         pass

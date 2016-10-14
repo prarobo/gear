@@ -1,8 +1,8 @@
 <?xml version="1.0"?>
 <package>
-  <name>gear_gui</name>
+  <name>gear_image_capture</name>
   <version>0.0.0</version>
-  <description>The gear_gui package</description>
+  <description>The gear image capture gui interface plugin</description>
 
   <!-- One maintainer tag required, multiple allowed, one person per tag --> 
   <!-- Example:  -->

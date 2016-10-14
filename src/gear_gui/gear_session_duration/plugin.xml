@@ -1,0 +1,12 @@
+<library path="src">
+  <class name="SessionDurationGUI" type="gear_session_duration.session_duration.SessionDurationGUI" base_class_type="rqt_gui_py::Plugin">
+    <description>
+      Rqt plugin to show session duration times.
+    </description>
+    <qtgui>
+      <label>GEAR session duration</label>
+      <icon type="theme">folder</icon>
+      <statustip>GEAR session duration</statustip>
+    </qtgui>
+  </class>
+</library>
