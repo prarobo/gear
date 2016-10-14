@@ -53,3 +53,15 @@ target_link_libraries(image_logger
   ${Boost_LIBRARIES}
   ${OpenCV_LIBRARIES}
 )
+
+## Declare a C++ library
+add_library(image_synchronized_logger
+  src/log_images.cpp
+)
+
+target_link_libraries(image_synchronized_logger
+  ${catkin_LIBRARIES}
+  ${Boost_LIBRARIES}
+  ${OpenCV_LIBRARIES}
+)
+

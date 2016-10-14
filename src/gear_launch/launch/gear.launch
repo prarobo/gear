@@ -13,7 +13,7 @@
   <arg name="enable_kinect3"        default="true"/>
   <arg name="enable_pointgrey1"     default="true"/>
   <arg name="enable_pointgrey2"     default="true"/>
-  <arg name="enable_loggers"        default="false"/>
+  <arg name="enable_loggers"        default="true"/>
   <arg name="frame_rate"            default="15"/>
   
   <!-- Session wide arguments -->
