@@ -9,7 +9,7 @@
   <arg name="nodelet_manager"   default="$(arg base_name)"/>  
   <arg name="start_manager"     default="true"/>
 
-  <group ns="$(arg base_name)">
+  <group ns="$(arg base_name)/hd">
     <node pkg="nodelet" type="nodelet" name="$(arg nodelet_manager)" args="manager" if="$(arg start_manager)"/>
 
     <!-- Use global nodelet manager name if not starting my own nodelet manager-->

@@ -15,6 +15,9 @@
   <arg name="enable_pointgrey2"     default="true"/>
   <arg name="enable_loggers"        default="true"/>
   <arg name="frame_rate"            default="15"/>
+
+  <!-- Logger parameters -->
+  <arg name="synchronize"           default="true"/> 
   
   <!-- Session wide arguments -->
   <arg name="session_id"            default="test"/>
@@ -47,8 +50,10 @@
 
   <!-- Launch loggers -->
   <include file="$(find gear_launch)/launch/logger_gear.launch" if="$(arg enable_loggers)">
-    <arg name="start_manager"       value="$(arg start_indiv_manager)"/>
+    <arg name="start_manager"       value="true"/>
     <arg name="nodelet_manager"     value="$(arg nodelet_manager)"/>
+    <arg name="synchronize"         value="$(arg synchronize)"/>
+    <arg name="frame_rate"          value="$(arg frame_rate)"/>
   </include> 
 
   <!-- Launch nodelet manager -->
