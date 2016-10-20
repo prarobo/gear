@@ -18,7 +18,7 @@ def main():
     image_extn = rospy.get_param("~image_extension", ".jpg")
     video_extn = rospy.get_param("~video_extension", ".avi")
     fps = int(rospy.get_param("~frame_rate", "15"))
-    time_offset = int(rospy.get_param("~time_offset", "2"))
+    time_offset = int(rospy.get_param("~time_offset", "0"))
     
     video_format = cv2.cv.CV_FOURCC('M','J','P','G')
     
@@ -40,7 +40,7 @@ def main():
     
     #image_reader.plotFramerateStatistics()
     image_reader.getMinMaxTimeSeq()
-    image_reader.encodeVideo()
+    #image_reader.encodeVideo()
     image_reader.composeVideo()
     
     return

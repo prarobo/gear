@@ -8,9 +8,10 @@ import cv2
 import shutil
 import rospy
 from decimal import Decimal, getcontext
+import rospy
 
-COMPOSITION_KEYS = ["k3_color", "p1_color", "p2_color"]
-COMPOSITION_FRAME_SIZE = [640, 480]
+COMPOSITION_KEYS = ["k3_color", "p1_color", "k2_color"]
+COMPOSITION_FRAME_SIZE = [1000, 1000]
 COMPOSITION_TILES = [2, 2]
 
 class ImageReader(object):
@@ -141,7 +142,7 @@ class ImageReader(object):
         self.end_time = min(max_list)-self.time_offset_
         self.time_diff = self.end_time-self.start_time
 
-        self.num_frames = {k:sum(self.start_time<x<self.end_time for x in v)
+        self.num_frames = {k:sum(self.start_time<=x<=self.end_time for x in v)
                            for k,v in self.time_seq_.iteritems()}
         
         rospy.loginfo("Min time = {min_time}".format(min_time=self.start_time))
@@ -158,8 +159,10 @@ class ImageReader(object):
         # Frame rate
         getcontext().prec=19
         current_fps = Decimal(self.num_frames[sensor_stream])/self.time_diff
-        assert  int(round(current_fps)) == int(self.fps_), \
-        "Framerate mismatch: expected {e} current {c}".format(e=self.fps_,c=current_fps)
+        #assert  int(round(current_fps)) == int(self.fps_), \
+        #"Framerate mismatch: expected {e} current {c}".format(e=self.fps_,c=current_fps)
+        if int(round(current_fps)) != int(self.fps_):
+            rospy.logerr("Framerate mismatch: expected {e} current {c}".format(e=self.fps_,c=current_fps))
         
         # Frame size
         image_name = self._buildImageName(self.time_seq_[sensor_stream][0])
@@ -204,11 +207,33 @@ class ImageReader(object):
         Compose multiple videos into a single video
         '''
         
-        assert set(COMPOSITION_KEYS)<=set(self.sensor_dir_.keys()), \
-            "Data for video composition unavailable"
+        if not set(COMPOSITION_KEYS)<=set(self.sensor_dir_.keys()):
+            rospy.logfatal("Data for video composition unavailable")
+            return
+
+        video_frame_size = np.round([COMPOSITION_FRAME_SIZE[0]/COMPOSITION_TILES[0], 
+                                     COMPOSITION_FRAME_SIZE[1]/COMPOSITION_TILES[1]])  
+        image_names = os.listdir(os.path.join(self.image_root_path_, COMPOSITION_KEYS[0]))
+        num_frames = len(image_names)
+
+        video_path = os.path.join(self.video_root_path_, "multi_view_composition"+self.video_extn_)
+        video_writer = cv2.VideoWriter(video_path, self.video_format_, float(self.fps_), tuple(COMPOSITION_FRAME_SIZE))                                
+        if not video_writer.isOpened():
+            raise Exception("Failed to load video")
+
+        for im_name in image_names:
+            images = []
+            for v in COMPOSITION_KEYS:
+                image_path = os.path.join(self.image_root_path_,v,im_name)
+                image = cv2.imread(image_path, 1)
+                images.append(cv2.resize(image, tuple(video_frame_size)))
             
-        for v in COMPOSITION_KEYS:
-            pass
+            zero_image = np.zeros(np.append(video_frame_size,[3]),dtype=np.uint8)
+            top_row = np.concatenate((images[0], images[1]), axis=1)
+            bottom_row = np.concatenate((images[2], zero_image), axis=1)
+            composed_image = np.concatenate((top_row, bottom_row), axis=0)
+            video_writer.write(composed_image)
+            
         return
     
 if __name__=="__main__":
