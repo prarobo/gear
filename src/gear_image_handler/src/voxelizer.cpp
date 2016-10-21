@@ -20,22 +20,34 @@ public:
   Voxelizer(){};
   void onInit(){
     nh_ = getNodeHandle();
-    pub_ = nh_.advertise<pcl::PointCloud<pcl::PointXYZRGB> > ("voxel/points", 1);
+    pub_ = nh_.advertise<sensor_msgs::PointCloud2> ("voxel/points", 1);
     sub_ = nh_.subscribe ("rgb/points", 1, &Voxelizer::cloudCb, this);
   };
 
-  void cloudCb(const pcl::PointCloud<pcl::PointXYZRGB>::ConstPtr& cloud){
+  void cloudCb (const sensor_msgs::PointCloud2ConstPtr& cloud_msg)
+  {
+    // Container for original & filtered data
+    pcl::PCLPointCloud2* cloud = new pcl::PCLPointCloud2;
+    pcl::PCLPointCloud2ConstPtr cloudPtr(cloud);
+    pcl::PCLPointCloud2 cloud_filtered;
 
-    pcl::PointCloud<pcl::PointXYZRGB> voxel_cloud;
+    // Convert to PCL data type
+    pcl_conversions::toPCL(*cloud_msg, *cloud);
 
-    // Create the filtering object
-    pcl::VoxelGrid<pcl::PointCloud<pcl::PointXYZ>> sor;
-    /*sor.setInputCloud (*cloud);
-    sor.setLeafSize (0.01f, 0.01f, 0.01f);
-    sor.filter (voxel_cloud);*/
+    // Perform the actual filtering
+    pcl::VoxelGrid<pcl::PCLPointCloud2> sor;
+    sor.setInputCloud (cloudPtr);
+    sor.setLeafSize (0.1, 0.1, 0.1);
+    sor.filter (cloud_filtered);
 
-    pub_.publish(voxel_cloud);
+    // Convert to ROS data type
+    sensor_msgs::PointCloud2 output;
+    pcl_conversions::fromPCL(cloud_filtered, output);
+
+    // Publish the data
+    pub_.publish (output);
   }
+
 private:
   double voxel_size_;
   ros::Publisher pub_;
