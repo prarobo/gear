@@ -19,24 +19,17 @@
   <arg name="bilateral_filter"  default="true"/>
   <arg name="edge_aware_filter" default="true"/>
   <arg name="worker_threads"    default="4"/>
-  <arg name="acq_machine"       default="localhost"/>
-  <arg name="pc_machine"        default="localhost"/>
   <arg name="nodelet_manager"   default="$(arg base_name)"/>
   <arg name="start_manager"     default="true"/>
   <arg name="respawn"           default="true"/>
   <arg name="do_pointcloud"	    default="true"/>
   <arg name="do_acquisition"   	default="true"/>
-  <arg name="remote_user"       default="ubuntu"/>
-
-  <machine name="$(arg base_name)_machine" address="$(arg acq_machine)" user="$(arg remote_user)" 
-           env-loader="/home/$(arg remote_user)/gear/devel/env.sh"/>
-  <machine name="$(arg base_name)_pc_machine"  address="$(arg pc_machine)"/>
 
   <node pkg="nodelet" type="nodelet" name="$(arg nodelet_manager)" args="manager"
         if="$(arg start_manager)" machine="$(arg base_name)_machine" output="screen"/>
 
   <!-- Nodelet version of kinect2_bridge -->
-  <node pkg="nodelet" type="nodelet" name="$(arg base_name)_bridge" machine="$(arg base_name)_machine"
+  <node pkg="nodelet" type="nodelet" name="$(arg base_name)_bridge"
         args="load kinect2_bridge/kinect2_bridge_nodelet $(arg nodelet_manager)"
         respawn="$(arg respawn)" output="screen" if="$(arg do_acquisition)">
     <param name="base_name"         type="str"    value="$(arg base_name)"/>
@@ -60,13 +53,13 @@
     <param name="worker_threads"    type="int"    value="$(arg worker_threads)"/>
   </node>
 
-  <node pkg="nodelet" type="nodelet" name="$(arg nodelet_manager)_pc" args="manager"
-        if="$(arg do_pointcloud)" machine="$(arg base_name)_machine" output="screen"/>
+  <node pkg="nodelet" type="nodelet" name="$(arg nodelet_manager)" args="manager"
+        if="$(arg start_manager)" output="screen"/>
   
   <!-- sd point cloud (512 x 424) -->
-  <node pkg="nodelet" type="nodelet" name="$(arg base_name)_points_xyzrgb_sd" machine="$(arg base_name)_pc_machine"
-        args="load depth_image_proc/point_cloud_xyzrgb $(arg nodelet_manager)_pc" respawn="$(arg respawn)"
-	if="$(arg do_pointcloud)">
+  <node pkg="nodelet" type="nodelet" name="$(arg base_name)_points_xyzrgb_sd"
+        args="load depth_image_proc/point_cloud_xyzrgb $(arg nodelet_manager)" respawn="$(arg respawn)"
+	      if="$(arg do_pointcloud)">
     <remap from="rgb/camera_info"             to="$(arg base_name)/sd/camera_info"/>
     <remap from="rgb/image_rect_color"        to="$(arg base_name)/sd/image_color_rect"/>
     <remap from="depth_registered/image_rect" to="$(arg base_name)/sd/image_depth_rect"/>
@@ -75,9 +68,9 @@
   </node>
 
   <!-- qhd point cloud (960 x 540) -->
-  <node pkg="nodelet" type="nodelet" name="$(arg base_name)_points_xyzrgb_qhd" machine="$(arg base_name)_pc_machine"
-        args="load depth_image_proc/point_cloud_xyzrgb $(arg nodelet_manager)_pc" respawn="$(arg respawn)"
-	if="$(arg do_pointcloud)">
+  <node pkg="nodelet" type="nodelet" name="$(arg base_name)_points_xyzrgb_qhd"
+        args="load depth_image_proc/point_cloud_xyzrgb $(arg nodelet_manager)" respawn="$(arg respawn)"
+	      if="$(arg do_pointcloud)">
     <remap from="rgb/camera_info"             to="$(arg base_name)/qhd/camera_info"/>
     <remap from="rgb/image_rect_color"        to="$(arg base_name)/qhd/image_color_rect"/>
     <remap from="depth_registered/image_rect" to="$(arg base_name)/qhd/image_depth_rect"/>
@@ -86,9 +79,9 @@
   </node>
 
   <!-- hd point cloud (1920 x 1080) -->
-  <node pkg="nodelet" type="nodelet" name="$(arg base_name)_points_xyzrgb_hd" machine="$(arg base_name)_pc_machine"
-        args="load depth_image_proc/point_cloud_xyzrgb $(arg nodelet_manager)_pc" respawn="$(arg respawn)"
-	if="$(arg do_pointcloud)">
+  <node pkg="nodelet" type="nodelet" name="$(arg base_name)_points_xyzrgb_hd"
+        args="load depth_image_proc/point_cloud_xyzrgb $(arg nodelet_manager)" respawn="$(arg respawn)"
+	      if="$(arg do_pointcloud)">
     <remap from="rgb/camera_info"             to="$(arg base_name)/hd/camera_info"/>
     <remap from="rgb/image_rect_color"        to="$(arg base_name)/hd/image_color_rect"/>
     <remap from="depth_registered/image_rect" to="$(arg base_name)/hd/image_depth_rect"/>

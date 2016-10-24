@@ -1,31 +1,52 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <launch>
-  <arg name="session_id"    default="test"/>
-  <arg name="base_name"     default="p1"/>
-  <arg name="data_dir"      default="/mnt/md0/gear_data"/>
-  <arg name="image_extn"    default=".jpg"/>
-  <arg name="kinect"        default="false"/>
-  <arg name="pointgrey"     default="false"/> 
-  <arg name="start_manager" default="true"/>  
-  <arg name="image_type"    default="color"/>
-  <arg name="image_def"     default="hd"/>      
+  <arg name="base_name"         default="p1"/>
+  <arg name="data_dir"          default="/mnt/md0/gear_data"/>
+  <arg name="image_extn"        default=".jpg"/>
+  <arg name="start_manager"     default="false"/>  
+  <arg name="image_type"        default="color"/>
+  <arg name="image_def"         default="hd"/>      
+  <arg name="use_compressed"    default="false"/> 
+  <arg name="use_sync"          default="false"/>
+
+  <arg name="nodelet_manager"   default="$(arg base_name)_$(arg image_type)_logger_manager" if="$(arg start_manager)"/>
+  <arg name="nodelet_manager"   default="$(arg base_name)" unless="$(arg start_manager)"/>     
   
-  <node pkg="nodelet" type="nodelet" 
-        name="$(arg base_name)_$(arg image_type)_logger_manager"  
+  <node pkg="nodelet" type="nodelet" name="$(arg nodelet_manager)"  
         args="manager" output="screen" if="$(arg start_manager)">
     <param name="num_worker_threads" value="4"/>
   </node>
 
+  <!-- If using compressed images -->
   <node pkg="nodelet" type="nodelet" name="$(arg base_name)_$(arg image_type)_logger"
-        args="load gear_image_handler/ImageLogger $(arg base_name)_$(arg image_type)_logger_manager"
-        output="screen">
-    <remap from="/log_image"    to="/$(arg base_name)/$(arg image_def)/image_$(arg image_type)" if="$(arg kinect)"/>
-    <remap from="/log_image"    to="/$(arg base_name)/image_$(arg image_type)"                  if="$(arg pointgrey)"/>
-    <remap from="/image_count"  to="/$(arg base_name)/image_$(arg image_type)_count" />
-    <param name="session_id"    value="$(arg session_id)"/>
+        args="load gear_image_handler/ImageLogger $(arg nodelet_manager)"
+        output="screen" if="$(arg use_compressed)">
+    <remap from="/log_image/compressed" 
+           to="/$(arg base_name)/$(arg image_def)/image_$(arg image_type)/compressed" unless="$(arg use_sync)"/>
+    <remap from="/log_image/compressed" 
+           to="/synchronizer/$(arg base_name)_$(arg image_type)" if="$(arg use_sync)"/>
+    <remap from="/image_count"  to="/$(arg base_name)/image_$(arg image_type)_count"/>
     <param name="sensor_id"     value="$(arg base_name)"/>
     <param name="data_dir"      value="$(arg data_dir)"/>
     <param name="image_extn"    value="$(arg image_extn)"/>
     <param name="image_type"    value="$(arg image_type)"/>
+    <param name="base_name"     value="$(arg base_name)"/>
+    <param name="is_compressed" value="$(arg use_compressed)"/>
   </node>
+
+  <!-- If not using compressed images -->
+  <node pkg="nodelet" type="nodelet" name="$(arg base_name)_$(arg image_type)_logger"
+        args="load gear_image_handler/ImageLogger $(arg nodelet_manager)"
+        output="screen" unless="$(arg use_compressed)">
+    <remap from="/log_image"    to="/$(arg base_name)/$(arg image_def)/image_$(arg image_type)" unless="$(arg use_sync)"/>
+    <remap from="/log_image"    to="/synchronizer/$(arg base_name)_$(arg image_type)" if="$(arg use_sync)"/>
+    <remap from="/image_count"  to="/$(arg base_name)/image_$(arg image_type)_count" />
+    <param name="sensor_id"     value="$(arg base_name)"/>
+    <param name="data_dir"      value="$(arg data_dir)"/>
+    <param name="image_extn"    value="$(arg image_extn)"/>
+    <param name="image_type"    value="$(arg image_type)"/>
+    <param name="base_name"     value="$(arg base_name)"/>
+    <param name="is_compressed" value="$(arg use_compressed)"/>
+  </node>
+
 </launch>

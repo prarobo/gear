@@ -9,7 +9,7 @@
 	<arg name="video_extension"   default=".avi"/>
 	<arg name="time_offset"   	  default="2"/>
  	
- 	<node name="image_processer" pkg="gear_image_handler" type="posprocess_node.py" output="screen">
+ 	<node name="image_processer" pkg="gear_image_handler" type="postprocess_node.py" output="screen">
  		<param name="frame_rate"		value="$(arg frame_rate)"/>
  		<param name="data_directory"	value="$(arg data_directory)"/>
  		<param name="image_directory"	value="$(arg image_directory)"/> 			

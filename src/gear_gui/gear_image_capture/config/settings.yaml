@@ -1,0 +1,19 @@
+# Maximum number of trials allowed
+MaxTrials: 10
+
+# Activity List
+Activity:
+  - FreePlay
+  - Chase
+
+# Sensor List
+Sensors:
+  - p1_color
+  - p2_color
+  - k1_color
+  - k1_depth
+  - k2_color
+  - k2_depth
+  - k3_color
+  - k3_depth
+  
