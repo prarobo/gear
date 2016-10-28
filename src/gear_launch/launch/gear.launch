@@ -53,7 +53,6 @@
     <arg name="start_manager"       value="$(arg start_indiv_manager)"/>
     <arg name="nodelet_manager"     value="$(arg nodelet_manager)"/>
     <arg name="synchronize"         value="$(arg synchronize)"/>
-    <arg name="frame_rate"          value="$(arg frame_rate)"/>
   </include> 
 
   <!-- Launch nodelet manager -->

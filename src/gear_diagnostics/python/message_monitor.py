@@ -28,6 +28,7 @@ SENSOR_LOGGER_TOPICS = ["/k1/color_image_count",
 
 class MessageMonitor(object):
     def __init__(self):
+        rospy.init_node('message_monitor', anonymous=False)
         
         # Load parameters
         self._loadParameters()
@@ -88,6 +89,12 @@ class MessageMonitor(object):
         '''
         Update diagnostics function
         '''
+        # Update tick
+        self.synchronizer_diagnostics.tick()
+        for s in self.sensor_logger_diagnostics:
+            s.tick()
+        
+        # Send diagnostics out
         self.diagnostic_updater.update()
         return            
 

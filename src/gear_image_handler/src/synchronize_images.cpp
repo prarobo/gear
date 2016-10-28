@@ -102,6 +102,7 @@ bool ImageSynchronizer::toggleLogger(std_srvs::SetBool::Request  &req,
   // Set the enable parameter based on service call value
   boost::mutex::scoped_lock(enable_lock_);
   if (req.data) {
+    NODELET_INFO_STREAM("[ImageSychronizer] Turning on image synchronization");
     enable_ = true;
     res.message = std::string("Synchronizer: ImageLogger ON");
   } else {

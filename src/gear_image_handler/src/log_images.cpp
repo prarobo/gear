@@ -120,14 +120,12 @@ bool ImageLogger::toggleLogger(std_srvs::SetBool::Request  &req,
   // Set the enable parameter based on service call value
   if (req.data) {
     initializeSessionDirectories();
-    NODELET_INFO("[ImageLogger] [%s] Logging images to directory: %s",
-                  (base_name_+std::string("_")+image_type_).c_str());
+    NODELET_INFO("[ImageLogger] [%s%s] Turning on image logging", base_name_.c_str(), image_type_.c_str());
 
     enable_ = true;
     res.message = base_name_+std::string("_")+image_type_+std::string(": ImageLogger ON");
   } else {
-    ROS_INFO("[ImageLogger] [%s] Turning off image logging",
-             (base_name_+std::string("_")+image_type_).c_str());
+    NODELET_INFO("[ImageLogger] [%s%s] Turning off image logging", base_name_.c_str(), image_type_.c_str());
     enable_ = false;
     res.message = base_name_+std::string("_")+image_type_+std::string(": ImageLogger OFF");
   }
@@ -163,6 +161,8 @@ void ImageLogger::initializeSessionDirectories() {
   if (!boost::filesystem::exists(image_dir_)) {
     boost::filesystem::create_directories(image_dir_);
   }
+  NODELET_INFO("[ImageLogger] [%s%s] Logging images to directory: %s",
+                base_name_.c_str(), image_type_.c_str(), image_dir_.c_str());
 }
 };
 
