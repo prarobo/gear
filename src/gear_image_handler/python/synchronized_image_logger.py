@@ -15,8 +15,6 @@ import os
 import cv2
 from cv_bridge import CvBridge, CvBridgeError
 import time
-from diagnostic_updater import DiagnosedPublisher, Updater, FrequencyStatusParam, TimeStampStatusParam
-from diagnostic_updater._publisher import HeaderlessTopicDiagnostic
 
 DEFAULT_TOPICS = ["/k1/hd/image_color",
                   "/k2/hd/image_color",
@@ -26,13 +24,6 @@ DEFAULT_TOPICS = ["/k1/hd/image_color",
                   "/k3/sd/image_depth",
                   "/p1/hd/image_color",
                   "/p2/hd/image_color"]
-
-DEFAULT_FRAME_RATE = 15
-DEFAULT_FREQUENCY_TOLERANCE = 0.1
-DEFAULT_WINDOW_SIZE = 60
-DEFAULT_MIN_ACCEPTABLE_DELAY = 0.0
-DEFAULT_MAX_ACCEPTABLE_DELAY = 0.2
-DEFAULT_UPDATE_INTERVAL = 1
 
 class SynchronizedImageLogger(object):
 
@@ -74,33 +65,9 @@ class SynchronizedImageLogger(object):
         for t in self.data_topics:
             base_name, image_type = self.parseTopic(t)
             self.pubs.append(rospy.Publisher('/synchronizer/'+base_name+'_'+image_type, Image, queue_size=10))
-                
-        # Setup diagnostics for the image count publisher
-        self.diagnostic_updater = Updater()
-        self.diagnostic_updater.setHardwareID("sync_logger")
-        self.image_count_pub = rospy.Publisher('image_count', Int64, queue_size=10)
-        self.diagnostic_image_count = HeaderlessTopicDiagnostic("/image_count", 
-                                                                self.diagnostic_updater,
-                                                                FrequencyStatusParam({"min": self.frame_rate, "max": self.frame_rate}, 
-                                                                                 self.freq_tolerance,
-                                                                                 self.window_size))
-#                                                             TimeStampStatusParam(self.min_acceptable_delay,
-#                                                                                  self.max_acceptable_delay))
-        
-        # Timer to periodically update diagnostics
-        rospy.Timer(rospy.Duration(self.update_interval), self._updateDiagnostics)
-        
+                                
         rospy.spin()
         return
-
-    def _updateDiagnostics(self, event):
-        '''
-        Update diagnostics function
-        '''
-        self.enable_lock.acquire()
-        if self.enable:
-            self.diagnostic_updater.update()            
-        self.enable_lock.release()        
         
     def _toggleLogger(self, req):
         '''
@@ -135,14 +102,7 @@ class SynchronizedImageLogger(object):
             
         # Get frame rate to use
         self.frame_rate = rospy.get_param("/frame_rate", DEFAULT_FRAME_RATE)
-        
-        # Get diagnostic parameters
-        self.freq_tolerance = rospy.get_param("frequency_tolerance", DEFAULT_FREQUENCY_TOLERANCE)
-        self.window_size = rospy.get_param("window_size", DEFAULT_WINDOW_SIZE)
-        self.min_acceptable_delay = rospy.get_param("min_acceptable_delay", DEFAULT_MIN_ACCEPTABLE_DELAY)
-        self.max_acceptable_delay = rospy.get_param("max_acceptable_delay", DEFAULT_MAX_ACCEPTABLE_DELAY)
-        self.update_interval = rospy.get_param("update_interval", DEFAULT_UPDATE_INTERVAL)
-          
+                  
         # Log messages      
         for t in self.data_topics:
             rospy.loginfo("[SyncLogger] Logging topic: "+ t)
