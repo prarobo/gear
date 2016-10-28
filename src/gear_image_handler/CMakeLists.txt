@@ -46,6 +46,7 @@ include_directories(
 ## Declare a C++ library
 add_library(image_logger
   src/log_images.cpp
+  src/synchronize_images.cpp
 )
 
 target_link_libraries(image_logger
