@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<launch>
+  <arg name="start_manager"     default="false"/>  
+
+  <arg name="nodelet_manager"   default="synchronizer_manager" if="$(arg start_manager)"/>
+  <arg name="nodelet_manager"   default="gear" unless="$(arg start_manager)"/>
+
+  <node pkg="nodelet" type="nodelet" name="$(arg nodelet_manager)"  
+        args="manager" output="screen" if="$(arg start_manager)">
+    <param name="num_worker_threads" value="4"/>
+  </node>
+ 
+  <node pkg="nodelet" type="nodelet" name="synchronizer"
+        args="load gear_image_handler/ImageSynchronizer $(arg nodelet_manager)" output="screen"/>
+
+  <!-- Synchronized logger python node -->
+  <!--<node name="synchronized_logger" pkg="gear_image_handler" type="synchronized_image_logger.py"  output="screen"/>-->
+
+</launch>

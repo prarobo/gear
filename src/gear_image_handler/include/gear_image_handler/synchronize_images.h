@@ -10,9 +10,16 @@
 #include <std_srvs/SetBool.h>
 #include <std_srvs/Trigger.h>
 #include <message_filters/subscriber.h>
+#include <message_filters/synchronizer.h>
+#include <message_filters/sync_policies/approximate_time.h>
 
 // Boost Dependencies
 #include <boost/thread/mutex.hpp>
+
+typedef message_filters::sync_policies::ApproximateTime
+          <sensor_msgs::Image, sensor_msgs::Image, sensor_msgs::Image,
+           sensor_msgs::Image,sensor_msgs::Image, sensor_msgs::Image,
+           sensor_msgs::Image, sensor_msgs::Image> gear_sync_policy;
 
 namespace gear_image_handler {
 
@@ -53,10 +60,11 @@ public:
 
 
 private:
-  std::vector<message_filters::Subscriber<sensor_msgs::Image>*> image_sub_;
+  std::vector<boost::shared_ptr<message_filters::Subscriber<sensor_msgs::Image>>> image_sub_;
   std::vector<ros::Publisher> image_pub_;
   ros::Publisher image_count_pub_;
   ros::ServiceServer toggle_logger_;
+  boost::shared_ptr<message_filters::Synchronizer<gear_sync_policy>> sync_;
 
   bool enable_;
   boost::mutex enable_lock_;
