@@ -54,7 +54,7 @@ void ImageSynchronizer::onInit(){
     std::string topic_name = std::string("/synchronizer/")+base_name+std::string("_")+image_type;
     image_pub_.emplace_back(nh.advertise<sensor_msgs::Image>(topic_name, 5));
   }
-  image_count_pub_ = nh.advertise<std_msgs::Int64>("/synchronizer_image_count", 5);
+  image_count_pub_ = nh.advertise<std_msgs::Int64>("/synchronizer/image_count", 5);
 
   //TODO: Cleanup to handle arbitrary number of subscribers
   sync_.reset(new message_filters::Synchronizer<gear_sync_policy>(gear_sync_policy(4), *image_sub_[0], *image_sub_[1], *image_sub_[2],

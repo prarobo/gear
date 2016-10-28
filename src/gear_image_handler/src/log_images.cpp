@@ -20,13 +20,12 @@ namespace gear_image_handler {
 ImageLogger::ImageLogger(): image_count_(0), enable_(false){};
 
 void ImageLogger::onInit(){
+  boost::mutex::scoped_lock(session_param_lock_);
 
   // Getting session wide parameters
-  pthread_mutex_lock(&session_param_lock_);
   getNodeHandle().param<std::string>("session_id", session_id_,"test");
   getNodeHandle().param<std::string>("activity_id", activity_id_,"act");
   getNodeHandle().param<std::string>("trial_id", trial_id_,"1");
-  pthread_mutex_unlock(&session_param_lock_);
 
   // Getting node specific parameters
   bool is_compressed;
@@ -74,6 +73,9 @@ void ImageLogger::onInit(){
 }
 
 void ImageLogger::imageCallback(const sensor_msgs::ImageConstPtr& msg) {
+  boost::mutex::scoped_lock(session_param_lock_);
+  boost::mutex::scoped_lock(enable_lock_);
+
   if (enable_) {
     cv_bridge::CvImageConstPtr cv_ptr;
     try  {
@@ -91,9 +93,7 @@ void ImageLogger::imageCallback(const sensor_msgs::ImageConstPtr& msg) {
     std::string image_name = std::string("im_")+std::to_string(stamp.sec)+
                              std::string("_")+ nsec.str() +image_extn_;
 
-    pthread_mutex_lock(&session_param_lock_);
     boost::filesystem::path image_path = image_dir_/boost::filesystem::path(image_name);
-    pthread_mutex_unlock(&session_param_lock_);
 
     //  to disk
     cv::imwrite(image_path.string(), cv_ptr->image);
@@ -114,24 +114,21 @@ void ImageLogger::imageCallback(const sensor_msgs::ImageConstPtr& msg) {
 bool ImageLogger::toggleLogger(std_srvs::SetBool::Request  &req,
                                std_srvs::SetBool::Response &res){
 
+  boost::mutex::scoped_lock(session_param_lock_);
+  boost::mutex::scoped_lock(enable_lock_);
+
   // Set the enable parameter based on service call value
   if (req.data) {
     initializeSessionDirectories();
-    pthread_mutex_lock(&session_param_lock_);
     NODELET_INFO("[ImageLogger] [%s] Logging images to directory: %s",
                   (base_name_+std::string("_")+image_type_).c_str());
-    pthread_mutex_unlock(&session_param_lock_);
 
-    pthread_mutex_lock(&enable_lock_);
     enable_ = true;
-    pthread_mutex_unlock(&enable_lock_);
     res.message = base_name_+std::string("_")+image_type_+std::string(": ImageLogger ON");
   } else {
     ROS_INFO("[ImageLogger] [%s] Turning off image logging",
              (base_name_+std::string("_")+image_type_).c_str());
-    pthread_mutex_lock(&enable_lock_);
     enable_ = false;
-    pthread_mutex_unlock(&enable_lock_);
     res.message = base_name_+std::string("_")+image_type_+std::string(": ImageLogger OFF");
   }
 
@@ -142,12 +139,12 @@ bool ImageLogger::toggleLogger(std_srvs::SetBool::Request  &req,
 bool ImageLogger::setSessionInfo(std_srvs::Trigger::Request  &req,
                                  std_srvs::Trigger::Response &res){
 
+  boost::mutex::scoped_lock(session_param_lock_);
+
   // Read session parameters from parameter server
-  pthread_mutex_lock(&session_param_lock_);
   getNodeHandle().getParam("session_id", session_id_);
   getNodeHandle().getParam("action_id", activity_id_);
   getNodeHandle().getParam("trial_id", trial_id_);
-  pthread_mutex_unlock(&session_param_lock_);
 
   res.message = base_name_+std::string("_")+image_type_+std::string(": Session parameters SET");
   res.success = true;
@@ -155,8 +152,9 @@ bool ImageLogger::setSessionInfo(std_srvs::Trigger::Request  &req,
 }
 
 void ImageLogger::initializeSessionDirectories() {
+  boost::mutex::scoped_lock(session_param_lock_);
+
   // Setting paths
-  pthread_mutex_lock(&session_param_lock_);
   image_dir_ =  boost::filesystem::path(data_dir_)/
                 boost::filesystem::path(session_id_)/
                 boost::filesystem::path(activity_id_+std::string("_")+trial_id_)/
@@ -165,7 +163,6 @@ void ImageLogger::initializeSessionDirectories() {
   if (!boost::filesystem::exists(image_dir_)) {
     boost::filesystem::create_directories(image_dir_);
   }
-  pthread_mutex_unlock(&session_param_lock_);
 }
 };
 

@@ -67,7 +67,7 @@ private:
   boost::shared_ptr<message_filters::Synchronizer<gear_sync_policy>> sync_;
 
   bool enable_;
-  boost::mutex enable_lock_;
+  boost::recursive_mutex enable_lock_;
 
   int image_count_;
   std::vector<std::string> default_data_topics_;
