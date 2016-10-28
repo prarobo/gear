@@ -25,7 +25,7 @@
            to="/$(arg base_name)/$(arg image_def)/image_$(arg image_type)/compressed" unless="$(arg use_sync)"/>
     <remap from="/log_image/compressed" 
            to="/synchronizer/$(arg base_name)_$(arg image_type)" if="$(arg use_sync)"/>
-    <remap from="/image_count"  to="/$(arg base_name)/image_$(arg image_type)_count"/>
+    <remap from="/image_count"  to="/$(arg base_name)/$(arg image_type)_image_count"/>
     <param name="sensor_id"     value="$(arg base_name)"/>
     <param name="data_dir"      value="$(arg data_dir)"/>
     <param name="image_extn"    value="$(arg image_extn)"/>
@@ -40,7 +40,7 @@
         output="screen" unless="$(arg use_compressed)">
     <remap from="/log_image"    to="/$(arg base_name)/$(arg image_def)/image_$(arg image_type)" unless="$(arg use_sync)"/>
     <remap from="/log_image"    to="/synchronizer/$(arg base_name)_$(arg image_type)" if="$(arg use_sync)"/>
-    <remap from="/image_count"  to="/$(arg base_name)/image_$(arg image_type)_count" />
+    <remap from="/image_count"  to="/$(arg base_name)/$(arg image_type)_image_count" />
     <param name="sensor_id"     value="$(arg base_name)"/>
     <param name="data_dir"      value="$(arg data_dir)"/>
     <param name="image_extn"    value="$(arg image_extn)"/>

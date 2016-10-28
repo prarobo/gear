@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <launch>
   <!-- Sytem process management -->
-  <arg name="threads"               default="16"/>
+  <arg name="threads"               default="32"/>
   <arg name="start_manager"         default="true"/>
   <arg name="nodelet_manager"       default="gear"/>
   <arg name="start_indiv_manager"   default="true"  unless="$(arg start_manager)"/>
@@ -13,7 +13,7 @@
   <arg name="enable_kinect3"        default="true"/>
   <arg name="enable_pointgrey1"     default="true"/>
   <arg name="enable_pointgrey2"     default="true"/>
-  <arg name="enable_loggers"        default="false"/>
+  <arg name="enable_loggers"        default="true"/>
   <arg name="frame_rate"            default="15"/>
 
   <!-- Logger parameters -->
