@@ -34,8 +34,10 @@ class MessageMonitor(object):
         self._loadParameters()
         
         # Setup diagnostics updater
-        self.diagnostic_updater = Updater()
-        self.diagnostic_updater.setHardwareID("message_monitor")
+        self.logger_updater = Updater()
+        self.synchronizer_updater = Updater()
+        self.logger_updater.setHardwareID("logger_monitor")
+        self.synchronizer_updater.setHardwareID("synchronizer_monitor")
 
         # Create diagnostics topics
         self._createTopicDiagnostics()
@@ -53,7 +55,7 @@ class MessageMonitor(object):
         '''
         self.synchronizer_diagnostics = HeaderlessTopicDiagnostic \
                                         (self.synchronizer_topic, 
-                                         self.diagnostic_updater,
+                                         self.synchronizer_updater,
                                          FrequencyStatusParam({"min": self.frame_rate, "max": self.frame_rate}, 
                                                               self.freq_tolerance,
                                                               self.window_size))
@@ -61,8 +63,7 @@ class MessageMonitor(object):
         self.sensor_logger_diagnostics = []
         for s in self.sensor_logger_topics:
             self.sensor_logger_diagnostics.append( HeaderlessTopicDiagnostic \
-                                                   (self.synchronizer_topic, 
-                                                    self.diagnostic_updater,
+                                                   (s, self.logger_updater,
                                                     FrequencyStatusParam({"min": self.frame_rate, "max": self.frame_rate}, 
                                                                          self.freq_tolerance,
                                                                          self.window_size)))
@@ -83,6 +84,10 @@ class MessageMonitor(object):
         self.min_acceptable_delay = rospy.get_param("min_acceptable_delay", DEFAULT_MIN_ACCEPTABLE_DELAY)
         self.max_acceptable_delay = rospy.get_param("max_acceptable_delay", DEFAULT_MAX_ACCEPTABLE_DELAY)
         self.update_interval = rospy.get_param("update_interval", DEFAULT_UPDATE_INTERVAL)
+        
+        rospy.loginfo("[MessageMonitor] synchronizer_topic: "+self.synchronizer_topic)
+        for s in self.sensor_logger_topics:
+            rospy.loginfo("[MessageMonitor] sensor_topic: "+s)
         return
     
     def _updateDiagnostics(self, event):
@@ -95,7 +100,8 @@ class MessageMonitor(object):
             s.tick()
         
         # Send diagnostics out
-        self.diagnostic_updater.update()
+        self.logger_updater.update()
+        self.synchronizer_updater.update()
         return            
 
 if __name__ == "__main__":
