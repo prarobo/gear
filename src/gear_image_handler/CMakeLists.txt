@@ -49,6 +49,7 @@ include_directories(
 add_library(image_handler
   src/log_images.cpp
   src/voxelizer.cpp
+  src/synchronize_images.cpp
 )
 
 target_link_libraries(image_handler

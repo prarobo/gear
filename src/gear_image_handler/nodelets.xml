@@ -12,5 +12,11 @@
     <description>
       A functionality to voxelize point clouds.
     </description>
+  <class name="gear_image_handler/ImageSynchronizer"
+         type="gear_image_handler::ImageSynchronizer"
+         base_class_type="nodelet::Nodelet">
+    <description>
+      A functionality to synchronize images.
+    </description>
   </class>
 </library>

@@ -17,10 +17,11 @@
   <arg name="enable_pointgrey2" default="true"/>
 
   <!-- Synchronized logger -->
-  <include file="$(find gear_image_handler)/launch/synchronized_logger.launch" if="$(arg synchronize)">
-    <arg name="frame_rate"      value="$(arg frame_rate)"/>
-  </include>
-
+  <include file="$(find gear_image_handler)/launch/synchronizer.launch" if="$(arg synchronize)">
+    <arg name="start_manager"   value="$(arg start_manager)"/>
+    <arg name="nodelet_manager" value="$(arg nodelet_manager)" unless="$(arg start_manager)"/>
+  </include>  
+ 
   <!--kinect1 color-->
   <include file="$(find gear_image_handler)/launch/image_logger.launch" if="$(arg enable_kinect1)">
     <arg name="base_name"       value="k1"/>
