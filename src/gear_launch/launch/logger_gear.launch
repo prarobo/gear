@@ -1,13 +1,11 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <launch>
   <!--Common parameters-->
-  <arg name="session_id"        default="test"/>
   <arg name="data_dir"          default="/mnt/md0/gear_data"/>
   <arg name="image_extn"        default=".png"/>
   <arg name="start_manager"     default="true"/>
-  <arg name="nodelet_manager"   default="gear"/>
+  <arg name="nodelet_manager"   default="gear_logger"/>
   <arg name="synchronize"       default="true"/>
-  <arg name="frame_rate"        default="30"/>
   
   <!-- Parameters to control sensor -->
   <arg name="enable_kinect1"    default="true"/>

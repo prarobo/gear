@@ -1,0 +1,20 @@
+analyzers:
+  sensors:
+    type: diagnostic_aggregator/AnalyzerGroup
+    path: Sensors
+    analyzers:
+      pointgrey:
+        type: diagnostic_aggregator/GenericAnalyzer
+        path: Pointgrey
+        timeout: 5.0
+        startswith: gear
+        num_items: 2
+  synchronizer:
+    type: diagnostic_aggregator/GenericAnalyzer
+    path: Synchronizer
+    name: message_monitor
+    contains: synchronizer
+  logger:
+    type: diagnostic_aggregator/GenericAnalyzer
+    path: Logger
+    contains: _image_count

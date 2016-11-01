@@ -25,8 +25,6 @@ DEFAULT_TOPICS = ["/k1/hd/image_color",
                   "/p1/hd/image_color",
                   "/p2/hd/image_color"]
 
-DEFAULT_FRAME_RATE = 15
-
 class SynchronizedImageLogger(object):
 
     def __init__(self):
@@ -67,13 +65,10 @@ class SynchronizedImageLogger(object):
         for t in self.data_topics:
             base_name, image_type = self.parseTopic(t)
             self.pubs.append(rospy.Publisher('/synchronizer/'+base_name+'_'+image_type, Image, queue_size=10))
-        
-        # Image count publisher
-        self.image_count_pub = rospy.Publisher('image_count', Int64, queue_size=10)
-        
+                                
         rospy.spin()
         return
-
+        
     def _toggleLogger(self, req):
         '''
         Toggles the logger node on response to service calls
@@ -107,7 +102,7 @@ class SynchronizedImageLogger(object):
             
         # Get frame rate to use
         self.frame_rate = rospy.get_param("/frame_rate", DEFAULT_FRAME_RATE)
-          
+                  
         # Log messages      
         for t in self.data_topics:
             rospy.loginfo("[SyncLogger] Logging topic: "+ t)
