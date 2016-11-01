@@ -12,9 +12,7 @@
 
 // Boost Dependencies
 #include <boost/filesystem.hpp>
-
-// C++ Dependencies
-#include <pthread.h>
+#include <boost/thread/mutex.hpp>
 
 namespace gear_image_handler {
 
@@ -71,7 +69,7 @@ private:
   std::string encoding_;
 
   bool enable_;
-  pthread_mutex_t enable_lock_, session_param_lock_;
+  boost::recursive_mutex enable_lock_, session_param_lock_;
 
   int image_count_;
 

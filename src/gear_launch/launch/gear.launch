@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <launch>
   <!-- Sytem process management -->
-  <arg name="threads"               default="16"/>
+  <arg name="threads"               default="32"/>
   <arg name="start_manager"         default="true"/>
   <arg name="nodelet_manager"       default="gear"/>
   <arg name="start_indiv_manager"   default="true"  unless="$(arg start_manager)"/>
@@ -14,6 +14,7 @@
   <arg name="enable_pointgrey1"     default="true"/>
   <arg name="enable_pointgrey2"     default="true"/>
   <arg name="enable_loggers"        default="false"/>
+  <arg name="enable_diagnostics"    default="true"/>
   <arg name="frame_rate"            default="15"/>
 
   <!-- Logger parameters -->
@@ -53,6 +54,10 @@
     <arg name="start_manager"       value="$(arg start_indiv_manager)"/>
     <arg name="nodelet_manager"     value="$(arg nodelet_manager)"/>
     <arg name="synchronize"         value="$(arg synchronize)"/>
+  </include> 
+
+  <!-- Launch diagnostics -->
+  <include file="$(find gear_diagnostics)/launch/diagnostics.launch" if="$(arg enable_diagnostics)">
     <arg name="frame_rate"          value="$(arg frame_rate)"/>
   </include> 
 
