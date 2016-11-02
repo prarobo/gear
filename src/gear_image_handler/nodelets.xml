@@ -6,17 +6,18 @@
       A functionality to log images.
     </description>
   </class>
-  <class name="gear_image_handler/Voxelizer"
-         type="gear_image_handler::Voxelizer"
-         base_class_type="nodelet::Nodelet">
-    <description>
-      A functionality to voxelize point clouds.
-    </description>
   <class name="gear_image_handler/ImageSynchronizer"
          type="gear_image_handler::ImageSynchronizer"
          base_class_type="nodelet::Nodelet">
     <description>
       A functionality to synchronize images.
+    </description>
+  </class>
+  <class name="gear_image_handler/PointcloudLogger"
+         type="gear_image_handler::PointcloudLogger"
+         base_class_type="nodelet::Nodelet">
+    <description>
+      A functionality to log pointclouds.
     </description>
   </class>
 </library>

@@ -48,7 +48,7 @@ include_directories(
 # Declare a C++ library
 add_library(image_handler
   src/log_images.cpp
-  src/voxelizer.cpp
+  src/log_pointcloud.cpp
   src/synchronize_images.cpp
 )
 
