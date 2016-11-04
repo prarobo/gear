@@ -1,6 +1,18 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <launch>
   <arg name="start_manager"     default="false"/>  
+  <arg name="pointcloud_def"    default="sd"/>
+  <arg name="color_def"         default="hd"/>
+  <arg name="depth_def"         default="sd"/>
+  <arg name="data_topics"       default="[/k1/$(arg color_def)/image_color,
+                                          /k2/$(arg color_def)/image_color,
+                                          /k3/$(arg color_def)/image_color,
+                                          /k1/$(arg depth_def)/image_depth,
+                                          /k2/$(arg depth_def)/image_depth,
+                                          /k3/$(arg depth_def)/image_depth,
+                                          /p1/$(arg color_def)/image_color,
+                                          /p2/$(arg color_def)/image_color]"/>
+
 
   <arg name="nodelet_manager"   default="synchronizer_manager" if="$(arg start_manager)"/>
   <arg name="nodelet_manager"   default="gear" unless="$(arg start_manager)"/>
@@ -11,7 +23,9 @@
   </node>
  
   <node pkg="nodelet" type="nodelet" name="synchronizer"
-        args="load gear_image_handler/ImageSynchronizer $(arg nodelet_manager)" output="screen"/>
+        args="load gear_image_handler/ImageSynchronizer $(arg nodelet_manager)" output="screen">
+    <param name="~data_topics" value="$(arg data_topics)"/>
+  </node>  
 
   <!-- Synchronized logger python node -->
   <!--<node name="synchronized_logger" pkg="gear_image_handler" type="synchronized_image_logger.py"  output="screen"/>-->

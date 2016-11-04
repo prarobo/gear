@@ -56,13 +56,13 @@ void PointcloudLogger::pointcloudCallback(const pcl::PCLPointCloud2::ConstPtr& m
     boost::format nsec("%09d");
     nsec % stamp.nsec;
     std::string pointcloud_name = std::string("pc_")+std::to_string(stamp.sec)+
-                                  std::string("_")+nsec.str();
+                                  std::string("_")+nsec.str()+std::string(".pcd");
 
     boost::filesystem::path pointcloud_path = pointcloud_dir_/boost::filesystem::path(pointcloud_name);
 
     // Saving to disk
     pcl::PCDWriter writer;
-    writer.writeASCII(pointcloud_path.string(), *msg);
+    writer.writeBinaryCompressed(pointcloud_path.string(), *msg);
     pointcloud_count_++;
 
     // Publish running image counts
