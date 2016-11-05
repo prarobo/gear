@@ -7,7 +7,7 @@ import pprint
 from qt_gui.plugin import Plugin
 from python_qt_binding import loadUi, QtCore
 from python_qt_binding.QtGui import QWidget, QMainWindow
-from std_srvs.srv._Empty import Empty, EmptyResponse
+from std_msgs.msg import Bool
 
 class SessionDurationGUI(Plugin):
 
@@ -68,8 +68,8 @@ class SessionDurationGUI(Plugin):
         '''
         Configure the rosnode on startup
         '''
-        rospy.Service("start_session_timer", Empty, self._start_timer)
-        rospy.Service("stop_session_timer", Empty, self._stop_timer)
+        rospy.Subscriber("/gui/start_session_timer", Bool, self._start_timer)
+        rospy.Subscriber("/gui/stop_session_timer", Bool, self._stop_timer)
                     
     def _configure_gui(self):
         '''
@@ -108,7 +108,7 @@ class SessionDurationGUI(Plugin):
         self._reset_timer()
         rospy.loginfo("[GearSessionDuration] Starting timer")
         self.timer.start(1000)
-        return EmptyResponse()
+        return
 
     def _stop_timer(self, req):
         '''
@@ -116,7 +116,7 @@ class SessionDurationGUI(Plugin):
         '''
         rospy.loginfo("[GearSessionDuration] Stopping timer")
         self.timer.stop()
-        return EmptyResponse()
+        return
     
     def Time(self):
         global s,m,h

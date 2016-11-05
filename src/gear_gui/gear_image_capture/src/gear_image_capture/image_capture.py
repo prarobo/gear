@@ -8,7 +8,7 @@ from qt_gui.plugin import Plugin
 from python_qt_binding import loadUi, QtCore
 from python_qt_binding.QtGui import QWidget, QMainWindow
 from std_srvs.srv._SetBool import SetBool
-from std_srvs.srv._Empty import Empty, EmptyRequest
+from std_msgs.msg import Bool
 
 class ImageCaptureGUI(Plugin):
 
@@ -49,6 +49,9 @@ class ImageCaptureGUI(Plugin):
 
         # Add widget to the user interface
         context.add_widget(self._widget)
+        
+        # Configure ros node
+        self._configure_node()
          
         # Configure gui
         self._configure_gui()
@@ -57,6 +60,13 @@ class ImageCaptureGUI(Plugin):
         self._widget.btnInitialize.clicked[bool].connect(self._onclicked_initialize);
         self._widget.btnStart.clicked[bool].connect(self._onclicked_start);
         self._widget.btnStop.clicked[bool].connect(self._onclicked_stop);
+        
+    def _configure_node(self):
+        '''
+        Configure the rosnode
+        '''
+        self._session_timer_start_pub = rospy.Publisher("/gui/start_session_timer", Bool, queue_size=1)
+        self._session_timer_stop_pub = rospy.Publisher("/gui/stop_session_timer", Bool, queue_size=1)
             
     def _configure_gui(self):
         '''
@@ -103,17 +113,9 @@ class ImageCaptureGUI(Plugin):
             resp = sensor_trigger(True)
             rospy.loginfo("[GearImageCapture] Sensor "+s+" logging started: "+str(resp))
             
-        timer_start_service_name = "/start_session_timer"    
-        try:
-            rospy.wait_for_service(timer_start_service_name, 1)
-        except rospy.ROSException:
-            rospy.logwarn("[GearImageCapture] "+timer_start_service_name+" service not available")
-            return
+        # Start session clock
+        self._session_timer_start_pub.publish(True)
             
-        # Service call to trigger gui timer
-        timer_start = rospy.ServiceProxy(timer_start_service_name, Empty)
-        resp = timer_start()
-
     def _onclicked_stop(self):
         '''
         Initializing the image capture utility on user request
@@ -131,16 +133,8 @@ class ImageCaptureGUI(Plugin):
             resp = sensor_trigger(False)
             rospy.loginfo("[GearImageCapture] Sensor "+s+" logging stopped: "+str(resp))
             
-        timer_stop_service_name = "/stop_session_timer"    
-        try:
-            rospy.wait_for_service(timer_stop_service_name, 1)
-        except rospy.ROSException:
-            rospy.logwarn("[GearImageCapture] "+timer_stop_service_name+" service not available")
-            return
-            
-        # Service call to trigger gui timer
-        timer_stop = rospy.ServiceProxy(timer_stop_service_name, Empty)
-        resp = timer_stop()
+        # Stop session clock
+        self._session_timer_stop_pub.publish(True)
 
     def shutdown_plugin(self):
         # TODO unregister all publishers here
