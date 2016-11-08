@@ -1,4 +1,4 @@
-<library path="lib/libimage_logger">
+<library path="lib/libimage_handler">
   <class name="gear_image_handler/ImageLogger"
          type="gear_image_handler::ImageLogger"
          base_class_type="nodelet::Nodelet">
@@ -11,6 +11,13 @@
          base_class_type="nodelet::Nodelet">
     <description>
       A functionality to synchronize images.
+    </description>
+  </class>
+  <class name="gear_image_handler/PointcloudLogger"
+         type="gear_image_handler::PointcloudLogger"
+         base_class_type="nodelet::Nodelet">
+    <description>
+      A functionality to log pointclouds.
     </description>
   </class>
 </library>
