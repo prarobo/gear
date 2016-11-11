@@ -1,0 +1,15 @@
+Intrinsic Calibration:
+PointGrey: use camera_calibration
+		Example: rosrun camera_calibration cameracalibrator.py --size 8x6 --square 0.108 image:=/my_camera/image camera:=/my_camera
+Kinect: use kinect2_calibration
+		Example: rosrun camera_calibration cameracalibrator.py --size 8x6 --square 0.108 image:=/my_camera/image camera:=/my_camera
+			 rosrun kinect2_calibration kinect2_calibration chess7x7x0.068 --name k2 record ir
+			 ...... calibrate color
+			 ...... record ir
+			 ...... calibrate ir
+			 ...... record sync
+			 ...... calibrate sync
+			 ...... calibrate depth
+
+Multisensor calibration:
+		roslaunch opt_calibration opt_calibration_master.launch
