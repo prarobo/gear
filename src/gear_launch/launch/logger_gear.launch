@@ -5,7 +5,7 @@
   <arg name="image_extn"        default=".png"/>
   <arg name="start_manager"     default="true"/>
   <arg name="nodelet_manager"   default="gear_logger"/>
-  <arg name="synchronize"       default="false"/>
+  <arg name="synchronize"       default="true"/>
   <arg name="pointcloud_def"    default="sd"/>
   <arg name="color_def"         default="hd"/>
   <arg name="depth_def"         default="sd"/>

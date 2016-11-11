@@ -21,7 +21,7 @@
   <arg name="worker_threads"    default="4"/>
   <arg name="nodelet_manager"   default="$(arg base_name)"/>
   <arg name="start_manager"     default="true"/>
-  <arg name="respawn"           default="true"/>
+  <arg name="respawn"           default="false"/>
   <arg name="do_pointcloud"	    default="true"/>
   <arg name="do_acquisition"   	default="true"/>
 

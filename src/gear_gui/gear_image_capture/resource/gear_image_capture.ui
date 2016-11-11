@@ -7,7 +7,7 @@
     <x>0</x>
     <y>0</y>
     <width>639</width>
-    <height>248</height>
+    <height>559</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -75,6 +75,16 @@
      <widget class="QLineEdit" name="txtSession"/>
     </item>
    </layout>
+  </widget>
+  <widget class="QTextEdit" name="txtOutput">
+   <property name="geometry">
+    <rect>
+     <x>30</x>
+     <y>230</y>
+     <width>561</width>
+     <height>301</height>
+    </rect>
+   </property>
   </widget>
  </widget>
  <resources/>
