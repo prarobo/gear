@@ -1,0 +1,10 @@
+[Desktop Entry]
+Name=Gear
+Comment=Gear
+Exec=bash -i -c $HOME/gear/gear.sh
+Terminal=true
+Type=Application
+Categories=Development;
+StartupNotify=true
+Name[en_US]=Gear
+Comment[en_US.UTF-8]=Gear
