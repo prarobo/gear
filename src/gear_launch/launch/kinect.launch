@@ -51,6 +51,7 @@
     <param name="bilateral_filter"  type="bool"   value="$(arg bilateral_filter)"/>
     <param name="edge_aware_filter" type="bool"   value="$(arg edge_aware_filter)"/>
     <param name="worker_threads"    type="int"    value="$(arg worker_threads)"/>
+    <param name="calib_path"        type="str"    value="$(find gear_launch)/calibration"/>
   </node>
 
   <node pkg="nodelet" type="nodelet" name="$(arg nodelet_manager)" args="manager"
