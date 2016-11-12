@@ -6,11 +6,13 @@ import pprint
 
 from qt_gui.plugin import Plugin
 from python_qt_binding import loadUi, QtCore
-from python_qt_binding.QtGui import QWidget, QMainWindow, QTextCursor
+from python_qt_binding.QtGui import QWidget, QMainWindow, QTextCursor, QColor
 from std_srvs.srv._SetBool import SetBool
+from std_srvs.srv._Trigger import Trigger, TriggerRequest
 from std_msgs.msg import Bool
 import itertools
-from debian.debtags import output
+from time import sleep
+import shutil
 
 DEFAULT_SERVICES_TO_ENABLE = ["/k1_color_enable",
                               "/k2_color_enable",
@@ -24,6 +26,20 @@ DEFAULT_SERVICES_TO_ENABLE = ["/k1_color_enable",
                               "/k2_points_enable",
                               "/k3_points_enable",
                               "/synchronizer_enable"]
+
+DEFAULT_SERVICES_SESSION_INFO = ["/k1_color_session_info",
+                                 "/k2_color_session_info",
+                                 "/k3_color_session_info",
+                                 "/p1_color_session_info",
+                                 "/p1_color_session_info",
+                                 "/k1_depth_session_info",
+                                 "/k2_depth_session_info",
+                                 "/k3_depth_session_info",
+                                 "/k1_points_session_info",
+                                 "/k2_points_session_info",
+                                 "/k3_points_session_info"]
+
+DEFAULT_GEAR_LOGGING_DIR = "/mnt/md0/gear_data"
 
 class ImageCaptureGUI(Plugin):
 
@@ -84,6 +100,8 @@ class ImageCaptureGUI(Plugin):
         self.session_timer_stop_pub = rospy.Publisher("/gui/stop_session_timer", Bool, queue_size=1)
         
         self.services_to_enable = rospy.get_param("services_to_enable", DEFAULT_SERVICES_TO_ENABLE)
+        self.services_session_info = rospy.get_param("services_session_info", DEFAULT_SERVICES_SESSION_INFO)
+        self.gear_logging_dir = rospy.get_param("logging_dir", DEFAULT_GEAR_LOGGING_DIR)
             
     def _configure_gui(self):
         '''
@@ -102,6 +120,8 @@ class ImageCaptureGUI(Plugin):
         self._widget.comboActivity.addItems(activity_list)
         self._widget.comboTrial.addItems(trial_list)
         
+        self.exists_logging_dir = False
+        
         # Configure button states
         self._configure_button_states()
         
@@ -117,17 +137,49 @@ class ImageCaptureGUI(Plugin):
         '''
         Initializing the image capture utility on user request
         '''
-        self._logger("[GearImageCapture] Setting data collection parameters")
-        rospy.set_param("session_id", str(self._widget.txtSession.text()))
-        rospy.set_param("activity_id", str(self._widget.comboActivity.currentText()))
-        rospy.set_param("trial_id", int(self._widget.comboTrial.currentText()))
-
-        self._logger("[GearImageCapture] Setting parameter session_id: "+str(self._widget.txtSession.text()))
-        self._logger("[GearImageCapture] Setting parameter activity_id: "+str(self._widget.comboActivity.currentText()))
-        self._logger("[GearImageCapture] Setting parameter trial_id: "+str(self._widget.comboTrial.currentText()))
+        session_id = str(self._widget.txtSession.text())
+        activity_id = str(self._widget.comboActivity.currentText())
+        trial_id = str(self._widget.comboTrial.currentText())
         
-        # Set button states
-        self._widget.btnStart.setEnabled(True)
+        # Checking if logging directory exists
+        logging_dir = os.path.join(self.gear_logging_dir, session_id, activity_id+'_'+trial_id)
+        exists_logging_dir = os.path.exists(logging_dir)
+        if (not exists_logging_dir) or (self.exists_logging_dir and exists_logging_dir):
+           
+            # Delete logging directory to clear old data
+            if exists_logging_dir:
+                shutil.rmtree(logging_dir)
+            self.exists_logging_dir = False
+                
+            self._logger("[GearImageCapture] Setting data collection parameters")
+            rospy.set_param("session_id", session_id)
+            rospy.set_param("activity_id", activity_id)
+            rospy.set_param("trial_id", int(trial_id))
+    
+            self._logger("[GearImageCapture] Setting parameter session_id: "+session_id)
+            self._logger("[GearImageCapture] Setting parameter activity_id: "+activity_id)
+            self._logger("[GearImageCapture] Setting parameter trial_id: "+trial_id)
+            sleep(2)
+            
+            # Setting session info in loggers
+            for service_name in self.services_session_info:
+                try:
+                    rospy.wait_for_service(service_name, 1)
+                except rospy.ROSException:
+                    rospy.logwarn("[GearImageCapture] Service "+service_name+" service not available")
+                    continue
+                
+                # Service call to trigger logging
+                sensor_session_info = rospy.ServiceProxy(service_name, Trigger)
+                resp = sensor_session_info(TriggerRequest())
+                self._logger("[GearImageCapture] Service "+service_name+" logging started: ("
+                             +str(resp.success)+","+resp.message+")")
+            
+            # Set button states
+            self._widget.btnStart.setEnabled(True)
+        else:
+            self.exists_logging_dir = True
+            self._logger("[GearImageCapture] Logging directory exists (initialize again if you want to overwrite)", type="warn")
 
     def _onclicked_start(self):
         '''
@@ -184,10 +236,11 @@ class ImageCaptureGUI(Plugin):
         '''
         if type=="warn":
             rospy.logwarn(output_text)
-            self._widget.txtOutput.setStyleSheet("color: rgb(255, 0, 0);")
+            self._widget.txtOutput.setTextColor(QColor(255,0,0))
         else:
             rospy.loginfo(output_text)
-            self._widget.txtOutput.setStyleSheet("color: rgb(0, 0, 0);")
+            self._widget.txtOutput.setTextColor(QColor(0,0,0))
+            #self._widget.txtOutput.setStyleSheet("color: rgb(0, 0, 0);")
              
         self._widget.txtOutput.append(output_text)
         self._widget.txtOutput.moveCursor(QTextCursor.End)
