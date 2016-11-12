@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<launch>
+  <arg name="mount_point"              default="/mnt/md0"/>
+  <arg name="update_interval"          default="5"/>
+  <arg name="low_free_space"			 		 default="500"/>
+  <arg name="critical_free_space"			 default="100"/>
+
+  <group ns="diagnostics">
+		<node pkg="gear_diagnostics" type="disk_monitor.py" name="disk_diagnostics" output="screen">
+		  <param name="mount_point"          value="$(arg mount_point)"/>
+		  <param name="update_interval"      value="$(arg update_interval)"/>
+		  <param name="low_free_space"			 value="$(arg low_free_space)"/>
+		  <param name="critical_free_space"	 value="$(arg critical_free_space)"/>
+		</node>
+	</group>
+</launch>

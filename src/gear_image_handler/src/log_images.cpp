@@ -12,6 +12,7 @@
 
 // Boost Dependencies
 #include <boost/format.hpp>
+#include <boost/lexical_cast.hpp>
 
 namespace enc = sensor_msgs::image_encodings;
 
@@ -23,9 +24,9 @@ void ImageLogger::onInit(){
   boost::mutex::scoped_lock(session_param_lock_);
 
   // Getting session wide parameters
-  getNodeHandle().param<std::string>("session_id", session_id_,"test");
-  getNodeHandle().param<std::string>("activity_id", activity_id_,"act");
-  getNodeHandle().param<std::string>("trial_id", trial_id_,"1");
+  getNodeHandle().param<std::string>("/session_id", session_id_,"test");
+  getNodeHandle().param<std::string>("/activity_id", activity_id_,"act");
+  getNodeHandle().param<int>("/trial_id", trial_id_, 1);
 
   // Getting node specific parameters
   bool is_compressed;
@@ -47,6 +48,8 @@ void ImageLogger::onInit(){
   image_count_pub_ = getNodeHandle().advertise<std_msgs::Int64>("/image_count", 15);
 
   NODELET_INFO_STREAM("[ImageLogger] Parameter session_id: "<<session_id_.c_str());
+  NODELET_INFO_STREAM("[ImageLogger] Parameter activity_id: "<<activity_id_.c_str());
+  NODELET_INFO_STREAM("[ImageLogger] Parameter trial_id: "<<trial_id_);
   NODELET_INFO_STREAM("[ImageLogger] Parameter sensor_id: "<<sensor_id_.c_str());
   NODELET_INFO_STREAM("[ImageLogger] Parameter data_dir: "<<data_dir_.c_str());
   NODELET_INFO_STREAM("[ImageLogger] Parameter image_extn: "<<image_extn_.c_str());
@@ -140,9 +143,13 @@ bool ImageLogger::setSessionInfo(std_srvs::Trigger::Request  &req,
   boost::mutex::scoped_lock(session_param_lock_);
 
   // Read session parameters from parameter server
-  getNodeHandle().getParam("session_id", session_id_);
-  getNodeHandle().getParam("action_id", activity_id_);
-  getNodeHandle().getParam("trial_id", trial_id_);
+  getNodeHandle().getParam("/session_id", session_id_);
+  getNodeHandle().getParam("/activity_id", activity_id_);
+  getNodeHandle().getParam("/trial_id", trial_id_);
+
+  NODELET_INFO_STREAM("[ImageLogger] Parameter session_id: "<<session_id_.c_str());
+  NODELET_INFO_STREAM("[ImageLogger] Parameter activity_id: "<<activity_id_.c_str());
+  NODELET_INFO_STREAM("[ImageLogger] Parameter trial_id: "<<trial_id_);
 
   res.message = base_name_+std::string("_")+image_type_+std::string(": Session parameters SET");
   res.success = true;
@@ -155,7 +162,7 @@ void ImageLogger::initializeSessionDirectories() {
   // Setting paths
   image_dir_ =  boost::filesystem::path(data_dir_)/
                 boost::filesystem::path(session_id_)/
-                boost::filesystem::path(activity_id_+std::string("_")+trial_id_)/
+                boost::filesystem::path(activity_id_+std::string("_")+boost::lexical_cast<std::string>(trial_id_))/
                 boost::filesystem::path("images")/
                 boost::filesystem::path(sensor_id_+std::string("_")+image_type_);
   if (!boost::filesystem::exists(image_dir_)) {

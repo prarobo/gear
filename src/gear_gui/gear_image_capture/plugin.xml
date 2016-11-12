@@ -4,8 +4,13 @@
       Rqt plugin for starting and stopping image capture.
     </description>
     <qtgui>
-      <label>GEAR image capture plugin</label>
-      <icon type="theme">folder</icon>
+      <group>
+        <label>GEAR</label>
+        <icon type="theme">applications-system</icon>
+        <statustip>GEAR project plugins</statustip>
+	  </group>
+      <label>control panel</label>
+      <icon type="theme">media-playback-start</icon>
       <statustip>GEAR image capture</statustip>
     </qtgui>
   </class>

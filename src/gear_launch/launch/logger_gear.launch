@@ -5,11 +5,11 @@
   <arg name="image_extn"        default=".png"/>
   <arg name="start_manager"     default="true"/>
   <arg name="nodelet_manager"   default="gear_logger"/>
-  <arg name="synchronize"       default="false"/>
+  <arg name="synchronize"       default="true"/>
   <arg name="pointcloud_def"    default="sd"/>
   <arg name="color_def"         default="hd"/>
   <arg name="depth_def"         default="sd"/>
-  
+
   <!-- Parameters to control sensor -->
   <arg name="enable_kinect1"    default="true"/>
   <arg name="enable_kinect2"    default="true"/>
@@ -36,24 +36,6 @@
     <arg name="use_sync"        value="$(arg synchronize)"/>
   </include>
 
-  <!--kinect1 depth-->
-  <include file="$(find gear_image_handler)/launch/image_logger.launch" if="$(arg enable_kinect1)">
-    <arg name="base_name"       value="k1"/>
-    <arg name="image_type"      value="depth"/>
-    <arg name="image_def"       value="$(arg depth_def)"/>      
-    <arg name="start_manager"   value="$(arg start_manager)"/>
-    <arg name="nodelet_manager" value="$(arg nodelet_manager)" unless="$(arg start_manager)"/>
-    <arg name="use_sync"        value="$(arg synchronize)"/>
-  </include>
-
-  <!--kinect1 pointcloud-->
-  <include file="$(find gear_image_handler)/launch/pointcloud_logger.launch" if="$(arg enable_kinect1)">
-    <arg name="base_name"       value="k1"/>
-    <arg name="image_def"       value="$(arg pointcloud_def)"/>      
-    <arg name="start_manager"   value="$(arg start_manager)"/>
-    <arg name="nodelet_manager" value="$(arg nodelet_manager)" unless="$(arg start_manager)"/>
-  </include>
-
   <!--kinect2 color-->
   <include file="$(find gear_image_handler)/launch/image_logger.launch" if="$(arg enable_kinect2)">
     <arg name="base_name"       value="k2"/>
@@ -64,24 +46,6 @@
     <arg name="use_sync"        value="$(arg synchronize)"/>
   </include>
 
-  <!--kinect2 depth-->
-  <include file="$(find gear_image_handler)/launch/image_logger.launch" if="$(arg enable_kinect2)">
-    <arg name="base_name"       value="k2"/>
-    <arg name="image_type"      value="depth"/>
-    <arg name="image_def"       value="$(arg depth_def)"/>      
-    <arg name="start_manager"   value="$(arg start_manager)"/>
-    <arg name="nodelet_manager" value="$(arg nodelet_manager)" unless="$(arg start_manager)"/>
-    <arg name="use_sync"        value="$(arg synchronize)"/>
-  </include>
-
-  <!--kinect2 pointcloud-->
-  <include file="$(find gear_image_handler)/launch/pointcloud_logger.launch" if="$(arg enable_kinect2)">
-    <arg name="base_name"       value="k2"/>
-    <arg name="image_def"       value="$(arg pointcloud_def)"/>      
-    <arg name="start_manager"   value="$(arg start_manager)"/>
-    <arg name="nodelet_manager" value="$(arg nodelet_manager)" unless="$(arg start_manager)"/>
-  </include>
-
   <!--kinect3 color-->
   <include file="$(find gear_image_handler)/launch/image_logger.launch" if="$(arg enable_kinect3)">
     <arg name="base_name"       value="k3"/>
@@ -90,24 +54,6 @@
     <arg name="start_manager"   value="$(arg start_manager)"/>
     <arg name="nodelet_manager" value="$(arg nodelet_manager)" unless="$(arg start_manager)"/>
     <arg name="use_sync"        value="$(arg synchronize)"/>
-  </include>
-
-  <!--kinect3 depth-->
-  <include file="$(find gear_image_handler)/launch/image_logger.launch" if="$(arg enable_kinect3)">
-    <arg name="base_name"       value="k3"/>
-    <arg name="image_type"      value="depth"/>
-    <arg name="image_def"       value="$(arg depth_def)"/>      
-    <arg name="start_manager"   value="$(arg start_manager)"/>
-    <arg name="nodelet_manager" value="$(arg nodelet_manager)" unless="$(arg start_manager)"/>
-    <arg name="use_sync"        value="$(arg synchronize)"/>
-  </include>
-
-  <!--kinect3 pointcloud-->
-  <include file="$(find gear_image_handler)/launch/pointcloud_logger.launch" if="$(arg enable_kinect3)">
-    <arg name="base_name"       value="k3"/>
-    <arg name="image_def"       value="$(arg pointcloud_def)"/>      
-    <arg name="start_manager"   value="$(arg start_manager)"/>
-    <arg name="nodelet_manager" value="$(arg nodelet_manager)" unless="$(arg start_manager)"/>
   </include>
 
   <!--pointgrey1 color-->
@@ -128,5 +74,58 @@
     <arg name="use_sync"        value="$(arg synchronize)"/>
   </include>
 
+  <!--kinect1 depth-->
+  <include file="$(find gear_image_handler)/launch/image_logger.launch" if="$(arg enable_kinect1)">
+    <arg name="base_name"       value="k1"/>
+    <arg name="image_type"      value="depth"/>
+    <arg name="image_def"       value="$(arg depth_def)"/>      
+    <arg name="start_manager"   value="$(arg start_manager)"/>
+    <arg name="nodelet_manager" value="$(arg nodelet_manager)" unless="$(arg start_manager)"/>
+    <arg name="use_sync"        value="$(arg synchronize)"/>
+  </include>
+
+  <!--kinect2 depth-->
+  <include file="$(find gear_image_handler)/launch/image_logger.launch" if="$(arg enable_kinect2)">
+    <arg name="base_name"       value="k2"/>
+    <arg name="image_type"      value="depth"/>
+    <arg name="image_def"       value="$(arg depth_def)"/>      
+    <arg name="start_manager"   value="$(arg start_manager)"/>
+    <arg name="nodelet_manager" value="$(arg nodelet_manager)" unless="$(arg start_manager)"/>
+    <arg name="use_sync"        value="$(arg synchronize)"/>
+  </include>
+
+  <!--kinect3 depth-->
+  <include file="$(find gear_image_handler)/launch/image_logger.launch" if="$(arg enable_kinect3)">
+    <arg name="base_name"       value="k3"/>
+    <arg name="image_type"      value="depth"/>
+    <arg name="image_def"       value="$(arg depth_def)"/>      
+    <arg name="start_manager"   value="$(arg start_manager)"/>
+    <arg name="nodelet_manager" value="$(arg nodelet_manager)" unless="$(arg start_manager)"/>
+    <arg name="use_sync"        value="$(arg synchronize)"/>
+  </include>
+
+  <!--kinect1 pointcloud-->
+  <include file="$(find gear_image_handler)/launch/pointcloud_logger.launch" if="$(arg enable_kinect1)">
+    <arg name="base_name"       value="k1"/>
+    <arg name="image_def"       value="$(arg pointcloud_def)"/>      
+    <arg name="start_manager"   value="$(arg start_manager)"/>
+    <arg name="nodelet_manager" value="$(arg nodelet_manager)" unless="$(arg start_manager)"/>
+  </include>
+
+  <!--kinect2 pointcloud-->
+  <include file="$(find gear_image_handler)/launch/pointcloud_logger.launch" if="$(arg enable_kinect2)">
+    <arg name="base_name"       value="k2"/>
+    <arg name="image_def"       value="$(arg pointcloud_def)"/>      
+    <arg name="start_manager"   value="$(arg start_manager)"/>
+    <arg name="nodelet_manager" value="$(arg nodelet_manager)" unless="$(arg start_manager)"/>
+  </include>
+
+  <!--kinect3 pointcloud-->
+  <include file="$(find gear_image_handler)/launch/pointcloud_logger.launch" if="$(arg enable_kinect3)">
+    <arg name="base_name"       value="k3"/>
+    <arg name="image_def"       value="$(arg pointcloud_def)"/>      
+    <arg name="start_manager"   value="$(arg start_manager)"/>
+    <arg name="nodelet_manager" value="$(arg nodelet_manager)" unless="$(arg start_manager)"/>
+  </include>
 </launch>
   

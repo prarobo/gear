@@ -59,7 +59,7 @@ private:
 
   std::string session_id_;
   std::string activity_id_;
-  std::string trial_id_;
+  int trial_id_;
 
   std::string sensor_id_;
   std::string data_dir_;

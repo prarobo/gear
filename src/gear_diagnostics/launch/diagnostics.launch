@@ -8,21 +8,33 @@
   <arg name="update_interval"          default="1"/>
   <arg name="min_frequency"			 			 default="15"/>
   <arg name="max_frequency"			 			 default="15"/>
+  <arg name="mount_point"              default="/mnt/md0"/>
+  <arg name="slow_update_interval"     default="5"/>
+  <arg name="low_free_space"			 		 default="500"/>
+  <arg name="critical_free_space"			 default="100"/>
 
-  <!-- Diagnostics updater -->
-	<node pkg="gear_diagnostics" type="message_monitor" name="diagnostics_updater" output="screen">
-	  <param name="frame_rate"               	value="$(arg frame_rate)"/>
-	  <param name="window_size"              	value="$(arg window_size)"/>
-	  <param name="frequency_tolerance"			 	value="$(arg frequency_tolerance)"/>
-	  <param name="min_acceptable_delay"     	value="$(arg min_acceptable_delay)"/>
-	  <param name="max_acceptable_delay"		 		value="$(arg max_acceptable_delay)"/>
-	  <param name="update_interval"          	value="$(arg update_interval)"/>
-	  <param name="min_frequency"			 			 	value="$(arg min_frequency)"/>
-	  <param name="max_frequency"			 			 	value="$(arg max_frequency)"/>
-	</node>
+  <!-- Image logger diagnostics -->
+  <include file="$(find gear_diagnostics)/launch/diagnostics_image_logger.launch"> 
+	  <arg name="frame_rate"             value="$(arg frame_rate)"/>
+	  <arg name="window_size"            value="$(arg window_size)"/>
+	  <arg name="frequency_tolerance"		 value="$(arg frequency_tolerance)"/>
+	  <arg name="min_acceptable_delay"   value="$(arg min_acceptable_delay)"/>
+	  <arg name="max_acceptable_delay"	 value="$(arg max_acceptable_delay)"/>
+	  <arg name="update_interval"        value="$(arg update_interval)"/>
+	  <arg name="min_frequency"			 		 value="$(arg min_frequency)"/>
+	  <arg name="max_frequency"			 		 value="$(arg max_frequency)"/>
+  </include>       
+
+  <!-- Disk diagnostics -->
+  <include file="$(find gear_diagnostics)/launch/diagnostics_disk.launch"> 
+	  <arg name="mount_point"            value="$(arg mount_point)"/>
+	  <arg name="update_interval"     	 value="$(arg slow_update_interval)"/>
+	  <arg name="low_free_space"			 	 value="$(arg low_free_space)"/>
+	  <arg name="critical_free_space"		 value="$(arg critical_free_space)"/>
+  </include>       
 
 	<!-- Dignostics aggregator -->
 	<node pkg="diagnostic_aggregator" type="aggregator_node" name="diagnostics_aggregator" output="screen">
 	  <rosparam command="load" file="$(find gear_diagnostics)/config/gear_analyzers.yaml" />
 	</node>
-</launch>
+	</launch>
