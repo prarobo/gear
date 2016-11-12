@@ -4,8 +4,13 @@
       Rqt plugin to show session duration times.
     </description>
     <qtgui>
-      <label>GEAR session duration</label>
-      <icon type="theme">folder</icon>
+      <group>
+        <label>GEAR</label>
+        <icon type="theme">applications-system</icon>
+        <statustip>GEAR project plugins</statustip>
+	  </group>
+      <label>Timer</label>
+      <icon type="theme">gnome-session-suspend</icon>
       <statustip>GEAR session duration</statustip>
     </qtgui>
   </class>

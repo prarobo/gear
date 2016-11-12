@@ -59,6 +59,9 @@
       <property name="text">
        <string>Session Time:</string>
       </property>
+      <property name="scaledContents">
+       <bool>true</bool>
+      </property>
      </widget>
     </widget>
    </item>
