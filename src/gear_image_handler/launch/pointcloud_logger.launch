@@ -10,7 +10,7 @@
   <arg name="nodelet_manager"   default="$(arg base_name)" unless="$(arg start_manager)"/>     
   
   <node pkg="nodelet" type="nodelet" name="$(arg nodelet_manager)"  
-        args="manager" output="screen" if="$(arg start_manager)">
+        output="screen" args="manager" if="$(arg start_manager)">
     <param name="num_worker_threads" value="4"/>
   </node>
 
@@ -22,7 +22,6 @@
     <param name="leaf_size"             value="0.01"/>
     <param name="filter_limit_negative" value="true"/>
   </node>
-
 
   <!-- Point cloud logging node -->
   <node pkg="nodelet" type="nodelet" name="$(arg base_name)_points_logger"

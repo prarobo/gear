@@ -8,7 +8,7 @@ from qt_gui.plugin import Plugin
 from python_qt_binding import loadUi, QtCore
 from python_qt_binding.QtGui import QWidget, QMainWindow
 from std_msgs.msg import Bool
-
+    
 class SessionDurationGUI(Plugin):
 
     def __init__(self, context):
@@ -27,11 +27,11 @@ class SessionDurationGUI(Plugin):
             print 'arguments: ', args
             print 'unknowns: ', unknowns
 
-        # Create QWidget
-        self._widget = QWidget()
-        
         # Get path to UI file which should be in the "resource" folder of this package
         ui_file = os.path.join(rospkg.RosPack().get_path('gear_session_duration'), 'resource', 'gear_session_duration.ui')
+
+        # Create QWidget
+        self._widget = QWidget() 
         
         # Extend the widget with all attributes and children from UI file
         loadUi(ui_file, self._widget)
@@ -59,11 +59,6 @@ class SessionDurationGUI(Plugin):
         self.timer = QtCore.QTimer(self)
         self.timer.timeout.connect(self.Time)
         
-        # Register callbacks for the gui elements
-#         self._widget.btnInitialize.clicked[bool].connect(self._onclicked_initialize);
-#         self._widget.btnStart.clicked[bool].connect(self._onclicked_start);
-#         self._widget.btnStop.clicked[bool].connect(self._onclicked_stop);
-
     def _configure_node(self):
         '''
         Configure the rosnode on startup
@@ -100,6 +95,8 @@ class SessionDurationGUI(Plugin):
  
         self._widget.lcdSessionDuration.setDigitCount(len(time))
         self._widget.lcdSessionDuration.display(time)
+        
+        self._widget.lblRecordingStatus.setStyleSheet("background-color: rgb(255, 0, 0);")
 
     def _start_timer(self, req):
         '''
@@ -108,6 +105,8 @@ class SessionDurationGUI(Plugin):
         self._reset_timer()
         rospy.loginfo("[GearSessionDuration] Starting timer")
         self.timer.start(1000)
+        
+        self._widget.lblRecordingStatus.setStyleSheet("background-color: rgb(0, 255, 0);")
         return
 
     def _stop_timer(self, req):
@@ -116,6 +115,8 @@ class SessionDurationGUI(Plugin):
         '''
         rospy.loginfo("[GearSessionDuration] Stopping timer")
         self.timer.stop()
+
+        self._widget.lblRecordingStatus.setStyleSheet("background-color: rgb(255, 0, 0);")
         return
     
     def Time(self):
