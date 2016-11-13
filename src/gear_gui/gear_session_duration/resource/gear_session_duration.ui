@@ -49,20 +49,6 @@
        </property>
       </widget>
      </widget>
-     <widget class="QLabel" name="lblSessionDuration">
-      <property name="sizePolicy">
-       <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
-        <horstretch>0</horstretch>
-        <verstretch>0</verstretch>
-       </sizepolicy>
-      </property>
-      <property name="text">
-       <string>Session Time:</string>
-      </property>
-      <property name="scaledContents">
-       <bool>true</bool>
-      </property>
-     </widget>
     </widget>
    </item>
   </layout>
