@@ -16,6 +16,7 @@
   <arg name="enable_loggers"        default="true"/>
   <arg name="enable_diagnostics"    default="true"/>
   <arg name="frame_rate"            default="15"/>
+  <arg name="do_pointcloud"         default="true"/>
 
   <!-- Logger parameters -->
   <arg name="synchronize"           default="true"/> 
@@ -38,6 +39,7 @@
     <arg name="frame_rate"          value="$(arg frame_rate)"/>
     <arg name="start_manager"       value="$(arg start_indiv_manager)"/>
     <arg name="nodelet_manager"     value="$(arg nodelet_manager)"/>
+    <arg name="do_pointcloud"       value="$(arg do_pointcloud)"/>
   </include>
 
   <!-- Launch pointgreys -->
