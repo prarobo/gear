@@ -15,10 +15,10 @@
   <arg name="enable_pointgrey2"     default="true"/>
   <arg name="enable_loggers"        default="true"/>
   <arg name="enable_diagnostics"    default="true"/>
+
+  <!-- Parameters -->
   <arg name="frame_rate"            default="15"/>
   <arg name="do_pointcloud"         default="true"/>
-
-  <!-- Logger parameters -->
   <arg name="synchronize"           default="true"/> 
   
   <!-- Session wide arguments -->
