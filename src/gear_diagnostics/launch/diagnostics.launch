@@ -1,11 +1,11 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <launch>
   <arg name="frame_rate"               default="15"/>
-  <arg name="window_size"              default="150"/>
-  <arg name="frequency_tolerance"			 default="15"/>
+  <arg name="window_size"              default="75"/>
+  <arg name="frequency_tolerance"			 default="0.1"/>
   <arg name="min_acceptable_delay"     default="0"/>
   <arg name="max_acceptable_delay"		 default="0.2"/>
-  <arg name="update_interval"          default="1"/>
+  <arg name="update_interval"          default="0.1"/>
   <arg name="min_frequency"			 			 default="15"/>
   <arg name="max_frequency"			 			 default="15"/>
   <arg name="mount_point"              default="/mnt/md0"/>
