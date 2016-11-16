@@ -2,7 +2,7 @@
 <launch>
   <arg name="base_name"         default="p1"/>
   <arg name="data_dir"          default="/mnt/md0/gear_data"/>
-  <arg name="image_extn"        default=".jpg"/>
+  <arg name="image_extn"        default=".png"/>
   <arg name="start_manager"     default="false"/>  
   <arg name="image_type"        default="color"/>
   <arg name="image_def"         default="hd"/>      

@@ -34,6 +34,7 @@
     <arg name="start_manager"   value="$(arg start_manager)"/>
     <arg name="nodelet_manager" value="$(arg nodelet_manager)" unless="$(arg start_manager)"/>
     <arg name="use_sync"        value="$(arg synchronize)"/>
+    <arg name="image_extn"      value=".jpg"/>
   </include>
 
   <!--kinect2 color-->
@@ -44,6 +45,7 @@
     <arg name="start_manager"   value="$(arg start_manager)"/>
     <arg name="nodelet_manager" value="$(arg nodelet_manager)" unless="$(arg start_manager)"/>
     <arg name="use_sync"        value="$(arg synchronize)"/>
+    <arg name="image_extn"      value=".jpg"/>
   </include>
 
   <!--kinect3 color-->
@@ -54,6 +56,7 @@
     <arg name="start_manager"   value="$(arg start_manager)"/>
     <arg name="nodelet_manager" value="$(arg nodelet_manager)" unless="$(arg start_manager)"/>
     <arg name="use_sync"        value="$(arg synchronize)"/>
+    <arg name="image_extn"      value=".jpg"/>
   </include>
 
   <!--pointgrey1 color-->
@@ -63,6 +66,7 @@
     <arg name="start_manager"   value="$(arg start_manager)"/>
     <arg name="nodelet_manager" value="$(arg nodelet_manager)" unless="$(arg start_manager)"/>
     <arg name="use_sync"        value="$(arg synchronize)"/>
+    <arg name="image_extn"      value=".jpg"/>
   </include>
 
   <!--pointgrey2 color-->
@@ -72,6 +76,7 @@
     <arg name="start_manager"   value="$(arg start_manager)"/>
     <arg name="nodelet_manager" value="$(arg nodelet_manager)" unless="$(arg start_manager)"/>
     <arg name="use_sync"        value="$(arg synchronize)"/>
+    <arg name="image_extn"      value=".jpg"/>
   </include>
 
   <!--kinect1 depth-->
@@ -82,6 +87,7 @@
     <arg name="start_manager"   value="$(arg start_manager)"/>
     <arg name="nodelet_manager" value="$(arg nodelet_manager)" unless="$(arg start_manager)"/>
     <arg name="use_sync"        value="$(arg synchronize)"/>
+    <arg name="image_extn"      value=".png"/>
   </include>
 
   <!--kinect2 depth-->
@@ -92,6 +98,7 @@
     <arg name="start_manager"   value="$(arg start_manager)"/>
     <arg name="nodelet_manager" value="$(arg nodelet_manager)" unless="$(arg start_manager)"/>
     <arg name="use_sync"        value="$(arg synchronize)"/>
+    <arg name="image_extn"      value=".png"/>
   </include>
 
   <!--kinect3 depth-->
@@ -102,6 +109,7 @@
     <arg name="start_manager"   value="$(arg start_manager)"/>
     <arg name="nodelet_manager" value="$(arg nodelet_manager)" unless="$(arg start_manager)"/>
     <arg name="use_sync"        value="$(arg synchronize)"/>
+    <arg name="image_extn"      value=".png"/>
   </include>
 
   <!--kinect1 pointcloud-->
