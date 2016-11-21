@@ -16,6 +16,7 @@
 #include <ros/ros.h>
 #include <diagnostic_updater/diagnostic_updater.h>
 #include <diagnostic_updater/publisher.h>
+#include <std_msgs/Int64.h>
 
 // Boost Dependencies
 #include <boost/shared_ptr.hpp>
@@ -46,9 +47,19 @@ private:
   void setupDiagnostics();
 
   /*
+   * Setup topic subscribers
+   */
+  void setupSubscribers();
+
+  /*
    * Update diagnostics function
    */
   void updateDiagnostics(const ros::TimerEvent& t);
+
+  /*
+   * Register the arrival of a image count message
+   */
+  void registerEvent(const ros::MessageEvent<std_msgs::Int64 const>& event);
 
   // Default parameters
   std::string default_synchronizer_topic_;
@@ -72,6 +83,10 @@ private:
   diagnostic_updater::Updater synchronizer_updater_, logger_updater_;
   boost::shared_ptr<diagnostic_updater::HeaderlessTopicDiagnostic> synchronizer_diagnostics_;
   std::vector<boost::shared_ptr<diagnostic_updater::HeaderlessTopicDiagnostic>> sensor_logger_diagnostics_;
+
+  // Subscribers
+  boost::shared_ptr<ros::Subscriber> synchronizer_sub_;
+  std::vector<boost::shared_ptr<ros::Subscriber>> sensor_logger_sub_;
 
   //Timer
   ros::Timer diagnostics_timer_;

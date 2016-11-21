@@ -2,7 +2,7 @@
 <launch>
   <arg name="frame_rate"               default="15"/>
   <arg name="window_size"              default="150"/>
-  <arg name="frequency_tolerance"			 default="15"/>
+  <arg name="frequency_tolerance"			 default="0.1"/>
   <arg name="min_acceptable_delay"     default="0"/>
   <arg name="max_acceptable_delay"		 default="0.2"/>
   <arg name="update_interval"          default="1"/>
@@ -15,7 +15,7 @@
 		  <param name="window_size"              	value="$(arg window_size)"/>
 		  <param name="frequency_tolerance"			 	value="$(arg frequency_tolerance)"/>
 		  <param name="min_acceptable_delay"     	value="$(arg min_acceptable_delay)"/>
-		  <param name="max_acceptable_delay"		 		value="$(arg max_acceptable_delay)"/>
+		  <param name="max_acceptable_delay"		 	value="$(arg max_acceptable_delay)"/>
 		  <param name="update_interval"          	value="$(arg update_interval)"/>
 		  <param name="min_frequency"			 			 	value="$(arg min_frequency)"/>
 		  <param name="max_frequency"			 			 	value="$(arg max_frequency)"/>

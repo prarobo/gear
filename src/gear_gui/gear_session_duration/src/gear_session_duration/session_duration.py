@@ -69,16 +69,8 @@ class SessionDurationGUI(Plugin):
     def _configure_gui(self):
         '''
         Configure the gui element on startup
-        '''
-        # Load data collection configuration values
-        config_file = os.path.join(rospkg.RosPack().get_path('gear_session_duration'), 'config', 'settings.yaml')
-        rospy.loginfo("[GearSessionDuration] Loading parameters from file: "+config_file)
-        config_data = yaml.load(open(config_file,'r'))
-        
-        duration = config_data["Duration"]
-        
+        '''        
         # Set default values
-        self._widget.lblSessionDuration.setText("Session Time: "+str(duration))
         self._reset_timer()
         
     def _reset_timer(self):

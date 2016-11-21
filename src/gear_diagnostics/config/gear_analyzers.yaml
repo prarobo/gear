@@ -18,3 +18,9 @@ analyzers:
     type: diagnostic_aggregator/GenericAnalyzer
     path: Logger
     contains: _image_count
+  disk:
+    type: diagnostic_aggregator/GenericAnalyzer
+    path: Disk
+    name: disk_monitor
+    contains: disk
+
