@@ -3,6 +3,7 @@ import rospy
 import rospkg
 import yaml
 import pprint
+import commands
 
 from qt_gui.plugin import Plugin
 from python_qt_binding import loadUi, QtCore
@@ -38,7 +39,9 @@ DEFAULT_SERVICES_SESSION_INFO = ["/k1_color_session_info",
                                  "/k2_points_session_info",
                                  "/k3_points_session_info"]
 
-DEFAULT_GEAR_LOGGING_DIR = "/mnt/md0/gear_data"
+DEFAULT_DATA_DIR = "/mnt/md0/gear_data"
+DEFAULT_SUBJECT = "x"
+DEFAULT_DELETABLE_DIR_SIZE = "2" #Gb
 
 class ImageCaptureGUI(Plugin):
 
@@ -100,7 +103,7 @@ class ImageCaptureGUI(Plugin):
         
         self.services_to_enable = rospy.get_param("services_to_enable", DEFAULT_SERVICES_TO_ENABLE)
         self.services_session_info = rospy.get_param("services_session_info", DEFAULT_SERVICES_SESSION_INFO)
-        self.gear_logging_dir = rospy.get_param("logging_dir", DEFAULT_GEAR_LOGGING_DIR)
+        self.data_dir = rospy.get_param("/data_dir", DEFAULT_DATA_DIR)
             
     def _configure_gui(self):
         '''
@@ -111,12 +114,21 @@ class ImageCaptureGUI(Plugin):
         self._logger("[GearImageCapture] Loading parameters from file: "+config_file)
         config_data = yaml.load(open(config_file,'r'))
         
-        trial_list = [str(i) for i in xrange(1,config_data["MaxTrials"])]
+        session_list = [str(i) for i in xrange(1,config_data["MaxSessions"]+1)]
+        trial_list = [str(i) for i in xrange(1,config_data["MaxTrials"]+1)]
         activity_list = config_data["Activity"]
-
+        condition_list = config_data["Condition"]
+        
+        # Get list of subjects
+        subject_list = os.listdir(self.data_dir)
+        if not subject_list:
+            subject_list = [DEFAULT_SUBJECT]
+        
         # Set default values
-        self._widget.txtSession.setText("test")
+        self._widget.comboSubject.addItems(subject_list)
+        self._widget.comboSession.addItems(session_list)
         self._widget.comboActivity.addItems(activity_list)
+        self._widget.comboCondition.addItems(condition_list)
         self._widget.comboTrial.addItems(trial_list)
         
         self.exists_logging_dir = False
@@ -136,27 +148,43 @@ class ImageCaptureGUI(Plugin):
         '''
         Initializing the image capture utility on user request
         '''
-        session_id = str(self._widget.txtSession.text())
+        subject_id = str(self._widget.comboSubject.currentText())
+        session_id = "session_"+str(self._widget.comboSession.currentText())
         activity_id = str(self._widget.comboActivity.currentText())
+        condition_id = str(self._widget.comboCondition.currentText())
         trial_id = str(self._widget.comboTrial.currentText())
         
         # Checking if logging directory exists
-        logging_dir = os.path.join(self.gear_logging_dir, session_id, activity_id+'_'+trial_id)
+        logging_dir = os.path.join(self.data_dir, subject_id, session_id, 
+                                   '_'.join([activity_id,condition_id,trial_id]))
         exists_logging_dir = os.path.exists(logging_dir)
         if (not exists_logging_dir) or (self.exists_logging_dir and exists_logging_dir):
-           
+                       
             # Delete logging directory to clear old data
             if exists_logging_dir:
-                shutil.rmtree(logging_dir)
+
+                # Check size of logging directory   
+                dir_size = int(commands.getoutput('du -sh -BG '+logging_dir).split()[0][:-1])
+                if dir_size > DEFAULT_DELETABLE_DIR_SIZE:
+                    self._logger("[GearImageCapture] Logging directory too big (cannot delete from UI," 
+                                 "please manually delete to proceed)", type="warn")
+                    return                
+                else:
+                    shutil.rmtree(logging_dir)
+                    
             self.exists_logging_dir = False
                 
             self._logger("[GearImageCapture] Setting data collection parameters")
+            rospy.set_param("subject_id", subject_id)
             rospy.set_param("session_id", session_id)
             rospy.set_param("activity_id", activity_id)
+            rospy.set_param("condition_id", condition_id)
             rospy.set_param("trial_id", int(trial_id))
-    
+
+            self._logger("[GearImageCapture] Setting parameter subject_id: "+subject_id)    
             self._logger("[GearImageCapture] Setting parameter session_id: "+session_id)
             self._logger("[GearImageCapture] Setting parameter activity_id: "+activity_id)
+            self._logger("[GearImageCapture] Setting parameter condition_id: "+condition_id)
             self._logger("[GearImageCapture] Setting parameter trial_id: "+trial_id)
             sleep(2)
             
@@ -165,14 +193,14 @@ class ImageCaptureGUI(Plugin):
                 try:
                     rospy.wait_for_service(service_name, 1)
                 except rospy.ROSException:
-                    rospy.logwarn("[GearImageCapture] Service "+service_name+" service not available")
+                    self._logger("[GearImageCapture] Service "+service_name+" service not available", type="warn")
                     continue
                 
                 # Service call to trigger logging
                 sensor_session_info = rospy.ServiceProxy(service_name, Trigger)
                 resp = sensor_session_info(TriggerRequest())
                 self._logger("[GearImageCapture] Service "+service_name+" logging started: ("
-                             +str(resp.success)+","+resp.message+")")
+                             +str(resp.success)+","+resp.message+")", skip_ui=True)
             
             # Set button states
             self._widget.btnStart.setEnabled(True)
@@ -195,7 +223,8 @@ class ImageCaptureGUI(Plugin):
             # Service call to trigger logging
             sensor_trigger = rospy.ServiceProxy(service_name, SetBool)
             resp = sensor_trigger(True)
-            self._logger("[GearImageCapture] Service "+service_name+" logging started: "+str(resp))
+            self._logger("[GearImageCapture] Service "+service_name+" logging started")
+            self._logger("[GearImageCapture] Service "+service_name+" logging started: "+str(resp), skip_ui=True)
             
         # Start session clock
         self.session_timer_start_pub.publish(True)
@@ -220,7 +249,8 @@ class ImageCaptureGUI(Plugin):
 
             sensor_trigger = rospy.ServiceProxy(service_name, SetBool)
             resp = sensor_trigger(False)
-            self._logger("[GearImageCapture] Service "+service_name+" logging stopped: "+str(resp))
+            self._logger("[GearImageCapture] Service "+service_name+" logging stopped")
+            self._logger("[GearImageCapture] Service "+service_name+" logging stopped: "+str(resp), skip_ui=True)
             
         # Stop session clock
         self.session_timer_stop_pub.publish(True)
@@ -229,21 +259,30 @@ class ImageCaptureGUI(Plugin):
         self._widget.btnStart.setDown(False)
         self._configure_button_states()
         
-    def _logger(self, output_text, type="info"):
+        # Refresh list of subjects
+        subject_list = os.listdir(self.data_dir)
+        if not subject_list:
+            subject_list = [DEFAULT_SUBJECT]
+        self._widget.comboSubject.addItems(subject_list)
+
+        
+    def _logger(self, output_text, type="info", skip_ui=False):
         '''
         Logging module that handles both roslog and output status
         '''
         if type=="warn":
             rospy.logwarn(output_text)
-            self._widget.txtOutput.setTextColor(QColor(255,0,0))
+            if not skip_ui:
+                self._widget.txtOutput.setTextColor(QColor(255,0,0))
         else:
             rospy.loginfo(output_text)
-            self._widget.txtOutput.setTextColor(QColor(0,0,0))
-            #self._widget.txtOutput.setStyleSheet("color: rgb(0, 0, 0);")
-             
-        self._widget.txtOutput.append(output_text)
-        self._widget.txtOutput.moveCursor(QTextCursor.End)
-        self._widget.txtOutput.ensureCursorVisible()
+            if not skip_ui:
+                self._widget.txtOutput.setTextColor(QColor(0,0,0))
+        
+        if not skip_ui:     
+            self._widget.txtOutput.append(output_text)
+            self._widget.txtOutput.moveCursor(QTextCursor.End)
+            self._widget.txtOutput.ensureCursorVisible()
         return
 
     def shutdown_plugin(self):

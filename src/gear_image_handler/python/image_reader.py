@@ -68,7 +68,7 @@ class ImageReader(object):
             temp_path = os.path.join(self.image_root_path_, d)
             
             if os.path.isdir(temp_path) and len(os.listdir(temp_path)) != 0:
-                sub_dir[d] = os.path.join(self.image_root_path_,d) 
+                sub_dir[d] = temp_path 
                 filename = os.path.join(temp_path, os.listdir(temp_path)[0])
                 image_extn[d] = os.path.splitext(filename)[1]
                    
@@ -206,6 +206,10 @@ class ImageReader(object):
                     image_path = os.path.join(self.image_root_path_,v,image_name)
                     image = cv2.imread(image_path, is_color)
                     video_writer.write(image)
+                    
+                    # Play video
+                    # cv2.imshow('image',image)
+                    # cv2.waitKey(10)
             rospy.loginfo("done")
         return
     
