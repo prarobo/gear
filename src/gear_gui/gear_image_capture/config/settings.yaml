@@ -1,6 +1,14 @@
 # Maximum number of trials allowed
 MaxTrials: 10
 
+# Maximum number of trials allowed
+MaxSessions: 15
+
+# Condition List
+Condition:
+  - In
+  - Out
+
 # Activity List
 Activity:
   - FreePlay
