@@ -22,13 +22,18 @@
   <arg name="synchronize"           default="true"/> 
   
   <!-- Session wide arguments -->
-  <arg name="session_id"            default="test"/>
+  <arg name="subject_id"            default="x"/>
+  <arg name="session_id"            default="session_1"/>
   <arg name="activity_id"           default="act"/>
-  <arg name="trial_id"              default="1"/>  
+  <arg name="condition_id"          default="in"/>
+  <arg name="trial_id"              default="1"/>
+  <arg name="data_dir"           		default="/mnt/md0/gear_data"/>  
   
   <!-- Setting session wide parameters -->
+  <param name="subject_id"          value="$(arg subject_id)"/>
   <param name="session_id"          value="$(arg session_id)"/>
   <param name="activity_id"         value="$(arg activity_id)"/>
+  <param name="condition_id"        value="$(arg condition_id)"/>
   <param name="trial_id"            value="$(arg trial_id)"/>  
   
   <!-- Launch kinects -->
@@ -56,6 +61,7 @@
     <arg name="start_manager"       value="$(arg start_indiv_manager)"/>
     <arg name="nodelet_manager"     value="$(arg nodelet_manager)"/>
     <arg name="synchronize"         value="$(arg synchronize)"/>
+    <arg name="data_dir"         		value="$(arg data_dir)"/>
   </include> 
 
   <!-- Launch diagnostics -->

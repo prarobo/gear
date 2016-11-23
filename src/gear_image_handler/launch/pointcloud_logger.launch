@@ -2,8 +2,11 @@
 <launch>
   <arg name="base_name"         default="p1"/>
   <arg name="data_dir"          default="/mnt/md0/gear_data"/>
+  <arg name="image_extn"        default=".pcd"/>
   <arg name="start_manager"     default="false"/>  
+  <arg name="image_type"        default="points"/>
   <arg name="image_def"         default="hd"/>      
+  <arg name="image_prefix"      default="pc"/>      
   <arg name="voxelize"          default="true"/>
 
   <arg name="nodelet_manager"   default="$(arg base_name)_pointcloud_logger_manager" if="$(arg start_manager)"/>
@@ -31,7 +34,9 @@
     <remap from="/pointcloud_count"   to="/$(arg base_name)/pointcloud_count" />
     <param name="sensor_id"           value="$(arg base_name)"/>
     <param name="data_dir"            value="$(arg data_dir)"/>
-    <param name="base_name"           value="$(arg base_name)"/>
+    <param name="image_extn"          value="$(arg image_extn)"/>
+    <param name="image_type"          value="$(arg image_type)"/>
+    <param name="image_prefix"        value="$(arg image_prefix)"/>
   </node>
 
 </launch>
