@@ -4,5 +4,9 @@ MaxTrials: 10
 # Activity List
 Activity:
   - FreePlay
-  - Chase
+  - Walking
+  - Crawling
+  - Standing
+  - RampAscending
+  - Staircase
   
