@@ -1,0 +1,17 @@
+<library path="src">
+  <class name="PostprocessGUI" type="gear_postprocess.postprocess.PostprocessGUI" base_class_type="rqt_gui_py::Plugin">
+    <description>
+      Rqt plugin for postprocessing data.
+    </description>
+    <qtgui>
+      <group>
+        <label>GEAR</label>
+        <icon type="theme">applications-system</icon>
+        <statustip>GEAR project plugins</statustip>
+	  </group>
+      <label>control panel</label>
+      <icon type="theme">media-playback-start</icon>
+      <statustip>GEAR postprocess</statustip>
+    </qtgui>
+  </class>
+</library>
