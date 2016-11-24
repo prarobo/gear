@@ -238,7 +238,7 @@
      </widget>
      <widget class="QProgressBar" name="progressBar">
       <property name="value">
-       <number>24</number>
+       <number>0</number>
       </property>
      </widget>
      <widget class="QTextEdit" name="txtOutput">

@@ -15,6 +15,7 @@ Activity:
   - WALK
   - CRAWL
   - STAND
+  - STEP
   - RASC
   - SASC
   
