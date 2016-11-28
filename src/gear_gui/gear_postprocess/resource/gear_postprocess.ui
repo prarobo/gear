@@ -235,6 +235,17 @@
         <string>START</string>
        </property>
       </widget>
+      <widget class="QPushButton" name="btnStop">
+       <property name="sizePolicy">
+        <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
+         <horstretch>0</horstretch>
+         <verstretch>0</verstretch>
+        </sizepolicy>
+       </property>
+       <property name="text">
+        <string>STOP</string>
+       </property>
+      </widget>
      </widget>
      <widget class="QProgressBar" name="progressBar">
       <property name="value">

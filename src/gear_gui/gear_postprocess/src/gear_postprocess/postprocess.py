@@ -14,6 +14,7 @@ import shutil
 from glob import glob
 
 DEFAULT_DATA_DIR = "/mnt/md0/gear_data"
+DEFAULT_COMPOSITION = [("k2", "color"), ("p1", "color"), ("p2", "color")]
 
 class PostprocessGUI(Plugin):
 
@@ -286,7 +287,7 @@ class PostprocessGUI(Plugin):
         Refresh GUI when subject changes
         '''
         if self._widget.chkVideoAll.isChecked():
-            self.sensor = self._get_sensor_video_list('video')
+            self.video = self._get_sensor_video_list('video')
         else:
             self.video = set([str(self._widget.comboVideo.currentText())])
         return
@@ -322,6 +323,7 @@ class PostprocessGUI(Plugin):
             self._widget.chkTrialAll.setChecked(True)
             self._widget.chkSensorAll.setChecked(True)
             self._widget.chkVideoAll.setChecked(True)
+            self._widget.progressBar.setValue(0)
             
             self._onchanged_txtFilepath()
         return
@@ -346,13 +348,55 @@ class PostprocessGUI(Plugin):
         self._widget.chkVideoAll.setEnabled(False)
         self._widget.chkComposition.setEnabled(False)
         self._widget.btnStart.setEnabled(False)
+        self._widget.btnStop.setEnabled(False)
         return
                 
     def _onclicked_btnStart(self):
         '''
         Start generating videos
         '''
+        self._widget.progressBar.setValue(0)
+        self._widget.btnStop.setEnabled(True)
+        
+        # Generate all possible tasks
+        tasks = itertools.product([self.subject], [self.session], 
+                                  self.activity, self.condition, self.trial, 
+                                  self.sensor, self.video)
+        
+        # Find all valid tasks
+        valid_tasks = [t for t in tasks if self._validate_task(t)]
+        
+        # Get all possiblities till trials       
+        trials = itertools.product([self.subject], [self.session], 
+                                   self.activity, self.condition, self.trial)
+
+        # All possible compositions
+        compositions = []
+        for t in trials:
+            temp = itertools.product([t], DEFAULT_COMPOSITION)
+
+            compositions.append([t1[0]+t1[1] for t1 in temp])
+        
+        # Get valid compositions
+        valid_compositions = [c for c in compositions if self._validate_composition(c)]
+        
         return
+    
+    def _validate_task(self, task):
+        '''
+        Validate if a given task is possible
+        '''
+        path = os.path.join(self.root_dir, task[0], task[1], '_'.join(task[2:5]), "images", '_'.join(task[5:]))
+        return os.path.exists(path)
+    
+    def _validate_composition(self, composition):
+        '''
+        Check if a composition is possible
+        '''
+        for t in composition:
+            if not self._validate_task(t):
+                return False
+        return True
     
     def _logger(self, output_text, type="info", skip_ui=False):
         '''
