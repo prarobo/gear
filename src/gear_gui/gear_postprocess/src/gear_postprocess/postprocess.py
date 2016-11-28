@@ -15,6 +15,7 @@ from glob import glob
 
 DEFAULT_DATA_DIR = "/mnt/md0/gear_data"
 DEFAULT_COMPOSITION = [("k2", "color"), ("p1", "color"), ("p2", "color")]
+VIDEO_BLACKLIST = ["depth"]
 
 class PostprocessGUI(Plugin):
 
@@ -273,7 +274,8 @@ class PostprocessGUI(Plugin):
         else:
             self.sensor = set([str(self._widget.comboSensor.currentText())])
         
-        video_list = self._get_sensor_video_list('video')        
+        video_list = self._get_sensor_video_list('video')
+        video_list.intersection_update(set(VIDEO_BLACKLIST))        
         if not video_list:
             return
         
@@ -288,6 +290,7 @@ class PostprocessGUI(Plugin):
         '''
         if self._widget.chkVideoAll.isChecked():
             self.video = self._get_sensor_video_list('video')
+            self.video.intersection_update(set(VIDEO_BLACKLIST))        
         else:
             self.video = set([str(self._widget.comboVideo.currentText())])
         return

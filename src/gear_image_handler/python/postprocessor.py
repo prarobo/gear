@@ -10,6 +10,8 @@ import rospy
 from decimal import Decimal, getcontext
 import rospy
 
+VIDEO_ENCODING = cv2.cv.CV_FOURCC('M','J','P','G')
+
 COMPOSITION_KEYS = ["p1_color","k2_color", "p2_color"]
 COMPOSITION_FRAME_SIZE = [1000, 1000]
 COMPOSITION_TILES = [2, 2]

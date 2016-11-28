@@ -264,7 +264,6 @@ class ImageCaptureGUI(Plugin):
         if not subject_list:
             subject_list = [DEFAULT_SUBJECT]
         self._widget.comboSubject.addItems(subject_list)
-
         
     def _logger(self, output_text, type="info", skip_ui=False):
         '''
