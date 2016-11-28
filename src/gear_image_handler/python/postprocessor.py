@@ -6,87 +6,50 @@ import numpy as np
 import matplotlib.pyplot as plt
 import cv2
 import shutil
-import rospy
 from decimal import Decimal, getcontext
-import rospy
 
 VIDEO_ENCODING = cv2.cv.CV_FOURCC('M','J','P','G')
+IMAGE_DIR = "images"
+VIDEO_DIR = "videos"
 
-COMPOSITION_KEYS = ["p1_color","k2_color", "p2_color"]
-COMPOSITION_FRAME_SIZE = [1000, 1000]
-COMPOSITION_TILES = [2, 2]
-
-class ImageReader(object):
-    def __init__(self, data_dir="/mnt/md0/gear_data", 
-                 image_root_name="images", 
-                 video_root_name="videos",
-                 image_prefix="im",
-                 session_id="test", 
-                 activity_id="act", 
-                 trial_id="1", 
+class PostProcessor(object):
+    def __init__(self, root_dir="/mnt/md0/gear_data", 
                  video_extn=".avi",
-                 video_format=cv2.cv.CV_FOURCC('M','J','P','G'),
-                 fps="15",
-                 time_offset=2):
+                 fps="15"):
         
         # Record inputs
-        self.image_root_path_ = os.path.join(data_dir, session_id, 
-                                             activity_id+'_'+str(trial_id), image_root_name)
-        self.video_root_path_ = os.path.join(data_dir, session_id, 
-                                             activity_id+'_'+str(trial_id), video_root_name)
-        self.image_prefix_ = image_prefix
-
-        self.video_extn_ = video_extn
-        self.video_format_ = video_format
-        self.fps_ = fps
-        self.time_offset_ = time_offset
-                
-        # Initialize directories
-        if not os.path.exists(self.video_root_path_):
-            os.makedirs(self.video_root_path_)
-        
-        # Find sensor directories
-        self.sensor_dir_, self.image_extn_ = self._getSensorImageDirectories()
-        
-        # Get the image time sequence
-        self.time_seq_ = {}
-        for k in self.sensor_dir_.keys():
-            self.time_seq_[k] = self._readTimeSequenceOfImagesFromDir(self.sensor_dir_[k], self.image_extn_[k])
-        
-        self.meanTimeDiff = {}
-        self.stdTimeDiff = {}
-        for k in self.time_seq_.keys():
-            self.meanTimeDiff[k], self.stdTimeDiff[k] = self.computeTimingStatistics(self.time_seq_[k])
-                    
+        self.root_dir = root_dir
+        self.video_extn = video_extn
+        self.fps = fps
+        self.video_enc = VIDEO_ENCODING
+                                    
         return
         
-    def _getSensorImageDirectories(self):
+    def _get_sensor_image_directories(self, task):
         '''
         Get the directories where images for each sensor are present
         '''
+        image_root_dir = self.get_image_root_dir(task)
         sub_dir = {}
         image_extn = {}
-        for d in os.listdir(self.image_root_path_):
-            temp_path = os.path.join(self.image_root_path_, d)
+        for d in os.listdir(image_root_dir):
+            temp_path = os.path.join(image_root_dir, d)
             
             if os.path.isdir(temp_path) and len(os.listdir(temp_path)) != 0:
                 sub_dir[d] = temp_path 
                 filename = os.path.join(temp_path, os.listdir(temp_path)[0])
-                image_extn[d] = os.path.splitext(filename)[1]
                    
-        return sub_dir, image_extn
+        return sub_dir
 
-    def _readTimeSequenceOfImagesFromDir(self, image_dir, image_extn):
+    def _time_sequence_dir(self, image_dir):
         '''
         Load images from a directory along with the time sequence
         '''
-        image_file_pattern = os.path.join(image_dir,"*"+image_extn)
-        images = [os.path.basename(f) for f in glob.glob(image_file_pattern)]
-        time_seq = [self._parseImageNames(f) for f in images]
+        time_seq = [self._parse_image_names(f) for f in os.listdir(image_dir)]
         time_seq.sort()
         return time_seq
     
-    def _parseImageNames(self, image_name):
+    def _parse_image_names(self, image_name):
         '''
         Get timestamp information from image name
         '''
@@ -96,7 +59,7 @@ class ImageReader(object):
                            +image_name.split('_')[2])
         return timestamp
     
-    def _buildImageName(self, timestamp, image_extn):
+    def _build_image_name(self, timestamp, image_extn):
         '''
         Build image filename from timestamp
         '''
@@ -104,82 +67,124 @@ class ImageReader(object):
                      +str(timestamp).split('.')[1]+image_extn
         return image_name
     
-    def computeTimingStatistics(self, time_seq):
+    def _build_video_name(self, task):
+        '''
+        Build video name from task
+        '''
+        return '_'.join(task) 
+    
+    def compute_time_seq_statistics(self, time_seq):
         '''
         Compute statistics related to time sequence
         '''
-        timeDiff = []
+        time_diff = []
         if time_seq:
             for i in xrange(len(time_seq)-1):
-                timeDiff.append(time_seq[i+1]-time_seq[i])
+                time_diff.append(time_seq[i+1]-time_seq[i])
                 
-            meanTimeDiff = np.mean(np.array(timeDiff))
-            stdTimeDiff = np.std(np.array(timeDiff),ddof=1)
+            mean_time_diff = np.mean(np.array(time_diff))
+            std_time_diff = np.std(np.array(time_diff),ddof=1)
+            mean_fps = 1/mean_time_diff
+            std_fps = 1/std_time_diff
         else:
-            meanTimeDiff = 0
-            stdTimeDiff = 0
+            mean_time_diff = 0
+            std_time_diff = 0
+            mean_fps = 0
+            std_fps = 0
             
-        return meanTimeDiff, stdTimeDiff
+        return mean_time_diff, std_time_diff, mean_fps, std_fps
     
-    def plotFramerateStatistics(self):
+    def plot_framerate_statistics(self, time_seq_list):
         '''
         Plot the statistics corresponding to frame rates of different streams
         '''        
-        x = np.array(xrange(len(self.meanTimeDiff.keys())+1))
-        keys = self.meanTimeDiff.keys()
+        x = np.array(xrange(len(time_seq_list)+1))
         
-        mean_fps = [0]
-        std_fps = [0]
-        for k in keys:
-            mean_fps.append(1/self.meanTimeDiff[k] if self.meanTimeDiff[k] != 0 else 0)
-            std_fps.append(1/self.stdTimeDiff[k] if self.stdTimeDiff[k] != 0 else 0)
-
-        plt.xticks(x, [""]+keys)
+        # Compute fps statistics
+        mean_fps_list = [0]
+        std_fps_list = [0]
+        for t in time_seq_list:
+            # Compute the time sequence statistics
+            mean_time_diff, std_time_diff, mean_fps, std_fps = self.compute_timing_statistics(t)
+            
+            mean_fps_list.append(mean_fps)
+            std_fps_list.append(std_fps)
+            
+        plt.xticks(x, [""]+[str(i) for i in xrange(len(time_seq_list))])
         plt.xlim( (0, len(keys)+1) ) 
-        plt.errorbar(x, mean_fps, std_fps, linestyle='None', marker='^')
+        plt.errorbar(x, mean_fps_list, std_fps_list, linestyle='None', marker='^')
         plt.show()
         
-    def getMinMaxTimeSeq(self):
+    def get_min_max_time_seq(self, time_seq_list):
         '''
         Get latest starting and earliest ending time
         '''
-        min_list = [i[0] for i in self.time_seq_.values()]
-        max_list = [i[-1] for i in self.time_seq_.values()]
+        min_list = [i[0] for i in self.time_seq_list]
+        max_list = [i[-1] for i in self.time_seq_list]
         
-        self.start_time = max(min_list)+self.time_offset_
-        self.end_time = min(max_list)-self.time_offset_
-        self.time_diff = self.end_time-self.start_time
-
-        self.num_frames = {k:sum(self.start_time<=x<=self.end_time for x in v)
-                           for k,v in self.time_seq_.iteritems()}
+        min_time = max(min_list)+self.time_offset_
+        max_time = min(max_list)-self.time_offset_
         
-        rospy.loginfo("Min time = {min_time}".format(min_time=self.start_time))
-        rospy.loginfo("Max time = {max_time}".format(max_time=self.end_time))
-        rospy.loginfo("Time difference = {time_diff}".format(time_diff=self.time_diff))
-        rospy.loginfo("Number of frames: "+str(self.num_frames))
-        return
+        print("Min time = {min_time}".format(min_time=self.start_time))
+        print("Max time = {max_time}".format(max_time=self.end_time))
+        return min_time, max_time
     
-    def _getVideoInformation(self, sensor_stream):
+    def get_image_root_dir(self, task):
+        '''
+        Get the image root directory from task
+        '''
+        return os.path.join(self.root_dir, task[0], task[1], '_'.join(task[2:5]), IMAGE_DIR)
+
+    def get_video_root_dir(self, task):
+        '''
+        Get the image root directory from task
+        '''
+        return os.path.join(self.root_dir, task[0], task[1], '_'.join(task[2:5]), VIDEO_DIR)
+        
+    def find_video_limits(self, task):
+        '''
+        Find the time limits for a video from the recorded images
+        '''
+        image_root_dir = self.get_image_root_dir(task)
+        
+        # Find sensor directories
+        sensor_dir = self._get_sensor_image_directories()
+        
+        # Get the image time sequences
+        time_seq_list = []
+        for k in sensor_dir:
+            image_dir = os.path.join(image_root_dir, k)
+            time_seq_list.append(self._time_sequence_dir(image_dir))
+            
+        # Get the minimum and maximum time sequence points
+        min_time, max_time = self.get_min_max_time_seq(time_seq_list)
+        return min_time, max_time
+        
+    
+    def _get_video_information(self, time_seq, min_time, max_time, image_dir):
         '''
         Get information about the video to be generated
         '''
         
-        # Frame rate
+        # Frame rate computation
         getcontext().prec=19
-        current_fps = Decimal(self.num_frames[sensor_stream])/self.time_diff
-        #assert  int(round(current_fps)) == int(self.fps_), \
-        #"Framerate mismatch: expected {e} current {c}".format(e=self.fps_,c=current_fps)
+        time_diff = max_time-min_time
+        num_frames = sum(min_time<=time_seq<=max_time)
+        current_fps = Decimal(num_frames)/time_diff
         if int(round(current_fps)) != int(self.fps_):
-            rospy.logerr("Framerate mismatch: expected {e} current {c}".format(e=self.fps_,c=current_fps))
+            print("Framerate mismatch: expected {e} current {c}".format(e=self.fps_,c=current_fps))
         
-        # Frame size
-        image_name = self._buildImageName(self.time_seq_[sensor_stream][0], self.image_extn_[sensor_stream])
-        image_path = os.path.join(self.image_root_path_, sensor_stream, image_name)
+        # Get image extension
+        image_name = os.listdir(image_dir)[0]
+        image_extn = os.path.splitext(image_name)
+        
+        # Get frame size
+        image_path = os.path.join(image_dir, image_name)
         image = cv2.imread(image_path)
         height, width, _ = image.shape
         frame_size = (width, height)
         
-        # Color channels
+        # Get color channels
         if "color" in sensor_stream:
             is_color = cv2.CV_LOAD_IMAGE_COLOR
         elif "depth" in sensor_stream:
@@ -187,39 +192,57 @@ class ImageReader(object):
         else:
             is_color = cv2.CV_LOAD_IMAGE_UNCHANGED
             
-        return frame_size, is_color, current_fps
+        return frame_size, is_color, current_fps, image_extn
         
-    def encodeVideo(self):
+    def create_video(self, task):
         '''
-        Generate videos from images
+        Generate videos for the given task
         '''
-        for v in self.sensor_dir_.keys():
-            frame_size, is_color, current_fps = self._getVideoInformation(v)
-            video_path = os.path.join(self.video_root_path_, v+self.video_extn_)
-            video_writer = cv2.VideoWriter(video_path, self.video_format_, float(current_fps), frame_size, is_color)
+
+        # Initialize directories
+        image_root_dir = self.get_image_root_dir(task)
+        video_root_dir = self.get_video_root_dir(task)
+        image_dir = os.path.join(image_root_dir, '_'.join(task[-2:]))
+        if not os.path.exists(video_root_dir):
+            os.makedirs(self.video_root_dir)
+        
+        # Find the time limits of the video
+        min_time, max_time = self.find_video_limits(task)
+        time_seq = self._time_sequence_dir(image_dir)
+        
+        # Initialize directories
+        image_root_dir = self.get_image_root_dir(task)
+        video_root_dir = self.get_video_root_dir(task)
+        if not os.path.exists(video_root_dir):
+            os.makedirs(self.video_root_dir)
             
-            if not video_writer.isOpened():
-                raise Exception("Failed to load video")
-            
-            rospy.loginfo("Processing video "+v+ " ...")
-            for t in self.time_seq_[v]:
-                if self.start_time<t<self.end_time:
-                    image_name = self._buildImageName(t, self.image_extn_[v])
-                    image_path = os.path.join(self.image_root_path_,v,image_name)
-                    image = cv2.imread(image_path, is_color)
-                    video_writer.write(image)
-                    
-                    # Play video
-                    # cv2.imshow('image',image)
-                    # cv2.waitKey(10)
-            rospy.loginfo("done")
+        # Get video information
+        frame_size, is_color, current_fps, image_extn = self._get_video_information(time_seq, min_time, max_time, image_dir)
+        
+        # Create video writer object
+        video_name = self._build_video_name(task)
+        video_path = os.path.join(video_root_dir, video_name+self.video_extn)
+        video_writer = cv2.VideoWriter(video_path, self.video_enc, float(current_fps), frame_size, is_color)
+        if not video_writer.isOpened():
+            raise Exception("Failed to load video")
+        
+        print("Processing video "+video_name+ " ...",)
+        for t in time_seq:
+            if start_time<t<end_time:
+                image_name = self._build_image_name(t, image_extn)
+                image_path = os.path.join(image_dir, image_name)
+                image = cv2.imread(image_path, is_color)
+                video_writer.write(image)
+
+            print("done")
         return
     
-    def composeVideo(self):
+    def create_composition(self, composition_task):
         '''
         Compose multiple videos into a single video
         '''
         
+        '''
         if not set(COMPOSITION_KEYS)<=set(self.sensor_dir_.keys()):
             rospy.logfatal("Data for video composition unavailable")
             return
@@ -248,16 +271,12 @@ class ImageReader(object):
                 bottom_row = np.concatenate((images[1], images[2]), axis=1)
                 composed_image = np.concatenate((top_row, bottom_row), axis=0)
                 video_writer.write(composed_image)
-        rospy.loginfo("done")                  
+        rospy.loginfo("done")   
+        '''               
         return
     
 if __name__=="__main__":
-    image_reader = ImageReader()
-    #image_reader.plotFramerateStatistics()
-    image_reader.getMinMaxTimeSeq()
-    image_reader.encodeVideo()
-    image_reader.composeVideo()
-    
+    pass    
     
     
     
