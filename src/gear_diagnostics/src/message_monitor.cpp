@@ -6,7 +6,6 @@
  */
 
 #include <gear_diagnostics/message_monitor.h>
-#include <ros/ros.h>
 
 namespace gear_diagnostics {
 
@@ -31,11 +30,23 @@ MessageMonitor::MessageMonitor():
   //load parameters from parameter server
   loadParameters();
 
+  // Setup subscribers
+  setupSubscribers();
+
   //Setup diagnostics
   setupDiagnostics();
 
   //Setup diagnostics update timer
   diagnostics_timer_ = pnh_->createTimer(ros::Duration(update_interval_), &MessageMonitor::updateDiagnostics, this);
+};
+
+void MessageMonitor::setupSubscribers() {
+  // Setup synchronizer subscriber
+  synchronizer_sub_.reset(new ros::Subscriber(pnh_->subscribe(synchronizer_topic_, 5, &MessageMonitor::registerEvent, this)));
+  for(size_t i=0; i<sensor_logger_topics_.size(); i++){
+    sensor_logger_sub_.emplace_back(boost::shared_ptr<ros::Subscriber>(new ros::Subscriber(pnh_->subscribe(sensor_logger_topics_[i],
+    																					                                             5, &MessageMonitor::registerEvent, this))));
+  }
 };
 
 void MessageMonitor::setupDiagnostics() {
@@ -61,13 +72,29 @@ void MessageMonitor::setupDiagnostics() {
   }
 };
 
-void MessageMonitor::updateDiagnostics(const ros::TimerEvent& t) {
+void MessageMonitor::registerEvent(const ros::MessageEvent<std_msgs::Int64 const>& event) {
+
+  const ros::M_string& header = event.getConnectionHeader();
+  std::string topic = header.at("topic");
+  ROS_DEBUG("[MessageMonitor] Received message from publisher: %s", topic.c_str());
+
   // Update tick
-  synchronizer_diagnostics_->tick();
-  for (const auto &s: sensor_logger_diagnostics_) {
-      s->tick();
+  if (topic.compare(synchronizer_topic_)==0) {
+	  synchronizer_diagnostics_->tick();
+	  ROS_DEBUG("[MessageMonitor] Updated tick for publisher diagnostic: %s", topic.c_str());
+	  return;
   }
 
+  for (size_t i=0; i<sensor_logger_topics_.size(); i++) {
+    if (topic.compare(sensor_logger_topics_[i])==0) {
+      sensor_logger_diagnostics_[i]->tick();
+      ROS_DEBUG("[MessageMonitor] Updated tick for publisher diagnostic: %s", topic.c_str());
+      return;
+    }
+  }
+};
+
+void MessageMonitor::updateDiagnostics(const ros::TimerEvent& t) {
   //Send diagnostics out
   logger_updater_.update();
   synchronizer_updater_.update();

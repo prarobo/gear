@@ -15,19 +15,25 @@
   <arg name="enable_pointgrey2"     default="true"/>
   <arg name="enable_loggers"        default="true"/>
   <arg name="enable_diagnostics"    default="true"/>
-  <arg name="frame_rate"            default="15"/>
 
-  <!-- Logger parameters -->
+  <!-- Parameters -->
+  <arg name="frame_rate"            default="15"/>
+  <arg name="do_pointcloud"         default="true"/>
   <arg name="synchronize"           default="true"/> 
   
   <!-- Session wide arguments -->
-  <arg name="session_id"            default="test"/>
+  <arg name="subject_id"            default="x"/>
+  <arg name="session_id"            default="session_1"/>
   <arg name="activity_id"           default="act"/>
-  <arg name="trial_id"              default="1"/>  
+  <arg name="condition_id"          default="in"/>
+  <arg name="trial_id"              default="1"/>
+  <arg name="data_dir"           		default="/mnt/md0/gear_data"/>  
   
   <!-- Setting session wide parameters -->
+  <param name="subject_id"          value="$(arg subject_id)"/>
   <param name="session_id"          value="$(arg session_id)"/>
   <param name="activity_id"         value="$(arg activity_id)"/>
+  <param name="condition_id"        value="$(arg condition_id)"/>
   <param name="trial_id"            value="$(arg trial_id)"/>  
   
   <!-- Launch kinects -->
@@ -38,6 +44,7 @@
     <arg name="frame_rate"          value="$(arg frame_rate)"/>
     <arg name="start_manager"       value="$(arg start_indiv_manager)"/>
     <arg name="nodelet_manager"     value="$(arg nodelet_manager)"/>
+    <arg name="do_pointcloud"       value="$(arg do_pointcloud)"/>
   </include>
 
   <!-- Launch pointgreys -->
@@ -54,6 +61,7 @@
     <arg name="start_manager"       value="$(arg start_indiv_manager)"/>
     <arg name="nodelet_manager"     value="$(arg nodelet_manager)"/>
     <arg name="synchronize"         value="$(arg synchronize)"/>
+    <arg name="data_dir"         		value="$(arg data_dir)"/>
   </include> 
 
   <!-- Launch diagnostics -->

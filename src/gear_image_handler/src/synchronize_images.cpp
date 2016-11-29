@@ -20,7 +20,7 @@ namespace gear_image_handler {
 
 ImageSynchronizer::ImageSynchronizer():
     image_count_(0),
-    enable_(false){
+    enable_(true){
   default_data_topics_ = {"/k1/hd/image_color",
                           "/k2/hd/image_color",
                           "/k3/hd/image_color",

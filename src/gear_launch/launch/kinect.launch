@@ -4,7 +4,7 @@
   <arg name="sensor"            default=""/>
   <arg name="publish_tf"        default="true"/>
   <arg name="base_name_tf"      default="$(arg base_name)"/>
-  <arg name="fps_limit"         default="-1.0"/>
+  <arg name="fps_limit"         default="15"/>
   <arg name="calib_path"        default="$(find kinect2_bridge)/data/"/>
   <arg name="use_png"           default="false"/>
   <arg name="jpeg_quality"      default="90"/>
@@ -26,7 +26,7 @@
   <arg name="do_acquisition"   	default="true"/>
 
   <node pkg="nodelet" type="nodelet" name="$(arg nodelet_manager)" args="manager"
-        if="$(arg start_manager)" machine="$(arg base_name)_machine" output="screen"/>
+        if="$(arg start_manager)" output="screen"/>
 
   <!-- Nodelet version of kinect2_bridge -->
   <node pkg="nodelet" type="nodelet" name="$(arg base_name)_bridge"
@@ -53,9 +53,6 @@
     <param name="worker_threads"    type="int"    value="$(arg worker_threads)"/>
     <param name="calib_path"        type="str"    value="$(find gear_launch)/calibration"/>
   </node>
-
-  <node pkg="nodelet" type="nodelet" name="$(arg nodelet_manager)" args="manager"
-        if="$(arg start_manager)" output="screen"/>
   
   <!-- sd point cloud (512 x 424) -->
   <node pkg="nodelet" type="nodelet" name="$(arg base_name)_points_xyzrgb_sd"

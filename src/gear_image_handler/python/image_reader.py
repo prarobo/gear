@@ -10,7 +10,7 @@ import rospy
 from decimal import Decimal, getcontext
 import rospy
 
-COMPOSITION_KEYS = ["k3_color", "p1_color", "k2_color"]
+COMPOSITION_KEYS = ["p1_color","k2_color", "p2_color"]
 COMPOSITION_FRAME_SIZE = [1000, 1000]
 COMPOSITION_TILES = [2, 2]
 
@@ -22,7 +22,6 @@ class ImageReader(object):
                  session_id="test", 
                  activity_id="act", 
                  trial_id="1", 
-                 image_extn=".jpg",
                  video_extn=".avi",
                  video_format=cv2.cv.CV_FOURCC('M','J','P','G'),
                  fps="15",
@@ -35,7 +34,6 @@ class ImageReader(object):
                                              activity_id+'_'+str(trial_id), video_root_name)
         self.image_prefix_ = image_prefix
 
-        self.image_extn_ = image_extn
         self.video_extn_ = video_extn
         self.video_format_ = video_format
         self.fps_ = fps
@@ -46,11 +44,12 @@ class ImageReader(object):
             os.makedirs(self.video_root_path_)
         
         # Find sensor directories
-        self.sensor_dir_ = self._getSensorImageDirectories()
+        self.sensor_dir_, self.image_extn_ = self._getSensorImageDirectories()
         
         # Get the image time sequence
-        self.time_seq_ = {k:self._readTimeSequenceOfImagesFromDir(v)
-                          for k,v in self.sensor_dir_.iteritems()}
+        self.time_seq_ = {}
+        for k in self.sensor_dir_.keys():
+            self.time_seq_[k] = self._readTimeSequenceOfImagesFromDir(self.sensor_dir_[k], self.image_extn_[k])
         
         self.meanTimeDiff = {}
         self.stdTimeDiff = {}
@@ -63,16 +62,23 @@ class ImageReader(object):
         '''
         Get the directories where images for each sensor are present
         '''
-        sub_dir = {d:os.path.join(self.image_root_path_,d) 
-                   for d in os.listdir(self.image_root_path_) 
-                   if os.path.isdir(os.path.join(self.image_root_path_, d))}
-        return sub_dir
+        sub_dir = {}
+        image_extn = {}
+        for d in os.listdir(self.image_root_path_):
+            temp_path = os.path.join(self.image_root_path_, d)
+            
+            if os.path.isdir(temp_path) and len(os.listdir(temp_path)) != 0:
+                sub_dir[d] = temp_path 
+                filename = os.path.join(temp_path, os.listdir(temp_path)[0])
+                image_extn[d] = os.path.splitext(filename)[1]
+                   
+        return sub_dir, image_extn
 
-    def _readTimeSequenceOfImagesFromDir(self, image_dir):
+    def _readTimeSequenceOfImagesFromDir(self, image_dir, image_extn):
         '''
         Load images from a directory along with the time sequence
         '''
-        image_file_pattern = os.path.join(image_dir,"*"+self.image_extn_)
+        image_file_pattern = os.path.join(image_dir,"*"+image_extn)
         images = [os.path.basename(f) for f in glob.glob(image_file_pattern)]
         time_seq = [self._parseImageNames(f) for f in images]
         time_seq.sort()
@@ -88,12 +94,12 @@ class ImageReader(object):
                            +image_name.split('_')[2])
         return timestamp
     
-    def _buildImageName(self, timestamp):
+    def _buildImageName(self, timestamp, image_extn):
         '''
         Build image filename from timestamp
         '''
         image_name = self.image_prefix_+'_'+str(int(timestamp))+'_'\
-                     +str(timestamp).split('.')[1]+self.image_extn_
+                     +str(timestamp).split('.')[1]+image_extn
         return image_name
     
     def computeTimingStatistics(self, time_seq):
@@ -165,7 +171,7 @@ class ImageReader(object):
             rospy.logerr("Framerate mismatch: expected {e} current {c}".format(e=self.fps_,c=current_fps))
         
         # Frame size
-        image_name = self._buildImageName(self.time_seq_[sensor_stream][0])
+        image_name = self._buildImageName(self.time_seq_[sensor_stream][0], self.image_extn_[sensor_stream])
         image_path = os.path.join(self.image_root_path_, sensor_stream, image_name)
         image = cv2.imread(image_path)
         height, width, _ = image.shape
@@ -179,27 +185,32 @@ class ImageReader(object):
         else:
             is_color = cv2.CV_LOAD_IMAGE_UNCHANGED
             
-        return frame_size, is_color
+        return frame_size, is_color, current_fps
         
     def encodeVideo(self):
         '''
         Generate videos from images
         '''
         for v in self.sensor_dir_.keys():
-            frame_size, is_color = self._getVideoInformation(v)
+            frame_size, is_color, current_fps = self._getVideoInformation(v)
             video_path = os.path.join(self.video_root_path_, v+self.video_extn_)
-            video_writer = cv2.VideoWriter(video_path, self.video_format_, float(self.fps_), frame_size, is_color)
+            video_writer = cv2.VideoWriter(video_path, self.video_format_, float(current_fps), frame_size, is_color)
             
             if not video_writer.isOpened():
                 raise Exception("Failed to load video")
             
-            rospy.loginfo("Processing video"+ v+ " ...")
+            rospy.loginfo("Processing video "+v+ " ...")
             for t in self.time_seq_[v]:
                 if self.start_time<t<self.end_time:
-                    image_name = self._buildImageName(t)
+                    image_name = self._buildImageName(t, self.image_extn_[v])
                     image_path = os.path.join(self.image_root_path_,v,image_name)
                     image = cv2.imread(image_path, is_color)
                     video_writer.write(image)
+                    
+                    # Play video
+                    # cv2.imshow('image',image)
+                    # cv2.waitKey(10)
+            rospy.loginfo("done")
         return
     
     def composeVideo(self):
@@ -210,30 +221,32 @@ class ImageReader(object):
         if not set(COMPOSITION_KEYS)<=set(self.sensor_dir_.keys()):
             rospy.logfatal("Data for video composition unavailable")
             return
+        rospy.loginfo("Processing composition video"+ " ...")
 
+        _, _, current_fps = self._getVideoInformation(COMPOSITION_KEYS[0])
         video_frame_size = np.round([COMPOSITION_FRAME_SIZE[0]/COMPOSITION_TILES[0], 
                                      COMPOSITION_FRAME_SIZE[1]/COMPOSITION_TILES[1]])  
-        image_names = os.listdir(os.path.join(self.image_root_path_, COMPOSITION_KEYS[0]))
-        num_frames = len(image_names)
-
+        
         video_path = os.path.join(self.video_root_path_, "multi_view_composition"+self.video_extn_)
-        video_writer = cv2.VideoWriter(video_path, self.video_format_, float(self.fps_), tuple(COMPOSITION_FRAME_SIZE))                                
+        video_writer = cv2.VideoWriter(video_path, self.video_format_, current_fps, tuple(COMPOSITION_FRAME_SIZE))                                
         if not video_writer.isOpened():
             raise Exception("Failed to load video")
 
-        for im_name in image_names:
-            images = []
-            for v in COMPOSITION_KEYS:
-                image_path = os.path.join(self.image_root_path_,v,im_name)
-                image = cv2.imread(image_path, 1)
-                images.append(cv2.resize(image, tuple(video_frame_size)))
-            
-            zero_image = np.zeros(np.append(video_frame_size,[3]),dtype=np.uint8)
-            top_row = np.concatenate((images[0], images[1]), axis=1)
-            bottom_row = np.concatenate((images[2], zero_image), axis=1)
-            composed_image = np.concatenate((top_row, bottom_row), axis=0)
-            video_writer.write(composed_image)
-            
+        for t in self.time_seq_[COMPOSITION_KEYS[0]]:
+            if self.start_time<t<self.end_time:
+                images = []
+                for v in COMPOSITION_KEYS:
+                    image_name = self._buildImageName(t, self.image_extn_[v])
+                    image_path = os.path.join(self.image_root_path_,v,image_name)
+                    image = cv2.imread(image_path, 1)
+                    images.append(cv2.resize(image, tuple(video_frame_size)))
+        
+                zero_image = np.zeros(np.append(video_frame_size,[3]),dtype=np.uint8)
+                top_row = np.concatenate((images[0], zero_image), axis=1)
+                bottom_row = np.concatenate((images[1], images[2]), axis=1)
+                composed_image = np.concatenate((top_row, bottom_row), axis=0)
+                video_writer.write(composed_image)
+        rospy.loginfo("done")                  
         return
     
 if __name__=="__main__":
