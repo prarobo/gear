@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 
+from __future__ import print_function
 import os
 import glob
 import numpy as np
@@ -30,14 +31,12 @@ class PostProcessor(object):
         Get the directories where images for each sensor are present
         '''
         image_root_dir = self.get_image_root_dir(task)
-        sub_dir = {}
-        image_extn = {}
+        sub_dir = []
         for d in os.listdir(image_root_dir):
             temp_path = os.path.join(image_root_dir, d)
             
             if os.path.isdir(temp_path) and len(os.listdir(temp_path)) != 0:
-                sub_dir[d] = temp_path 
-                filename = os.path.join(temp_path, os.listdir(temp_path)[0])
+                sub_dir.append(temp_path) 
                    
         return sub_dir
 
@@ -59,11 +58,11 @@ class PostProcessor(object):
                            +image_name.split('_')[2])
         return timestamp
     
-    def _build_image_name(self, timestamp, image_extn):
+    def _build_image_name(self, timestamp, image_extn, image_prefix):
         '''
         Build image filename from timestamp
         '''
-        image_name = self.image_prefix_+'_'+str(int(timestamp))+'_'\
+        image_name = image_prefix+'_'+str(int(timestamp))+'_'\
                      +str(timestamp).split('.')[1]+image_extn
         return image_name
     
@@ -119,14 +118,14 @@ class PostProcessor(object):
         '''
         Get latest starting and earliest ending time
         '''
-        min_list = [i[0] for i in self.time_seq_list]
-        max_list = [i[-1] for i in self.time_seq_list]
+        min_list = [i[0] for i in time_seq_list]
+        max_list = [i[-1] for i in time_seq_list]
         
-        min_time = max(min_list)+self.time_offset_
-        max_time = min(max_list)-self.time_offset_
+        min_time = max(min_list)
+        max_time = min(max_list)
         
-        print("Min time = {min_time}".format(min_time=self.start_time))
-        print("Max time = {max_time}".format(max_time=self.end_time))
+        print("Min time = {min_time}".format(min_time=min_time))
+        print("Max time = {max_time}".format(max_time=max_time))
         return min_time, max_time
     
     def get_image_root_dir(self, task):
@@ -148,7 +147,7 @@ class PostProcessor(object):
         image_root_dir = self.get_image_root_dir(task)
         
         # Find sensor directories
-        sensor_dir = self._get_sensor_image_directories()
+        sensor_dir = self._get_sensor_image_directories(task)
         
         # Get the image time sequences
         time_seq_list = []
@@ -161,7 +160,7 @@ class PostProcessor(object):
         return min_time, max_time
         
     
-    def _get_video_information(self, time_seq, min_time, max_time, image_dir):
+    def _get_video_information(self, time_seq, min_time, max_time, image_dir, image_type):
         '''
         Get information about the video to be generated
         '''
@@ -169,14 +168,15 @@ class PostProcessor(object):
         # Frame rate computation
         getcontext().prec=19
         time_diff = max_time-min_time
-        num_frames = sum(min_time<=time_seq<=max_time)
+        num_frames = sum([min_time<=t<=max_time for t in time_seq])
         current_fps = Decimal(num_frames)/time_diff
-        if int(round(current_fps)) != int(self.fps_):
+        if int(round(current_fps)) != int(self.fps):
             print("Framerate mismatch: expected {e} current {c}".format(e=self.fps_,c=current_fps))
         
         # Get image extension
         image_name = os.listdir(image_dir)[0]
-        image_extn = os.path.splitext(image_name)
+        image_prefix = image_name.split("_")[0]
+        _, image_extn = os.path.splitext(image_name)
         
         # Get frame size
         image_path = os.path.join(image_dir, image_name)
@@ -185,14 +185,14 @@ class PostProcessor(object):
         frame_size = (width, height)
         
         # Get color channels
-        if "color" in sensor_stream:
+        if image_type == "color":
             is_color = cv2.CV_LOAD_IMAGE_COLOR
-        elif "depth" in sensor_stream:
+        elif image_type == "depth":
             is_color = cv2.CV_LOAD_IMAGE_GRAYSCALE
         else:
             is_color = cv2.CV_LOAD_IMAGE_UNCHANGED
             
-        return frame_size, is_color, current_fps, image_extn
+        return frame_size, is_color, current_fps, image_extn, image_prefix
         
     def create_video(self, task):
         '''
@@ -204,20 +204,14 @@ class PostProcessor(object):
         video_root_dir = self.get_video_root_dir(task)
         image_dir = os.path.join(image_root_dir, '_'.join(task[-2:]))
         if not os.path.exists(video_root_dir):
-            os.makedirs(self.video_root_dir)
+            os.makedirs(video_root_dir)
         
         # Find the time limits of the video
         min_time, max_time = self.find_video_limits(task)
         time_seq = self._time_sequence_dir(image_dir)
-        
-        # Initialize directories
-        image_root_dir = self.get_image_root_dir(task)
-        video_root_dir = self.get_video_root_dir(task)
-        if not os.path.exists(video_root_dir):
-            os.makedirs(self.video_root_dir)
-            
+                    
         # Get video information
-        frame_size, is_color, current_fps, image_extn = self._get_video_information(time_seq, min_time, max_time, image_dir)
+        frame_size, is_color, current_fps, image_extn, image_prefix = self._get_video_information(time_seq, min_time, max_time, image_dir, task[-1])
         
         # Create video writer object
         video_name = self._build_video_name(task)
@@ -226,15 +220,15 @@ class PostProcessor(object):
         if not video_writer.isOpened():
             raise Exception("Failed to load video")
         
-        print("Processing video "+video_name+ " ...",)
+        print("Processing video "+video_name+ " ...", end="")
         for t in time_seq:
-            if start_time<t<end_time:
-                image_name = self._build_image_name(t, image_extn)
+            if min_time<=t<=max_time:
+                image_name = self._build_image_name(t, image_extn, image_prefix)
                 image_path = os.path.join(image_dir, image_name)
                 image = cv2.imread(image_path, is_color)
                 video_writer.write(image)
 
-            print("done")
+        print("done")
         return
     
     def create_composition(self, composition_task):

@@ -131,7 +131,7 @@ void Logger::publishCount() {
 }
 
 boost::filesystem::path Logger::getFilePath(std::string sec, std::string nsec) {
-  std::string image_name = image_prefix_+sec+"_"+nsec+image_extn_;
+  std::string image_name = image_prefix_+"_"+sec+"_"+nsec+image_extn_;
   boost::filesystem::path path = image_dir_/boost::filesystem::path(image_name);
   return path;
 }
