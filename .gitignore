@@ -4,3 +4,4 @@ devel
 *.swo
 *.catkin_workspace
 *.pyc
+*.*~

@@ -13,3 +13,14 @@ Kinect: use kinect2_calibration
 
 Multisensor calibration:
 		roslaunch opt_calibration opt_calibration_master.launch
+
+AR tracking:
+roscore
+roslaunch gear_launch gear.launch enable_loggers:=false
+roslaunch gear_launch logger_gear.launch
+roslaunch ar_track_alvar pr2_indiv_no_kinect.launch cam_image_topic:=/k2/hd/image_color cam_info_topic:=/k2/hd/camera_info output_frame:=/k2_link
+rviz
+
+roslaunch vicon_bridge vicon.launch
+
+python ~/catkin_ws/src/camera_vicon_calibration/src/python/Cal_transform.py

@@ -1,5 +1,5 @@
-P1: re-projection error: 0.12
-p2: re-projection error: 0.05
+P1: re-projection error: 0.11
+p2: re-projection error: 0.12
 k1_color: re-projection error: 0.28
 k1_ir: re-projection error: 0.81
 k1_color_ir extrinsics re-projection error: 39.77
