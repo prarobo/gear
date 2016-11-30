@@ -9,26 +9,28 @@ def main(info):
     
     # Create postprocessing object
     post_processor_obj = PostProcessor(info.root_dir, info.video_extn, info.fps)
-    
+
     # Create a video task
     task = (info.subject, info.session, info.activity, info.condition, str(info.trial), info.sensor, info.video)
     
-    # Generate video
-    post_processor_obj.create_video(task)
-    
+    # Generate videos
+    if info.do_video:
+        
+        # Generate video
+        post_processor_obj.create_video(task)
+        
     # Create composition
-    composition_task = []
-    for c in COMPOSITION_PAIRS:
-        composition_task.append((info.subject, info.session, info.activity, info.condition, info.trial)+c)
-    
-    # Do composition video
     if info.do_composition:
+        composition_task = []
+        for c in COMPOSITION_PAIRS:
+            composition_task.append((info.subject, info.session, info.activity, info.condition, str(info.trial))+c)
+    
+        # Do composition video
         post_processor_obj.create_composition(composition_task)        
     
-    #image_reader.plotFramerateStatistics()
-    #image_reader.getMinMaxTimeSeq()
-    #image_reader.encodeVideo()
-    #image_reader.composeVideo()
+    # Do framerate statistics
+    if info.do_statistics:
+        post_processor_obj.generate_framerate_statistics(task)
     
     return
 
@@ -40,7 +42,9 @@ def parse_arguments():
     parser.add_argument('--root-dir', required=False, nargs='?', type=str, default="/mnt/md0/gear_data/", help='Root directory where data is stored')
     parser.add_argument('--video-extn', required=False, nargs='?', type=str, default=".avi", help='Extension of video to be saved')
     parser.add_argument('--fps', required=False, nargs='?', type=int, default=15, help='Expected video framerate')
-    parser.add_argument('--do-composition', required=False, action="store_true", help='Flag to do compostion video (Default: False)')
+    parser.add_argument('--do-composition', required=False, action="store_true", help='Flag to do composition video (Default: False)')
+    parser.add_argument('--skip-video', required=False, action="store_false", dest="do_video", help='Flag to disable video generation (Default: False)')
+    parser.add_argument('--do-statistics', required=False, action="store_true", help='Flag to do enable statistics (Default: False)')
     parser.add_argument('--subject', required=True, nargs='?', type=str, help='Subject')
     parser.add_argument('--session', required=True, nargs='?', type=str, help='Session')
     parser.add_argument('--activity', required=True, nargs='?', type=str, help='Activity')

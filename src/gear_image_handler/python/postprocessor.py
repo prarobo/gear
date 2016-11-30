@@ -12,6 +12,7 @@ from decimal import Decimal, getcontext
 VIDEO_ENCODING = cv2.cv.CV_FOURCC('M','J','P','G')
 IMAGE_DIR = "images"
 VIDEO_DIR = "videos"
+SCALING_FACTOR = 0.25
 
 class PostProcessor(object):
     def __init__(self, root_dir="/mnt/md0/gear_data", 
@@ -83,8 +84,8 @@ class PostProcessor(object):
                 
             mean_time_diff = np.mean(np.array(time_diff))
             std_time_diff = np.std(np.array(time_diff),ddof=1)
-            mean_fps = 1/mean_time_diff
-            std_fps = 1/std_time_diff
+            mean_fps = np.mean(np.array(np.reciprocal(time_diff)))
+            std_fps = np.std(np.array(np.reciprocal(time_diff)),ddof=1)
         else:
             mean_time_diff = 0
             std_time_diff = 0
@@ -92,6 +93,17 @@ class PostProcessor(object):
             std_fps = 0
             
         return mean_time_diff, std_time_diff, mean_fps, std_fps
+    
+    def generate_framerate_statistics(self, task):
+        '''
+        Generate framerate related statistics
+        '''
+        # Generate the time sequence list for all sensor streams
+        time_seq_list = self.generate_time_seq_list(task)
+ 
+        # Plot the framerate statistics
+        self.plot_framerate_statistics(time_seq_list)
+        return
     
     def plot_framerate_statistics(self, time_seq_list):
         '''
@@ -104,13 +116,13 @@ class PostProcessor(object):
         std_fps_list = [0]
         for t in time_seq_list:
             # Compute the time sequence statistics
-            mean_time_diff, std_time_diff, mean_fps, std_fps = self.compute_timing_statistics(t)
+            mean_time_diff, std_time_diff, mean_fps, std_fps = self.compute_time_seq_statistics(t)
             
             mean_fps_list.append(mean_fps)
             std_fps_list.append(std_fps)
             
         plt.xticks(x, [""]+[str(i) for i in xrange(len(time_seq_list))])
-        plt.xlim( (0, len(keys)+1) ) 
+        plt.xlim( (0, len(time_seq_list)+1) ) 
         plt.errorbar(x, mean_fps_list, std_fps_list, linestyle='None', marker='^')
         plt.show()
         
@@ -139,10 +151,10 @@ class PostProcessor(object):
         Get the image root directory from task
         '''
         return os.path.join(self.root_dir, task[0], task[1], '_'.join(task[2:5]), VIDEO_DIR)
-        
-    def find_video_limits(self, task):
+    
+    def generate_time_seq_list(self, task):
         '''
-        Find the time limits for a video from the recorded images
+        Get the time sequence for all sensor streams
         '''
         image_root_dir = self.get_image_root_dir(task)
         
@@ -154,12 +166,19 @@ class PostProcessor(object):
         for k in sensor_dir:
             image_dir = os.path.join(image_root_dir, k)
             time_seq_list.append(self._time_sequence_dir(image_dir))
-            
+        return time_seq_list
+    
+    def find_video_limits(self, task):
+        '''
+        Find the time limits for a video from the recorded images
+        '''
+        # Generate the time sequence list for all sensor streams
+        time_seq_list = self.generate_time_seq_list(task)
+        
         # Get the minimum and maximum time sequence points
         min_time, max_time = self.get_min_max_time_seq(time_seq_list)
         return min_time, max_time
-        
-    
+            
     def _get_video_information(self, time_seq, min_time, max_time, image_dir, image_type):
         '''
         Get information about the video to be generated
@@ -194,11 +213,10 @@ class PostProcessor(object):
             
         return frame_size, is_color, current_fps, image_extn, image_prefix
         
-    def create_video(self, task):
+    def _initialize_video_info(self, task):
         '''
-        Generate videos for the given task
+        Get the initialize video information
         '''
-
         # Initialize directories
         image_root_dir = self.get_image_root_dir(task)
         video_root_dir = self.get_video_root_dir(task)
@@ -211,8 +229,21 @@ class PostProcessor(object):
         time_seq = self._time_sequence_dir(image_dir)
                     
         # Get video information
-        frame_size, is_color, current_fps, image_extn, image_prefix = self._get_video_information(time_seq, min_time, max_time, image_dir, task[-1])
-        
+        frame_size, is_color, current_fps, image_extn, image_prefix \
+            = self._get_video_information(time_seq, min_time, max_time, image_dir, task[-1])
+                
+        return image_root_dir, video_root_dir, frame_size, is_color, current_fps, \
+                image_extn, image_prefix, time_seq, min_time, max_time, image_dir
+    
+    def create_video(self, task):
+        '''
+        Generate videos for the given task
+        '''
+        # Initialize directories
+        image_root_dir, video_root_dir, frame_size, is_color, current_fps, \
+            image_extn, image_prefix, time_seq, min_time, max_time, image_dir \
+            = self._initialize_video_info(task)
+                
         # Create video writer object
         video_name = self._build_video_name(task)
         video_path = os.path.join(video_root_dir, video_name+self.video_extn)
@@ -234,39 +265,71 @@ class PostProcessor(object):
     def create_composition(self, composition_task):
         '''
         Compose multiple videos into a single video
-        '''
+        '''       
+        # Initialization
+        image_extn_list = []
+        image_prefix_list = []
+        time_seq_list = []
+        image_dir_list = []
+        image_root_dir, video_root_dir, frame_size, is_color, current_fps, \
+            image_extn, image_prefix, time_seq, min_time, max_time, image_dir \
+            = self._initialize_video_info(composition_task[0])
+        frame_size_list = [np.round([f*SCALING_FACTOR for f in frame_size])]
+        image_extn_list.append(image_extn)
+        image_prefix_list.append(image_prefix)
+        time_seq_list.append(time_seq)
+        image_dir_list.append(image_dir)
         
-        '''
-        if not set(COMPOSITION_KEYS)<=set(self.sensor_dir_.keys()):
-            rospy.logfatal("Data for video composition unavailable")
-            return
-        rospy.loginfo("Processing composition video"+ " ...")
-
-        _, _, current_fps = self._getVideoInformation(COMPOSITION_KEYS[0])
-        video_frame_size = np.round([COMPOSITION_FRAME_SIZE[0]/COMPOSITION_TILES[0], 
-                                     COMPOSITION_FRAME_SIZE[1]/COMPOSITION_TILES[1]])  
+        # Get the composition frame sizes and other video specific parameters
+        for i in xrange(1,len(composition_task)):
+            _, _, frame_size, _, _, image_extn, image_prefix, time_seq, _, _, image_dir \
+                = self._initialize_video_info(composition_task[i])
+            scaling_factor = frame_size_list[0][1]/frame_size[1]
+            dim2 = round(frame_size[0]*scaling_factor)
+            frame_size_list.append(np.array([dim2, frame_size_list[0][1]]))
+            time_seq_list.append(time_seq)
+            image_extn_list.append(image_extn)
+            image_prefix_list.append(image_prefix)
+            image_dir_list.append(image_dir)
         
-        video_path = os.path.join(self.video_root_path_, "multi_view_composition"+self.video_extn_)
-        video_writer = cv2.VideoWriter(video_path, self.video_format_, current_fps, tuple(COMPOSITION_FRAME_SIZE))                                
+        # Create video writer object
+        video_frame_size = tuple([int(sum([f[0] for f in frame_size_list])), int(frame_size_list[0][1])])                                     
+        c_name = ""
+        for c in composition_task:
+            c_name += c[-2]
+        video_name = "composition_"+c_name+"_color"
+        video_path = os.path.join(video_root_dir, video_name+self.video_extn)
+        video_writer = cv2.VideoWriter(video_path, self.video_enc, float(current_fps), video_frame_size, is_color)
         if not video_writer.isOpened():
             raise Exception("Failed to load video")
-
-        for t in self.time_seq_[COMPOSITION_KEYS[0]]:
-            if self.start_time<t<self.end_time:
-                images = []
-                for v in COMPOSITION_KEYS:
-                    image_name = self._buildImageName(t, self.image_extn_[v])
-                    image_path = os.path.join(self.image_root_path_,v,image_name)
-                    image = cv2.imread(image_path, 1)
-                    images.append(cv2.resize(image, tuple(video_frame_size)))
         
-                zero_image = np.zeros(np.append(video_frame_size,[3]),dtype=np.uint8)
-                top_row = np.concatenate((images[0], zero_image), axis=1)
-                bottom_row = np.concatenate((images[1], images[2]), axis=1)
-                composed_image = np.concatenate((top_row, bottom_row), axis=0)
+        # Cleanup unwanted values from time sequences
+        for t in time_seq_list:
+            while t[0] < min_time:
+                t.pop(0)
+            while t[-1] > max_time:
+                t.pop()
+        
+        # Sanity check to match time sequence lengths
+        for i in xrange(1, len(time_seq_list)):
+            if len(time_seq_list[i-1]) != len(time_seq_list[i]):
+                print("Time sequence list do not match")
+        
+        print("Processing composition video"+ " ...", end="")
+        
+        for t in time_seq_list[0]:
+            if min_time<=t<=max_time:
+                images = []
+                for i in xrange(len(time_seq_list)):
+                    image_name = self._build_image_name(t, image_extn_list[i], image_prefix_list[i])
+                    image_path = os.path.join(image_dir_list[i], image_name)
+                    image = cv2.imread(image_path, is_color)
+                    image_resized = cv2.resize(image, tuple([int(f) for f in frame_size_list[i]]))
+                    images.append(image_resized)
+
+                composed_image = np.concatenate(tuple(images), axis=1)
                 video_writer.write(composed_image)
-        rospy.loginfo("done")   
-        '''               
+        print("done")                   
         return
     
 if __name__=="__main__":
