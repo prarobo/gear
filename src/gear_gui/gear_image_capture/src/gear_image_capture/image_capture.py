@@ -149,7 +149,7 @@ class ImageCaptureGUI(Plugin):
         Initializing the image capture utility on user request
         '''
         subject_id = str(self._widget.comboSubject.currentText())
-        session_id = "session_"+str(self._widget.comboSession.currentText())
+        session_id = "S"+str(self._widget.comboSession.currentText())
         activity_id = str(self._widget.comboActivity.currentText())
         condition_id = str(self._widget.comboCondition.currentText())
         trial_id = str(self._widget.comboTrial.currentText())
@@ -264,7 +264,6 @@ class ImageCaptureGUI(Plugin):
         if not subject_list:
             subject_list = [DEFAULT_SUBJECT]
         self._widget.comboSubject.addItems(subject_list)
-
         
     def _logger(self, output_text, type="info", skip_ui=False):
         '''

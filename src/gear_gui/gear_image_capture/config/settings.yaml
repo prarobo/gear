@@ -6,15 +6,16 @@ MaxSessions: 15
 
 # Condition List
 Condition:
-  - In
-  - Out
+  - IN
+  - OUT
 
 # Activity List
 Activity:
-  - FreePlay
-  - Walking
-  - Crawling
-  - Standing
-  - RampAscending
-  - Staircase
+  - FP
+  - WALK
+  - CRAWL
+  - STAND
+  - STEP
+  - RASC
+  - SASC
   

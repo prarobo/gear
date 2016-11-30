@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 2.8.3)
-project(gear_session_duration)
+project(gear_postprocess)
 
 # Load catkin and all dependencies required for this package
 find_package(catkin REQUIRED COMPONENTS
@@ -18,6 +18,6 @@ install(DIRECTORY resource
   DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}
 )
 
-install(PROGRAMS scripts/gear_session_duration
+install(PROGRAMS scripts/gear_postprocess
   DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
 )
