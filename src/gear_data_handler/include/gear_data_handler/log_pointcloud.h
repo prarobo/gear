@@ -1,9 +1,6 @@
 #ifndef LOG_POINTCLOUD_H_
 #define LOG_POINTCLOUD_H_
 
-#include <gear_image_handler/logger.h>
-
-// ROS Dependencies
 #include <ros/ros.h>
 #include <nodelet/nodelet.h>
 #include <pluginlib/class_list_macros.h>
@@ -12,8 +9,9 @@
 #include <pcl_ros/point_cloud.h>
 #include <pcl/point_types.h>
 #include <pcl/point_cloud.h>
+#include "../gear_data_handler/logger.h"
 
-namespace gear_image_handler {
+namespace gear_data_handler {
 
 class PointcloudLogger : public nodelet::Nodelet, public Logger {
 
@@ -37,8 +35,8 @@ private:
 
 }; //class PointcloudLogger
 
-PLUGINLIB_DECLARE_CLASS(gear_image_handler, PointcloudLogger,
-                        gear_image_handler::PointcloudLogger,
+PLUGINLIB_DECLARE_CLASS(gear_data_handler, PointcloudLogger,
+                        gear_data_handler::PointcloudLogger,
                         nodelet::Nodelet);
 
 } // namespace image_handler

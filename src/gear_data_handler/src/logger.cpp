@@ -1,13 +1,12 @@
-#include <gear_image_handler/logger.h>
+#include "../include/gear_data_handler/logger.h"
 
-// ROS Dependencies
 #include <std_msgs/Int64.h>
 
 // Boost Dependencies
 #include <boost/format.hpp>
 #include <boost/lexical_cast.hpp>
 
-namespace gear_image_handler {
+namespace gear_data_handler {
 
 Logger::Logger(): count_(0), enable_(false){};
 

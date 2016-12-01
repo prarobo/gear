@@ -12,7 +12,7 @@
 #include <boost/filesystem.hpp>
 #include <boost/thread/mutex.hpp>
 
-namespace gear_image_handler {
+namespace gear_data_handler {
 
 class Logger {
 

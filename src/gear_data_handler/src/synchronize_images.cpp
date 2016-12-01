@@ -1,6 +1,5 @@
-#include <gear_image_handler/synchronize_images.h>
+#include "../include/gear_data_handler/synchronize_images.h"
 
-// Opencv dependencies
 #include <cv.h>
 #include <highgui.h>
 #include <opencv2/imgproc/imgproc.hpp>
@@ -16,7 +15,7 @@
 #include <boost/shared_ptr.hpp>
 #include <boost/assign/list_of.hpp>
 
-namespace gear_image_handler {
+namespace gear_data_handler {
 
 ImageSynchronizer::ImageSynchronizer():
     image_count_(0),

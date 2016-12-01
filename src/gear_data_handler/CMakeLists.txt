@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 2.8.3)
-project(gear_image_handler)
+project(gear_data_handler)
 
 find_package(catkin REQUIRED COMPONENTS
   pluginlib
@@ -27,7 +27,7 @@ catkin_python_setup()
 ###################################
 catkin_package(
   INCLUDE_DIRS include
-  # LIBRARIES gear_image_handler
+  # LIBRARIES gear_data_handler
   CATKIN_DEPENDS pluginlib nodelet cv_bridge roscpp rospy sensor_msgs std_msgs std_srvs pcl_ros pcl_conversions
   # DEPENDS system_lib
 )

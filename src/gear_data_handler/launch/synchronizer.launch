@@ -23,11 +23,11 @@
   </node>
  
   <node pkg="nodelet" type="nodelet" name="synchronizer"
-        args="load gear_image_handler/ImageSynchronizer $(arg nodelet_manager)" output="screen">
+        args="load gear_data_handler/ImageSynchronizer $(arg nodelet_manager)" output="screen">
     <param name="~data_topics" value="$(arg data_topics)"/>
   </node>  
 
   <!-- Synchronized logger python node -->
-  <!--<node name="synchronized_logger" pkg="gear_image_handler" type="synchronized_image_logger.py"  output="screen"/>-->
+  <!--<node name="synchronized_logger" pkg="gear_data_handler" type="synchronized_image_logger.py"  output="screen"/>-->
 
 </launch>

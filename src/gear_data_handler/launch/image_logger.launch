@@ -20,7 +20,7 @@
 
   <!-- If using compressed images -->
   <node pkg="nodelet" type="nodelet" name="$(arg base_name)_$(arg image_type)_logger"
-        args="load gear_image_handler/ImageLogger $(arg nodelet_manager)"
+        args="load gear_data_handler/ImageLogger $(arg nodelet_manager)"
         output="screen" if="$(arg use_compressed)">
     <remap from="/log_image/compressed" 
            to="/$(arg base_name)/$(arg image_def)/image_$(arg image_type)/compressed" unless="$(arg use_sync)"/>
@@ -37,7 +37,7 @@
 
   <!-- If not using compressed images -->
   <node pkg="nodelet" type="nodelet" name="$(arg base_name)_$(arg image_type)_logger"
-        args="load gear_image_handler/ImageLogger $(arg nodelet_manager)"
+        args="load gear_data_handler/ImageLogger $(arg nodelet_manager)"
         output="screen" unless="$(arg use_compressed)">
     <remap from="/log_image"    to="/$(arg base_name)/$(arg image_def)/image_$(arg image_type)" unless="$(arg use_sync)"/>
     <remap from="/log_image"    to="/synchronizer/$(arg base_name)_$(arg image_type)" if="$(arg use_sync)"/>

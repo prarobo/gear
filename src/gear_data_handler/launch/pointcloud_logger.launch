@@ -28,7 +28,7 @@
 
   <!-- Point cloud logging node -->
   <node pkg="nodelet" type="nodelet" name="$(arg base_name)_points_logger"
-        args="load gear_image_handler/PointcloudLogger $(arg nodelet_manager)" output="screen">
+        args="load gear_data_handler/PointcloudLogger $(arg nodelet_manager)" output="screen">
     <remap from="/log_pointcloud"     to="/$(arg base_name)/$(arg image_def)/voxel_points"  if="$(arg voxelize)"/>
     <remap from="/log_pointcloud"     to="/$(arg base_name)/$(arg image_def)/points"        unless="$(arg voxelize)"/>
     <remap from="/pointcloud_count"   to="/$(arg base_name)/pointcloud_count" />

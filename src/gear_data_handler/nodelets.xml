@@ -1,20 +1,20 @@
 <library path="lib/libimage_handler">
-  <class name="gear_image_handler/ImageLogger"
-         type="gear_image_handler::ImageLogger"
+  <class name="gear_data_handler/ImageLogger"
+         type="gear_data_handler::ImageLogger"
          base_class_type="nodelet::Nodelet">
     <description>
       A functionality to log images.
     </description>
   </class>
-  <class name="gear_image_handler/ImageSynchronizer"
-         type="gear_image_handler::ImageSynchronizer"
+  <class name="gear_data_handler/ImageSynchronizer"
+         type="gear_data_handler::ImageSynchronizer"
          base_class_type="nodelet::Nodelet">
     <description>
       A functionality to synchronize images.
     </description>
   </class>
-  <class name="gear_image_handler/PointcloudLogger"
-         type="gear_image_handler::PointcloudLogger"
+  <class name="gear_data_handler/PointcloudLogger"
+         type="gear_data_handler::PointcloudLogger"
          base_class_type="nodelet::Nodelet">
     <description>
       A functionality to log pointclouds.
