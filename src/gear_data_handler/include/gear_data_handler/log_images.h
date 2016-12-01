@@ -5,7 +5,7 @@
 #include <nodelet/nodelet.h>
 #include <pluginlib/class_list_macros.h>
 #include <sensor_msgs/Image.h>
-#include "../gear_data_handler/logger.h"
+#include <gear_data_handler/logger.h>
 
 namespace gear_data_handler {
 

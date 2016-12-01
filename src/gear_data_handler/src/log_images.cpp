@@ -1,4 +1,4 @@
-#include "../include/gear_data_handler/log_images.h"
+#include <gear_data_handler/log_images.h>
 
 #include <cv.h>
 #include <highgui.h>

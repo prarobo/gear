@@ -1,4 +1,4 @@
-<library path="lib/libimage_handler">
+<library path="lib/libdata_handler">
   <class name="gear_data_handler/ImageLogger"
          type="gear_data_handler::ImageLogger"
          base_class_type="nodelet::Nodelet">
@@ -18,6 +18,13 @@
          base_class_type="nodelet::Nodelet">
     <description>
       A functionality to log pointclouds.
+    </description>
+  </class>
+  <class name="gear_data_handler/TrackingLogger"
+         type="gear_data_handler::TrackingLogger"
+         base_class_type="nodelet::Nodelet">
+    <description>
+      A functionality to log tracking information.
     </description>
   </class>
 </library>

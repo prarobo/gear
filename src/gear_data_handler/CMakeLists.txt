@@ -12,6 +12,8 @@ find_package(catkin REQUIRED COMPONENTS
   image_transport
   pcl_ros
   pcl_conversions
+  ar_track_alvar_msgs
+  rosbag
 )
 
 find_package(OpenCV REQUIRED)
@@ -28,7 +30,8 @@ catkin_python_setup()
 catkin_package(
   INCLUDE_DIRS include
   # LIBRARIES gear_data_handler
-  CATKIN_DEPENDS pluginlib nodelet cv_bridge roscpp rospy sensor_msgs std_msgs std_srvs pcl_ros pcl_conversions
+  CATKIN_DEPENDS pluginlib nodelet cv_bridge roscpp rospy sensor_msgs std_msgs 
+  std_srvs pcl_ros pcl_conversions ar_track_alvar_msgs rosbag
   # DEPENDS system_lib
 )
 
@@ -46,14 +49,14 @@ include_directories(
 
 
 # Declare a C++ library
-add_library(image_handler
+add_library(data_handler
   src/log_images.cpp
   src/log_pointcloud.cpp
   src/synchronize_images.cpp
   src/logger.cpp
 )
 
-target_link_libraries(image_handler
+target_link_libraries(data_handler
   ${catkin_LIBRARIES}
   ${Boost_LIBRARIES}
   ${OpenCV_LIBRARIES}

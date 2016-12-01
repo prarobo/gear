@@ -4,12 +4,12 @@
 #include <ros/ros.h>
 #include <nodelet/nodelet.h>
 #include <pluginlib/class_list_macros.h>
+#include <gear_data_handler/logger.h>
 
 // PCL Dependencies
 #include <pcl_ros/point_cloud.h>
 #include <pcl/point_types.h>
 #include <pcl/point_cloud.h>
-#include "../gear_data_handler/logger.h"
 
 namespace gear_data_handler {
 

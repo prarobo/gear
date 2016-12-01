@@ -1,4 +1,4 @@
-#include "../include/gear_data_handler/log_pointcloud.h"
+#include <gear_data_handler/log_pointcloud.h>
 
 #include <cv_bridge/cv_bridge.h>
 
