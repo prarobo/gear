@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<launch>
+  <arg name="image_def"         default="hd"/>
+
+  <!--Marker1-->
+  <include file="$(find gear_launch)/launch/marker_tracker.launch">
+    <arg name="image_def"       value="$(arg image_def)"/>
+    <arg name="marker_size"     value="4.4" />
+  </include>
+</launch>
