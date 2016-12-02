@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<launch>
+  <arg name="image_def"         default="hd"/>
+  <arg name="topic_name"        default="image_color"/>
+  <arg name="base_name"         default="p1"/>
+  <arg name="tag_file"          default="$(find gear_launch)/config/tag_descriptions.yaml"/>
+  <arg name="start_manager"     default="true"/>  
+
+  <arg name="nodelet_manager"   default="$(arg base_name)_$(arg topic_name)_tracker_manager" if="$(arg start_manager)"/>
+  <arg name="nodelet_manager"   default="$(arg base_name)" unless="$(arg start_manager)"/>     
+
+  <group ns="$(arg base_name)/$(arg image_def)/">
+    <!-- Using global nodelet manager -->
+    <node pkg="nodelet" type="nodelet" name="$(arg base_name)_$(arg topic_name)_tracker"
+        args="load apriltags_ros/AprilTagDetectorNodelet /$(arg nodelet_manager)" output="screen" unless="$(arg start_manager)">
+        <!-- Remap topic required by the node to custom topics -->
+        <remap from="image_rect" to="/$(arg base_name)/$(arg image_def)/$(arg topic_name)" />
+        <remap from="camera_info" to="/$(arg base_name)/$(arg image_def)/camera_info" />
+        <remap from="tag_detections" to="/tag_detections" />
+
+        <!-- Optional: Subscribe to the compressed stream-->
+        <param name="image_transport" type="str" value="compressed" />
+
+        <!-- Select the tag family: 16h5, 25h7, 25h9, 36h9, or 36h11(default) -->
+        <param name="tag_family" type="str" value="36h11" />
+
+        <!-- Enable projected optical measurements for more accurate tag transformations -->
+        <!-- This exists for backwards compatability and should be left true for new setups -->
+        <param name="projected_optics" type="bool" value="true" />
+
+        <!-- Describe the tags -->
+        <rosparam command="load" file="$(arg tag_file)" />
+    </node>
+
+      <!-- Starting nodelet manager if needed -->
+      <node pkg="nodelet" type="nodelet" name="$(arg nodelet_manager)"  
+            args="manager" output="screen" if="$(arg start_manager)">
+        <param name="num_worker_threads" value="4"/>
+      </node>
+
+    <!-- Using local nodelet manager -->
+    <node pkg="nodelet" type="nodelet" name="$(arg base_name)_$(arg topic_name)_tracker"
+        args="load apriltags_ros/AprilTagDetectorNodelet $(arg nodelet_manager)" output="screen" if="$(arg start_manager)">
+        <!-- Remap topic required by the node to custom topics -->
+        <remap from="image_rect" to="/$(arg base_name)/$(arg image_def)/$(arg topic_name)" />
+        <remap from="camera_info" to="/$(arg base_name)/$(arg image_def)/camera_info" />
+        <remap from="tag_detections" to="/tag_detections" />
+
+        <!-- Optional: Subscribe to the compressed stream-->
+        <param name="image_transport" type="str" value="compressed" />
+
+        <!-- Select the tag family: 16h5, 25h7, 25h9, 36h9, or 36h11(default) -->
+        <param name="tag_family" type="str" value="36h11" />
+
+        <!-- Enable projected optical measurements for more accurate tag transformations -->
+        <!-- This exists for backwards compatability and should be left true for new setups -->
+        <param name="projected_optics" type="bool" value="true" />
+
+        <!-- Describe the tags -->
+        <rosparam command="load" file="$(arg tag_file)" />
+    </node>
+</group>
+</launch>

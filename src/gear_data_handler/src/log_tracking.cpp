@@ -15,7 +15,7 @@ void TrackingLogger::onInit(){
   tracking_sub_ = getNodeHandle().subscribe("/log_tracking", 5, &TrackingLogger::trackingCallback, this);
 }
 
-void TrackingLogger::trackingCallback(const ar_track_alvar_msgs::AlvarMarkers& msg) {
+void TrackingLogger::trackingCallback(const apriltags_ros::AprilTagDetectionArray& msg) {
   boost::mutex::scoped_lock(session_param_lock_);
   boost::mutex::scoped_lock(enable_lock_);
 
@@ -58,8 +58,8 @@ bool TrackingLogger::toggleLogger(std_srvs::SetBool::Request  &req,
     ROS_INFO("[Logger][%s%s] Turning on image logging", sensor_id_.c_str(), image_type_.c_str());
 
     // Open rosbag
-    boost::filesystem::path bag_path = image_dir/boost::filesystem::path(image_type_+image_extn_);
-    bag_.open(bag_path.str(), rosbag::bagmode::Write);
+    boost::filesystem::path bag_path = image_dir_/boost::filesystem::path(image_type_+image_extn_);
+    bag_.open(bag_path.string(), rosbag::bagmode::Write);
 
     enable_ = true;
     res.message = sensor_id_+"_"+image_type_+": ImageLogger ON";

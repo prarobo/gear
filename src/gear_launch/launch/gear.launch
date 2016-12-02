@@ -16,6 +16,7 @@
   <arg name="enable_loggers"        default="true"/>
   <arg name="enable_diagnostics"    default="true"/>
   <arg name="enable_tf"    					default="true"/>
+  <arg name="enable_trackers"       default="true"/>
 
   <!-- Parameters -->
   <arg name="frame_rate"            default="15"/>
@@ -65,12 +66,18 @@
     <arg name="data_dir"         		value="$(arg data_dir)"/>
   </include> 
 
+  <!-- Launch trackers -->
+  <include file="$(find gear_launch)/launch/tracker_gear.launch" if="$(arg enable_trackers)">
+    <arg name="start_manager"       value="$(arg start_indiv_manager)"/>
+    <arg name="nodelet_manager"     value="$(arg nodelet_manager)"/>
+  </include> 
+
   <!-- Launch diagnostics -->
   <include file="$(find gear_diagnostics)/launch/diagnostics.launch" if="$(arg enable_diagnostics)">
     <arg name="frame_rate"          value="$(arg frame_rate)"/>
   </include> 
 
-  <!-- TF node -->
+  <!-- Launch TF -->
   <include file="$(find gear_tf)/launch/tf_broadcaster.launch" if="$(arg enable_tf)"/>
 
   <!-- Launch nodelet manager -->

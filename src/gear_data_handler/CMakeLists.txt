@@ -12,7 +12,7 @@ find_package(catkin REQUIRED COMPONENTS
   image_transport
   pcl_ros
   pcl_conversions
-  ar_track_alvar_msgs
+  apriltags_ros
   rosbag
 )
 
@@ -31,7 +31,7 @@ catkin_package(
   INCLUDE_DIRS include
   # LIBRARIES gear_data_handler
   CATKIN_DEPENDS pluginlib nodelet cv_bridge roscpp rospy sensor_msgs std_msgs 
-  std_srvs pcl_ros pcl_conversions ar_track_alvar_msgs rosbag
+  std_srvs pcl_ros pcl_conversions apriltags_ros rosbag
   # DEPENDS system_lib
 )
 
@@ -52,6 +52,7 @@ include_directories(
 add_library(data_handler
   src/log_images.cpp
   src/log_pointcloud.cpp
+  src/log_tracking.cpp
   src/synchronize_images.cpp
   src/logger.cpp
 )

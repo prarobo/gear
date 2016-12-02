@@ -29,29 +29,29 @@ public:
   /**
    * Initialized the directories where images are to be stored
    */
-  void initializeSessionDirectories();
+  virtual void initializeSessionDirectories();
 
   /**
    * Image logger service callback
    */
-  bool toggleLogger(std_srvs::SetBool::Request  &req,
-                    std_srvs::SetBool::Response &res);
+  virtual bool toggleLogger(std_srvs::SetBool::Request  &req,
+                            std_srvs::SetBool::Response &res);
 
   /**
    * Session information service callback
    */
-  bool setSessionInfo(std_srvs::Trigger::Request  &req,
-                      std_srvs::Trigger::Response &res);
+  virtual bool setSessionInfo(std_srvs::Trigger::Request  &req,
+                              std_srvs::Trigger::Response &res);
 
   /**
    * Publishing image count
    */
-  void publishCount();
+  virtual void publishCount();
 
   /**
    * Get the path of a file to be saved
    */
-  boost::filesystem::path getFilePath(std::string sec, std::string nsec);
+  virtual boost::filesystem::path getFilePath(std::string sec, std::string nsec);
 
 protected:
   boost::shared_ptr<ros::NodeHandle> nh_, pnh_;

@@ -4,7 +4,7 @@
 #include <ros/ros.h>
 #include <nodelet/nodelet.h>
 #include <pluginlib/class_list_macros.h>
-#include <ar_track_alvar_msgs/AlvarMarkers.h>
+#include <apriltags_ros/AprilTagDetectionArray.h>
 #include <gear_data_handler/logger.h>
 #include <rosbag/bag.h>
 
@@ -25,7 +25,7 @@ public:
   /**
    * Pointcloud callback function
    **/
-  void trackingCallback(const ar_track_alvar_msgs::AlvarMarkers& msg);
+  void trackingCallback(const apriltags_ros::AprilTagDetectionArray& msg);
 
   /**
    * Overrides default directory initialization
@@ -35,7 +35,7 @@ public:
   /**
    * Overrides default toggling of logger
    */
-  void toggleLogger(std_srvs::SetBool::Request  &req,
+  bool toggleLogger(std_srvs::SetBool::Request  &req,
                     std_srvs::SetBool::Response &res);
 
 private:

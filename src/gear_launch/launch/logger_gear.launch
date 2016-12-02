@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <launch>
-  <!--Common parameters-->
+  <!-- Common parameters-->
   <arg name="data_dir"          default="/mnt/md0/gear_data"/>
   <arg name="start_manager"     default="true"/>
   <arg name="nodelet_manager"   default="gear_logger"/>
@@ -27,6 +27,12 @@
     <arg name="depth_def"       default="$(arg depth_def)"/>
   </include>  
  
+  <!-- Tracking logger-->
+  <include file="$(find gear_data_handler)/launch/tracking_logger.launch">
+    <arg name="start_manager"   value="$(arg start_manager)"/>
+    <arg name="nodelet_manager" value="$(arg nodelet_manager)" unless="$(arg start_manager)"/>
+  </include>
+
   <!--kinect1 color-->
   <include file="$(find gear_data_handler)/launch/image_logger.launch" if="$(arg enable_kinect1)">
     <arg name="base_name"       value="k1"/>
