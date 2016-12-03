@@ -1,10 +1,10 @@
 import os
+import sys
 import rospy
 import rospkg
 import yaml
 import pprint
-import commands
-
+from rqt_gui.main import Main
 from qt_gui.plugin import Plugin
 from python_qt_binding import loadUi, QtCore
 from python_qt_binding.QtGui import QWidget, QMainWindow, QTextCursor, QColor, QFileDialog
@@ -12,11 +12,47 @@ import itertools
 from time import sleep
 import shutil
 from glob import glob
+from gear_data_handler.postprocessor import PostProcessor
+import funcy
+from threading import Lock
+import functools
+from Queue import Queue
 
 DEFAULT_DATA_DIR = "/mnt/md0/gear_data"
 DEFAULT_COMPOSITION = [("k2", "color"), ("p1", "color"), ("p2", "color")]
 VIDEO_BLACKLIST = ["depth"]
+DEFAULT_VIDEO_EXTN = ".avi"
+DEFAULT_FRAME_RATE = 15
+         
+class TaskThread(QtCore.QThread):
+    task_finished = QtCore.pyqtSignal()
+     
+    def initialize(self, root_dir, task, task_type):
+        '''
+        Constructor
+        '''
+        self.root_dir = root_dir
+        self.task = task
+        self.task_type = task_type
+        return
 
+    @QtCore.pyqtSlot()     
+    def run(self):
+        '''
+        Interface with the backend postprocessing
+        '''
+        # Create postprocessing object
+        post_processor_obj = PostProcessor(self.root_dir, DEFAULT_VIDEO_EXTN, DEFAULT_FRAME_RATE)
+         
+        # Generate video or composition
+        if self.task_type == "video":
+            post_processor_obj.create_video(self.task)
+        elif self.task_type == "composition":
+            post_processor_obj.create_composition(self.task)
+         
+        self.task_finished.emit()
+        return
+                     
 class PostprocessGUI(Plugin):
 
     def __init__(self, context):
@@ -75,6 +111,7 @@ class PostprocessGUI(Plugin):
 
         self._widget.btnStart.clicked[bool].connect(self._onclicked_btnStart);
         self._widget.btnReset.clicked[bool].connect(self._onclicked_btnReset);        
+        self._widget.btnStop.clicked[bool].connect(self._onclicked_btnStop);        
 
         self._widget.comboSubject.currentIndexChanged.connect(self._onchanged_comboSubject);  
         self._widget.comboSession.currentIndexChanged.connect(self._onchanged_comboSession);  
@@ -89,8 +126,50 @@ class PostprocessGUI(Plugin):
         self._widget.chkTrialAll.stateChanged.connect(self._onchanged_chkTrialAll);  
         self._widget.chkSensorAll.stateChanged.connect(self._onchanged_chkSensorAll);  
         self._widget.chkVideoAll.stateChanged.connect(self._onchanged_chkVideoAll);  
+        
+        # Create worker thread
+        self.task_thread = TaskThread()
+        self.task_thread.task_finished.connect(self._onfinished_task)
+        
+        # Create mutex
+        self.mutex = Lock()
+               
         return
 
+    @QtCore.pyqtSlot()    
+    def _onfinished_task(self):
+        '''
+        Update when an ongoing task is finished
+        '''
+        self._widget.progressBar.setValue(self.progress_value)
+        self.mutex.acquire()
+        task_started = False
+        composition_started = False
+
+        # Process videos
+        if self.tasks:
+            self.progress_value += 1
+            task_started = True
+            self._output_statustext("Processing task "+PostProcessor.build_video_name(self.tasks[-1])+" ...")
+            self.task_thread.initialize(self.root_dir, self.tasks.pop(), "video")
+            self.task_thread.start()
+        
+        # Process compositions
+        if not task_started and self.composition_tasks:
+            self.progress_value += len(self.composition_tasks[-1])
+            composition_started = True
+            self._output_statustext("Processing composition "+PostProcessor.build_composition_name(self.composition_tasks[-1])+" ...")
+            self.task_thread.initialize(self.root_dir, self.composition_tasks.pop(), "composition")
+            self.task_thread.start()        
+        self.mutex.release()
+        
+        if not task_started and not composition_started:
+            self._output_statustext("Tasks complete")
+            self._onclicked_btnReset()
+            self._widget.progressBar.setValue(self.progress_value)
+        return
+
+    @QtCore.pyqtSlot()    
     def _onchanged_chkActivityAll(self):
         '''
         Check box callback
@@ -102,6 +181,7 @@ class PostprocessGUI(Plugin):
             self._widget.comboActivity.setEnabled(True)
         return
 
+    @QtCore.pyqtSlot()
     def _onchanged_chkConditionAll(self):
         '''
         Check box callback
@@ -112,7 +192,8 @@ class PostprocessGUI(Plugin):
         else:
             self._widget.comboCondition.setEnabled(True)
         return
-
+    
+    @QtCore.pyqtSlot()
     def _onchanged_chkTrialAll(self):
         '''
         Check box callback
@@ -123,7 +204,8 @@ class PostprocessGUI(Plugin):
         else:
             self._widget.comboTrial.setEnabled(True)
         return
-
+    
+    @QtCore.pyqtSlot()
     def _onchanged_chkSensorAll(self):
         '''
         Check box callback
@@ -135,6 +217,7 @@ class PostprocessGUI(Plugin):
             self._widget.comboSensor.setEnabled(True)
         return
 
+    @QtCore.pyqtSlot()
     def _onchanged_chkVideoAll(self):
         '''
         Check box callback
@@ -145,7 +228,27 @@ class PostprocessGUI(Plugin):
         else:
             self._widget.comboVideo.setEnabled(True)
         return
-                
+    
+    def _update_combobox(self, q_obj, item_list):
+        '''
+        Update combobox without emitting signals
+        '''
+        q_obj.blockSignals(True)
+        q_obj.clear()
+        q_obj.addItems(sorted(list(item_list)))
+        q_obj.blockSignals(False)
+        return
+
+    def _update_textbox(self, q_obj, text):
+        '''
+        Update combobox without emitting signals
+        '''
+        q_obj.blockSignals(True)
+        q_obj.setText(text)
+        q_obj.blockSignals(False)
+        return
+
+    @QtCore.pyqtSlot()                    
     def _onchanged_txtFilepath(self):
         '''
         Refresh on changing root dir
@@ -160,12 +263,12 @@ class PostprocessGUI(Plugin):
         subject_list = [os.path.basename(d.rstrip('/')) for d in glob(self.root_dir+"/*/")]                  
         if not subject_list:
             return
-
-        self._widget.comboSubject.clear()        
-        self._widget.comboSubject.addItems(subject_list)
+        
+        self._update_combobox(self._widget.comboSubject, subject_list)
         self._onchanged_comboSubject()
         return
-        
+
+    @QtCore.pyqtSlot()        
     def _onclicked_btnFileselect(self):
         '''
         Select root directory
@@ -177,10 +280,11 @@ class PostprocessGUI(Plugin):
             start_dir = DEFAULT_DATA_DIR
             
         root_dir = QFileDialog.getExistingDirectory(self._widget, "Open a folder", start_dir, QFileDialog.ShowDirsOnly)
-        self._widget.txtFilepath.setText(root_dir)
+        self._update_textbox(self._widget.txtFilepath, root_dir)
         self._onchanged_txtFilepath()
         return
-    
+
+    @QtCore.pyqtSlot()    
     def _onchanged_comboSubject(self):
         '''
         Refresh GUI when subject changes
@@ -191,11 +295,11 @@ class PostprocessGUI(Plugin):
         if not session_list:
             return
         
-        self._widget.comboSession.clear()
-        self._widget.comboSession.addItems(session_list)
+        self._update_combobox(self._widget.comboSession, session_list)
         self._onchanged_comboSession()   
         return     
 
+    @QtCore.pyqtSlot()
     def _onchanged_comboSession(self):
         '''
         Refresh GUI when subject changes
@@ -206,11 +310,11 @@ class PostprocessGUI(Plugin):
         if not activity_list:
             return
         
-        self._widget.comboActivity.clear()
-        self._widget.comboActivity.addItems(list(activity_list))
+        self._update_combobox(self._widget.comboActivity, activity_list)
         self._onchanged_comboActivity()  
         return      
 
+    @QtCore.pyqtSlot()
     def _onchanged_comboActivity(self):
         '''
         Refresh GUI when subject changes
@@ -224,11 +328,11 @@ class PostprocessGUI(Plugin):
         if not condition_list:
             return
         
-        self._widget.comboCondition.clear()
-        self._widget.comboCondition.addItems(list(condition_list))
+        self._update_combobox(self._widget.comboCondition, condition_list)
         self._onchanged_comboCondition()        
         return
 
+    @QtCore.pyqtSlot()
     def _onchanged_comboCondition(self):
         '''
         Refresh GUI when subject changes
@@ -242,11 +346,11 @@ class PostprocessGUI(Plugin):
         if not trial_list:
             return
         
-        self._widget.comboTrial.clear()
-        self._widget.comboTrial.addItems(list(trial_list))
+        self._update_combobox(self._widget.comboTrial, trial_list)
         self._onchanged_comboTrial()        
         return
     
+    @QtCore.pyqtSlot()
     def _onchanged_comboTrial(self):
         '''
         Refresh GUI when subject changes
@@ -259,12 +363,12 @@ class PostprocessGUI(Plugin):
         sensor_list = self._get_sensor_video_list('sensor')                
         if not sensor_list:
             return
-        
-        self._widget.comboSensor.clear()
-        self._widget.comboSensor.addItems(list(sensor_list))
+
+        self._update_combobox(self._widget.comboSensor, sensor_list)        
         self._onchanged_comboSensor()        
         return
     
+    @QtCore.pyqtSlot()
     def _onchanged_comboSensor(self):
         '''
         Refresh GUI when subject changes
@@ -275,12 +379,11 @@ class PostprocessGUI(Plugin):
             self.sensor = set([str(self._widget.comboSensor.currentText())])
         
         video_list = self._get_sensor_video_list('video')
-        video_list.intersection_update(set(VIDEO_BLACKLIST))        
+        video_list.difference_update(set(VIDEO_BLACKLIST))        
         if not video_list:
             return
         
-        self._widget.comboVideo.clear()
-        self._widget.comboVideo.addItems(list(video_list))
+        self._update_combobox(self._widget.comboVideo, video_list)
         self._onchanged_comboVideo()        
         return
     
@@ -290,11 +393,12 @@ class PostprocessGUI(Plugin):
         '''
         if self._widget.chkVideoAll.isChecked():
             self.video = self._get_sensor_video_list('video')
-            self.video.intersection_update(set(VIDEO_BLACKLIST))        
+            self.video.difference_update(set(VIDEO_BLACKLIST))        
         else:
-            self.video = set([str(self._widget.comboVideo.currentText())])
+            self._update_combobox(self._widget.comboVideo, [str(self._widget.comboVideo.currentText())])
         return
-            
+
+    @QtCore.pyqtSlot()            
     def _onclicked_btnReset(self):
         '''
         Reset everything to default
@@ -327,7 +431,10 @@ class PostprocessGUI(Plugin):
             self._widget.chkSensorAll.setChecked(True)
             self._widget.chkVideoAll.setChecked(True)
             self._widget.progressBar.setValue(0)
-            
+            self._widget.btnStop.setEnabled(False)
+            self._widget.btnFileselect.setEnabled(True)
+            self._widget.txtFilepath.setEnabled(True)
+           
             self._onchanged_txtFilepath()
         return
 
@@ -353,14 +460,63 @@ class PostprocessGUI(Plugin):
         self._widget.btnStart.setEnabled(False)
         self._widget.btnStop.setEnabled(False)
         return
-                
+
+    @QtCore.pyqtSlot()            
     def _onclicked_btnStart(self):
         '''
         Start generating videos
-        '''
+        '''                        
+        # Generate all tasks
+        self.mutex.acquire()
+        self.tasks, self.composition_tasks = self._generate_tasks()
+        totalTasks = len(self.tasks)+len(funcy.cat(self.composition_tasks))
+        self.mutex.release()
+
+        # Configure gui elements
+        self._disable_all()
+        self._widget.btnFileselect.setEnabled(False)
+        self._widget.txtFilepath.setEnabled(False)
         self._widget.progressBar.setValue(0)
+        self._widget.progressBar.setRange(0, totalTasks)
         self._widget.btnStop.setEnabled(True)
+        self._widget.btnReset.setEnabled(False)
+        self.progress_value = 0
+        self._widget.txtOutput.clear()
+        self._output_statustext("Total videos: "+str(len(self.tasks)))
+        self._output_statustext("Total compositions: "+str(len(self.composition_tasks)))
+        self._output_statustext("Starting tasks ...")
         
+        # Process tasks
+        self._onfinished_task()
+        
+        return
+
+    @QtCore.pyqtSlot()
+    def _onclicked_btnStop(self):
+        '''
+        Stop generating videos
+        '''
+        self.mutex.acquire()
+        self.tasks = []
+        self.composition_tasks = []
+        self.mutex.release()
+        self._output_statustext("Stopping ...")
+        self._widget.btnStop.setEnabled(True)
+        return
+
+    def _output_statustext(self, text):
+        '''
+        Show output in status box
+        '''
+        self._widget.txtOutput.append(text)
+        self._widget.txtOutput.moveCursor(QTextCursor.End)
+        self._widget.txtOutput.ensureCursorVisible()
+        return
+    
+    def _generate_tasks(self):
+        '''
+        Interface with the backend postprocessing
+        '''
         # Generate all possible tasks
         tasks = itertools.product([self.subject], [self.session], 
                                   self.activity, self.condition, self.trial, 
@@ -382,9 +538,9 @@ class PostprocessGUI(Plugin):
         
         # Get valid compositions
         valid_compositions = [c for c in compositions if self._validate_composition(c)]
+
+        return valid_tasks, valid_compositions
         
-        return
-    
     def _validate_task(self, task):
         '''
         Validate if a given task is possible
@@ -400,26 +556,7 @@ class PostprocessGUI(Plugin):
             if not self._validate_task(t):
                 return False
         return True
-    
-    def _logger(self, output_text, type="info", skip_ui=False):
-        '''
-        Logging module that handles both roslog and output status
-        '''
-        if type=="warn":
-            rospy.logwarn(output_text)
-            if not skip_ui:
-                self._widget.txtOutput.setTextColor(QColor(255,0,0))
-        else:
-            rospy.loginfo(output_text)
-            if not skip_ui:
-                self._widget.txtOutput.setTextColor(QColor(0,0,0))
-        
-        if not skip_ui:     
-            self._widget.txtOutput.append(output_text)
-            self._widget.txtOutput.moveCursor(QTextCursor.End)
-            self._widget.txtOutput.ensureCursorVisible()
-        return
-    
+                
     def _get_sensor_video_list(self, attr_type):
         '''
         Get list of sensors
@@ -476,8 +613,5 @@ class PostprocessGUI(Plugin):
         # Usually used to open a modal configuration dialog
 
 if __name__ == "__main__":
-    import sys
-    from rqt_gui.main import Main
-    
     main = Main()
     sys.exit(main.main(sys.argv, standalone='gear_postprocess.postprocess.PostprocessGUI'))

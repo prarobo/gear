@@ -8,6 +8,7 @@ import matplotlib.pyplot as plt
 import cv2
 import shutil
 from decimal import Decimal, getcontext
+import sys
 
 VIDEO_ENCODING = cv2.cv.CV_FOURCC('M','J','P','G')
 IMAGE_DIR = "images"
@@ -66,8 +67,9 @@ class PostProcessor(object):
         image_name = image_prefix+'_'+str(int(timestamp))+'_'\
                      +str(timestamp).split('.')[1]+image_extn
         return image_name
-    
-    def _build_video_name(self, task):
+
+    @classmethod    
+    def build_video_name(self, task):
         '''
         Build video name from task
         '''
@@ -136,8 +138,8 @@ class PostProcessor(object):
         min_time = max(min_list)
         max_time = min(max_list)
         
-        print("Min time = {min_time}".format(min_time=min_time))
-        print("Max time = {max_time}".format(max_time=max_time))
+        #print("Min time = {min_time}".format(min_time=min_time))
+        #print("Max time = {max_time}".format(max_time=max_time))
         return min_time, max_time
     
     def get_image_root_dir(self, task):
@@ -245,13 +247,13 @@ class PostProcessor(object):
             = self._initialize_video_info(task)
                 
         # Create video writer object
-        video_name = self._build_video_name(task)
+        video_name = self.build_video_name(task)
         video_path = os.path.join(video_root_dir, video_name+self.video_extn)
         video_writer = cv2.VideoWriter(video_path, self.video_enc, float(current_fps), frame_size, is_color)
         if not video_writer.isOpened():
             raise Exception("Failed to load video")
         
-        print("Processing video "+video_name+ " ...", end="")
+        sys.stdout.write("Processing video "+video_name+self.video_extn+" ...")
         for t in time_seq:
             if min_time<=t<=max_time:
                 image_name = self._build_image_name(t, image_extn, image_prefix)
@@ -259,7 +261,7 @@ class PostProcessor(object):
                 image = cv2.imread(image_path, is_color)
                 video_writer.write(image)
 
-        print("done")
+        sys.stdout.write("done\n")
         return
     
     def create_composition(self, composition_task):
@@ -294,14 +296,12 @@ class PostProcessor(object):
         
         # Create video writer object
         video_frame_size = tuple([int(sum([f[0] for f in frame_size_list])), int(frame_size_list[0][1])])                                     
-        c_name = ""
-        for c in composition_task:
-            c_name += c[-2]
-        video_name = "composition_"+c_name+"_color"
+        video_name = self.build_composition_name(composition_task)
         video_path = os.path.join(video_root_dir, video_name+self.video_extn)
         video_writer = cv2.VideoWriter(video_path, self.video_enc, float(current_fps), video_frame_size, is_color)
         if not video_writer.isOpened():
-            raise Exception("Failed to load video")
+            sys.stderr.out("Failed to load video")
+            return
         
         # Cleanup unwanted values from time sequences
         for t in time_seq_list:
@@ -313,9 +313,9 @@ class PostProcessor(object):
         # Sanity check to match time sequence lengths
         for i in xrange(1, len(time_seq_list)):
             if len(time_seq_list[i-1]) != len(time_seq_list[i]):
-                print("Time sequence list do not match")
+                sys.stderr.write("Time sequence list does not match")
         
-        print("Processing composition video"+ " ...", end="")
+        sys.stdout.write("Processing composition video "+video_name+self.video_extn+" ...")
         
         for t in time_seq_list[0]:
             if min_time<=t<=max_time:
@@ -329,8 +329,20 @@ class PostProcessor(object):
 
                 composed_image = np.concatenate(tuple(images), axis=1)
                 video_writer.write(composed_image)
-        print("done")                   
+        sys.stdout.write("done\n")                   
         return
+    
+    @classmethod
+    def build_composition_name(self, composition_task):
+        '''
+        Get the name of composition from composition task
+        '''
+        c_name = ""
+        for c in composition_task:
+            c_name += c[-2]
+        video_name = "composition_"+c_name+"_color"
+        return video_name
+
     
 if __name__=="__main__":
     pass    
