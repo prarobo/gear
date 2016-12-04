@@ -3,7 +3,6 @@ import sys
 import rospy
 import rospkg
 import yaml
-import pprint
 from rqt_gui.main import Main
 from qt_gui.plugin import Plugin
 from python_qt_binding import loadUi, QtCore
@@ -14,18 +13,20 @@ import shutil
 from glob import glob
 from gear_data_handler.postprocessor import PostProcessor
 import funcy
-from threading import Lock
-import functools
-from Queue import Queue
 
 DEFAULT_DATA_DIR = "/mnt/md0/gear_data"
 DEFAULT_COMPOSITION = [("k2", "color"), ("p1", "color"), ("p2", "color")]
 VIDEO_BLACKLIST = ["depth"]
 DEFAULT_VIDEO_EXTN = ".avi"
 DEFAULT_FRAME_RATE = 15
+DEFAULT_WORKER_THREADS = 8
          
 class TaskThread(QtCore.QThread):
-    task_finished = QtCore.pyqtSignal()
+    task_finished = QtCore.pyqtSignal(int, int)
+    
+    def __init__(self, tid):
+        super(TaskThread, self).__init__()
+        self.tid = tid
      
     def initialize(self, root_dir, task, task_type):
         '''
@@ -47,10 +48,12 @@ class TaskThread(QtCore.QThread):
         # Generate video or composition
         if self.task_type == "video":
             post_processor_obj.create_video(self.task)
+            task_size = 1
         elif self.task_type == "composition":
             post_processor_obj.create_composition(self.task)
-         
-        self.task_finished.emit()
+            task_size = len(self.task)
+
+        self.task_finished.emit(self.tid, task_size)
         return
                      
 class PostprocessGUI(Plugin):
@@ -128,42 +131,41 @@ class PostprocessGUI(Plugin):
         self._widget.chkVideoAll.stateChanged.connect(self._onchanged_chkVideoAll);  
         
         # Create worker thread
-        self.task_thread = TaskThread()
-        self.task_thread.task_finished.connect(self._onfinished_task)
+        self.task_threads = [TaskThread(i) for i in xrange(DEFAULT_WORKER_THREADS)]
+        self.thread_idle = [True]*DEFAULT_WORKER_THREADS
+        for t in self.task_threads: 
+            t.task_finished.connect(self._onfinished_task)
         
-        # Create mutex
-        self.mutex = Lock()
-               
         return
 
-    @QtCore.pyqtSlot()    
-    def _onfinished_task(self):
+    @QtCore.pyqtSlot(int, int)    
+    def _onfinished_task(self, tid, task_size):
         '''
         Update when an ongoing task is finished
         '''
+        self.progress_value += task_size
         self._widget.progressBar.setValue(self.progress_value)
-        self.mutex.acquire()
         task_started = False
         composition_started = False
-
+        self.thread_idle[tid] = True
+        
         # Process videos
         if self.tasks:
-            self.progress_value += 1
             task_started = True
             self._output_statustext("Processing task "+PostProcessor.build_video_name(self.tasks[-1])+" ...")
-            self.task_thread.initialize(self.root_dir, self.tasks.pop(), "video")
-            self.task_thread.start()
+            self.task_threads[tid].initialize(self.root_dir, self.tasks.pop(), "video")
+            self.task_threads[tid].start()
+            self.thread_idle[tid] = False
         
         # Process compositions
         if not task_started and self.composition_tasks:
-            self.progress_value += len(self.composition_tasks[-1])
             composition_started = True
             self._output_statustext("Processing composition "+PostProcessor.build_composition_name(self.composition_tasks[-1])+" ...")
-            self.task_thread.initialize(self.root_dir, self.composition_tasks.pop(), "composition")
-            self.task_thread.start()        
-        self.mutex.release()
+            self.task_threads[tid].initialize(self.root_dir, self.composition_tasks.pop(), "composition")
+            self.task_threads[tid].start()  
+            self.thread_idle[tid] = False      
         
-        if not task_started and not composition_started:
+        if not task_started and not composition_started and all(self.thread_idle):
             self._output_statustext("Tasks complete")
             self._onclicked_btnReset()
             self._widget.progressBar.setValue(self.progress_value)
@@ -467,10 +469,8 @@ class PostprocessGUI(Plugin):
         Start generating videos
         '''                        
         # Generate all tasks
-        self.mutex.acquire()
         self.tasks, self.composition_tasks = self._generate_tasks()
         totalTasks = len(self.tasks)+len(funcy.cat(self.composition_tasks))
-        self.mutex.release()
 
         # Configure gui elements
         self._disable_all()
@@ -484,10 +484,11 @@ class PostprocessGUI(Plugin):
         self._widget.txtOutput.clear()
         self._output_statustext("Total videos: "+str(len(self.tasks)))
         self._output_statustext("Total compositions: "+str(len(self.composition_tasks)))
-        self._output_statustext("Starting tasks ...")
+        self._output_statustext("Starting tasks on {num_workers} workers...".format(num_workers=DEFAULT_WORKER_THREADS))
         
         # Process tasks
-        self._onfinished_task()
+        for t in self.task_threads:
+            t.task_finished.emit(t.tid, 0)
         
         return
 

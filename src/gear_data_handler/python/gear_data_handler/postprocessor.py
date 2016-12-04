@@ -315,7 +315,7 @@ class PostProcessor(object):
             if len(time_seq_list[i-1]) != len(time_seq_list[i]):
                 sys.stderr.write("Time sequence list does not match")
         
-        sys.stdout.write("Processing composition video "+video_name+self.video_extn+" ...")
+        sys.stdout.write("Processing composition video "+video_name+self.video_extn+" ...\n")
         
         for t in time_seq_list[0]:
             if min_time<=t<=max_time:
@@ -337,10 +337,10 @@ class PostProcessor(object):
         '''
         Get the name of composition from composition task
         '''
-        c_name = ""
-        for c in composition_task:
-            c_name += c[-2]
-        video_name = "composition_"+c_name+"_color"
+        c_name = []
+        for i in zip(*composition_task):
+            c_name.append(''.join(sorted(set(list(i)))))
+        video_name = "composition_"+'_'.join(c_name)
         return video_name
 
     
