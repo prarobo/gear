@@ -1,6 +1,5 @@
-#include <gear_image_handler/log_images.h>
+#include <gear_data_handler/log_images.h>
 
-// Opencv dependencies
 #include <cv.h>
 #include <highgui.h>
 #include <opencv2/imgproc/imgproc.hpp>
@@ -15,7 +14,7 @@
 
 namespace enc = sensor_msgs::image_encodings;
 
-namespace gear_image_handler {
+namespace gear_data_handler {
 
 ImageLogger::ImageLogger(): Logger(){};
 

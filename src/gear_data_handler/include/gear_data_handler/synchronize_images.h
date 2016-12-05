@@ -21,7 +21,7 @@ typedef message_filters::sync_policies::ApproximateTime
            sensor_msgs::Image,sensor_msgs::Image, sensor_msgs::Image,
            sensor_msgs::Image, sensor_msgs::Image> gear_sync_policy;
 
-namespace gear_image_handler {
+namespace gear_data_handler {
 
 class ImageSynchronizer : public nodelet::Nodelet {
 
@@ -74,8 +74,8 @@ private:
 
 }; //class ImageLogger
 
-PLUGINLIB_DECLARE_CLASS(gear_image_handler, ImageSynchronizer,
-                        gear_image_handler::ImageSynchronizer,
+PLUGINLIB_DECLARE_CLASS(gear_data_handler, ImageSynchronizer,
+                        gear_data_handler::ImageSynchronizer,
                         nodelet::Nodelet);
 
 } // namespace image_handler

@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<launch>
+  <arg name="tf_file"     default="$(find gear_launch)/calibration/camera_poses.yaml"/>  
+ 
+  <!--<node pkg="tf" type="static_transform_publisher" name="world_tf_broadcaster" args="0 0 0 0 0 0 /world /vicon_world  100" />-->
+
+  <node pkg="gear_tf" type="tf_broadcaster.py" name="tf_broadcaster" output="screen">
+    <param name="~tf_file" value="$(arg tf_file)"/>
+  </node>  
+</launch>

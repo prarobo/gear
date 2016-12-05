@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<launch>
+  <arg name="image_def"             default="hd"/>
+  <arg name="base_name"             default="k1"/>
+  <arg name="kinect_topic_name"     default="image_color_rect"/>
+  <arg name="pointgrey_topic_name"  default="image_color"/>
+  <arg name="start_manager"         default="true"/>
+  <arg name="nodelet_manager"       default="gear_tracker"/>
+
+  <!--kinect1 -->
+  <include file="$(find gear_launch)/launch/april_tag_tracker.launch">
+    <arg name="start_manager"   value="$(arg start_manager)"/>
+    <arg name="nodelet_manager" value="$(arg nodelet_manager)" unless="$(arg start_manager)"/>
+    <arg name="base_name"       value="k1"/>
+    <arg name="image_def"       value="$(arg image_def)"/>
+    <arg name="topic_name"      value="$(arg kinect_topic_name)"/>
+  </include>
+
+  <!--kinect2 -->
+  <include file="$(find gear_launch)/launch/april_tag_tracker.launch">
+    <arg name="start_manager"   value="$(arg start_manager)"/>
+    <arg name="nodelet_manager" value="$(arg nodelet_manager)" unless="$(arg start_manager)"/>
+    <arg name="base_name"       value="k2"/>
+    <arg name="image_def"       value="$(arg image_def)"/>
+    <arg name="topic_name"      value="$(arg kinect_topic_name)"/>
+  </include>
+
+  <!--kinect3 -->
+  <include file="$(find gear_launch)/launch/april_tag_tracker.launch">
+    <arg name="start_manager"   value="$(arg start_manager)"/>
+    <arg name="nodelet_manager" value="$(arg nodelet_manager)" unless="$(arg start_manager)"/>
+    <arg name="base_name"       value="k3"/>
+    <arg name="image_def"       value="$(arg image_def)"/>
+    <arg name="topic_name"      value="$(arg kinect_topic_name)"/>
+  </include>
+
+  <!--pointgrey1 -->
+  <include file="$(find gear_launch)/launch/april_tag_tracker.launch">
+    <arg name="start_manager"   value="$(arg start_manager)"/>
+    <arg name="nodelet_manager" value="$(arg nodelet_manager)" unless="$(arg start_manager)"/>
+    <arg name="base_name"       value="p1"/>
+    <arg name="image_def"       value="$(arg image_def)"/>
+    <arg name="topic_name"      value="$(arg pointgrey_topic_name)"/>
+  </include>
+
+  <!--pointgrey2 -->
+  <include file="$(find gear_launch)/launch/april_tag_tracker.launch">
+    <arg name="start_manager"   value="$(arg start_manager)"/>
+    <arg name="nodelet_manager" value="$(arg nodelet_manager)" unless="$(arg start_manager)"/>
+    <arg name="base_name"       value="p2"/>
+    <arg name="image_def"       value="$(arg image_def)"/>
+    <arg name="topic_name"      value="$(arg pointgrey_topic_name)"/>
+  </include>
+</launch>

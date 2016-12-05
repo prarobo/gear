@@ -1,15 +1,13 @@
 #ifndef LOG_IMAGES_H_
 #define LOG_IMAGES_H_
 
-#include <gear_image_handler/logger.h>
-
-// ROS Dependencies
 #include <image_transport/image_transport.h>
 #include <nodelet/nodelet.h>
 #include <pluginlib/class_list_macros.h>
 #include <sensor_msgs/Image.h>
+#include <gear_data_handler/logger.h>
 
-namespace gear_image_handler {
+namespace gear_data_handler {
 
 class ImageLogger : public nodelet::Nodelet, public Logger {
 
@@ -35,8 +33,8 @@ private:
   std::string encoding_;
 }; //class ImageLogger
 
-PLUGINLIB_DECLARE_CLASS(gear_image_handler, ImageLogger,
-                        gear_image_handler::ImageLogger,
+PLUGINLIB_DECLARE_CLASS(gear_data_handler, ImageLogger,
+                        gear_data_handler::ImageLogger,
                         nodelet::Nodelet);
 
 } // namespace image_handler

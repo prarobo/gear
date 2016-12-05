@@ -1,6 +1,5 @@
-#include <gear_image_handler/log_pointcloud.h>
+#include <gear_data_handler/log_pointcloud.h>
 
-// Ros Dependencies
 #include <cv_bridge/cv_bridge.h>
 
 // Boost Dependencies
@@ -9,7 +8,7 @@
 //PCL Dependencies
 #include <pcl/io/pcd_io.h>
 
-namespace gear_image_handler {
+namespace gear_data_handler {
 
 PointcloudLogger::PointcloudLogger(): Logger(){};
 

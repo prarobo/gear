@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 2.8.3)
-project(gear_image_handler)
+project(gear_data_handler)
 
 find_package(catkin REQUIRED COMPONENTS
   pluginlib
@@ -12,6 +12,8 @@ find_package(catkin REQUIRED COMPONENTS
   image_transport
   pcl_ros
   pcl_conversions
+  apriltags_ros
+  rosbag
 )
 
 find_package(OpenCV REQUIRED)
@@ -27,8 +29,9 @@ catkin_python_setup()
 ###################################
 catkin_package(
   INCLUDE_DIRS include
-  # LIBRARIES gear_image_handler
-  CATKIN_DEPENDS pluginlib nodelet cv_bridge roscpp rospy sensor_msgs std_msgs std_srvs pcl_ros pcl_conversions
+  # LIBRARIES gear_data_handler
+  CATKIN_DEPENDS pluginlib nodelet cv_bridge roscpp rospy sensor_msgs std_msgs 
+  std_srvs pcl_ros pcl_conversions apriltags_ros rosbag
   # DEPENDS system_lib
 )
 
@@ -46,14 +49,15 @@ include_directories(
 
 
 # Declare a C++ library
-add_library(image_handler
+add_library(data_handler
   src/log_images.cpp
   src/log_pointcloud.cpp
+  src/log_tracking.cpp
   src/synchronize_images.cpp
   src/logger.cpp
 )
 
-target_link_libraries(image_handler
+target_link_libraries(data_handler
   ${catkin_LIBRARIES}
   ${Boost_LIBRARIES}
   ${OpenCV_LIBRARIES}

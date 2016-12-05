@@ -1,8 +1,8 @@
 <?xml version="1.0"?>
 <package>
-  <name>gear_image_handler</name>
+  <name>gear_data_handler</name>
   <version>0.0.0</version>
-  <description>The gear_image_handler package</description>
+  <description>The gear_data_handler package</description>
   <maintainer email="kan.prasanna@gmail.com">Prasanna kannappan</maintainer>
   <license>TODO</license>
 
@@ -21,6 +21,8 @@
   <build_depend>libpcl-all-dev</build_depend>
   <build_depend>pcl</build_depend>
   <build_depend>pcl_conversions</build_depend>
+  <build_depend>apriltags_ros</build_depend>
+  <build_depend>rosbag</build_depend>
   
   <run_depend>cv_bridge</run_depend>
   <run_depend>roscpp</run_depend>
@@ -36,6 +38,8 @@
   <run_depend>libpcl-all-dev</run_depend>
   <run_depend>pcl</run_depend>
   <run_depend>pcl_conversions</run_depend>
+  <run_depend>apriltags_ros</run_depend>
+  <run_depend>rosbag</run_depend>
   
   <export>
     <nodelet plugin="${prefix}/nodelets.xml"/>

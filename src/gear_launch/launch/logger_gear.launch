@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <launch>
-  <!--Common parameters-->
+  <!-- Common parameters-->
   <arg name="data_dir"          default="/mnt/md0/gear_data"/>
   <arg name="start_manager"     default="true"/>
   <arg name="nodelet_manager"   default="gear_logger"/>
@@ -19,7 +19,7 @@
   <arg name="enable_pointgrey2" default="true"/>
 
   <!-- Synchronizer -->
-  <include file="$(find gear_image_handler)/launch/synchronizer.launch" if="$(arg synchronize)">
+  <include file="$(find gear_data_handler)/launch/synchronizer.launch" if="$(arg synchronize)">
     <arg name="start_manager"   value="$(arg start_manager)"/>
     <arg name="nodelet_manager" value="$(arg nodelet_manager)" unless="$(arg start_manager)"/>
     <arg name="pointcloud_def"  default="$(arg pointcloud_def)"/>
@@ -27,8 +27,14 @@
     <arg name="depth_def"       default="$(arg depth_def)"/>
   </include>  
  
+  <!-- Tracking logger-->
+  <include file="$(find gear_data_handler)/launch/tracking_logger.launch">
+    <arg name="start_manager"   value="$(arg start_manager)"/>
+    <arg name="nodelet_manager" value="$(arg nodelet_manager)" unless="$(arg start_manager)"/>
+  </include>
+
   <!--kinect1 color-->
-  <include file="$(find gear_image_handler)/launch/image_logger.launch" if="$(arg enable_kinect1)">
+  <include file="$(find gear_data_handler)/launch/image_logger.launch" if="$(arg enable_kinect1)">
     <arg name="base_name"       value="k1"/>
     <arg name="image_type"      value="color"/>
     <arg name="image_def"       value="$(arg color_def)"/>      
@@ -39,7 +45,7 @@
   </include>
 
   <!--kinect2 color-->
-  <include file="$(find gear_image_handler)/launch/image_logger.launch" if="$(arg enable_kinect2)">
+  <include file="$(find gear_data_handler)/launch/image_logger.launch" if="$(arg enable_kinect2)">
     <arg name="base_name"       value="k2"/>
     <arg name="image_type"      value="color"/>
     <arg name="image_def"       value="$(arg color_def)"/>      
@@ -50,7 +56,7 @@
   </include>
 
   <!--kinect3 color-->
-  <include file="$(find gear_image_handler)/launch/image_logger.launch" if="$(arg enable_kinect3)">
+  <include file="$(find gear_data_handler)/launch/image_logger.launch" if="$(arg enable_kinect3)">
     <arg name="base_name"       value="k3"/>
     <arg name="image_type"      value="color"/>
     <arg name="image_def"       value="$(arg color_def)"/>      
@@ -61,7 +67,7 @@
   </include>
 
   <!--pointgrey1 color-->
-  <include file="$(find gear_image_handler)/launch/image_logger.launch" if="$(arg enable_pointgrey1)">
+  <include file="$(find gear_data_handler)/launch/image_logger.launch" if="$(arg enable_pointgrey1)">
     <arg name="base_name"       value="p1"/>
     <arg name="image_type"      value="color"/>
     <arg name="start_manager"   value="$(arg start_manager)"/>
@@ -71,7 +77,7 @@
   </include>
 
   <!--pointgrey2 color-->
-  <include file="$(find gear_image_handler)/launch/image_logger.launch" if="$(arg enable_pointgrey2)">
+  <include file="$(find gear_data_handler)/launch/image_logger.launch" if="$(arg enable_pointgrey2)">
     <arg name="base_name"       value="p2"/>
     <arg name="image_type"      value="color"/>
     <arg name="start_manager"   value="$(arg start_manager)"/>
@@ -81,7 +87,7 @@
   </include>
 
   <!--kinect1 depth-->
-  <include file="$(find gear_image_handler)/launch/image_logger.launch" if="$(arg enable_kinect1)">
+  <include file="$(find gear_data_handler)/launch/image_logger.launch" if="$(arg enable_kinect1)">
     <arg name="base_name"       value="k1"/>
     <arg name="image_type"      value="depth"/>
     <arg name="image_def"       value="$(arg depth_def)"/>      
@@ -92,7 +98,7 @@
   </include>
 
   <!--kinect2 depth-->
-  <include file="$(find gear_image_handler)/launch/image_logger.launch" if="$(arg enable_kinect2)">
+  <include file="$(find gear_data_handler)/launch/image_logger.launch" if="$(arg enable_kinect2)">
     <arg name="base_name"       value="k2"/>
     <arg name="image_type"      value="depth"/>
     <arg name="image_def"       value="$(arg depth_def)"/>      
@@ -103,7 +109,7 @@
   </include>
 
   <!--kinect3 depth-->
-  <include file="$(find gear_image_handler)/launch/image_logger.launch" if="$(arg enable_kinect3)">
+  <include file="$(find gear_data_handler)/launch/image_logger.launch" if="$(arg enable_kinect3)">
     <arg name="base_name"       value="k3"/>
     <arg name="image_type"      value="depth"/>
     <arg name="image_def"       value="$(arg depth_def)"/>      
@@ -114,7 +120,7 @@
   </include>
 
   <!--kinect1 pointcloud-->
-  <include file="$(find gear_image_handler)/launch/pointcloud_logger.launch" if="$(arg enable_kinect1)">
+  <include file="$(find gear_data_handler)/launch/pointcloud_logger.launch" if="$(arg enable_kinect1)">
     <arg name="base_name"       value="k1"/>
     <arg name="image_def"       value="$(arg pointcloud_def)"/>      
     <arg name="start_manager"   value="$(arg start_manager)"/>
@@ -122,7 +128,7 @@
   </include>
 
   <!--kinect2 pointcloud-->
-  <include file="$(find gear_image_handler)/launch/pointcloud_logger.launch" if="$(arg enable_kinect2)">
+  <include file="$(find gear_data_handler)/launch/pointcloud_logger.launch" if="$(arg enable_kinect2)">
     <arg name="base_name"       value="k2"/>
     <arg name="image_def"       value="$(arg pointcloud_def)"/>      
     <arg name="start_manager"   value="$(arg start_manager)"/>
@@ -130,7 +136,7 @@
   </include>
 
   <!--kinect3 pointcloud-->
-  <include file="$(find gear_image_handler)/launch/pointcloud_logger.launch" if="$(arg enable_kinect3)">
+  <include file="$(find gear_data_handler)/launch/pointcloud_logger.launch" if="$(arg enable_kinect3)">
     <arg name="base_name"       value="k3"/>
     <arg name="image_def"       value="$(arg pointcloud_def)"/>      
     <arg name="start_manager"   value="$(arg start_manager)"/>
