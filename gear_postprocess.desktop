@@ -1,0 +1,10 @@
+[Desktop Entry]
+Name=Gear Postprocess
+Comment=Gear Postprocessing tool
+Exec=bash -i -c $HOME/gear/gear_postprocess.sh
+Terminal=true
+Type=Application
+Categories=Development;
+StartupNotify=true
+Name[en_US]=Gear Postprocess
+Comment[en_US.UTF-8]=Gear Postprocessing tool

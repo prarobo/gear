@@ -251,17 +251,17 @@ class PostProcessor(object):
         video_path = os.path.join(video_root_dir, video_name+self.video_extn)
         video_writer = cv2.VideoWriter(video_path, self.video_enc, float(current_fps), frame_size, is_color)
         if not video_writer.isOpened():
-            raise Exception("Failed to load video")
+            sys.stderr.out("Failed to load video")
+            sys.stdout.flush()
         
-        sys.stdout.write("Processing video "+video_name+self.video_extn+" ...")
+        sys.stdout.write("Processing video "+video_name+self.video_extn+" ...\n")
+        sys.stdout.flush()
         for t in time_seq:
             if min_time<=t<=max_time:
                 image_name = self._build_image_name(t, image_extn, image_prefix)
                 image_path = os.path.join(image_dir, image_name)
                 image = cv2.imread(image_path, is_color)
                 video_writer.write(image)
-
-        sys.stdout.write("done\n")
         return
     
     def create_composition(self, composition_task):
@@ -301,6 +301,7 @@ class PostProcessor(object):
         video_writer = cv2.VideoWriter(video_path, self.video_enc, float(current_fps), video_frame_size, is_color)
         if not video_writer.isOpened():
             sys.stderr.out("Failed to load video")
+            sys.stdout.flush()
             return
         
         # Cleanup unwanted values from time sequences
@@ -314,8 +315,10 @@ class PostProcessor(object):
         for i in xrange(1, len(time_seq_list)):
             if len(time_seq_list[i-1]) != len(time_seq_list[i]):
                 sys.stderr.write("Time sequence list does not match")
+                sys.stdout.flush()
         
         sys.stdout.write("Processing composition video "+video_name+self.video_extn+" ...\n")
+        sys.stdout.flush()
         
         for t in time_seq_list[0]:
             if min_time<=t<=max_time:
@@ -329,7 +332,6 @@ class PostProcessor(object):
 
                 composed_image = np.concatenate(tuple(images), axis=1)
                 video_writer.write(composed_image)
-        sys.stdout.write("done\n")                   
         return
     
     @classmethod
