@@ -13,6 +13,7 @@ find_package(catkin REQUIRED COMPONENTS
   pcl_ros
   pcl_conversions
   apriltags_ros
+  ar_track_alvar_msgs
   rosbag
 )
 
@@ -31,7 +32,7 @@ catkin_package(
   INCLUDE_DIRS include
   # LIBRARIES gear_data_handler
   CATKIN_DEPENDS pluginlib nodelet cv_bridge roscpp rospy sensor_msgs std_msgs 
-  std_srvs pcl_ros pcl_conversions apriltags_ros rosbag
+  std_srvs pcl_ros pcl_conversions apriltags_ros rosbag ar_track_alvar_msgs
   # DEPENDS system_lib
 )
 

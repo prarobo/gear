@@ -2,13 +2,14 @@
 <launch>
   <arg name="image_def"             default="hd"/>
   <arg name="base_name"             default="k1"/>
+  <arg name="tag_type"              default="ar"/>
   <arg name="kinect_topic_name"     default="image_color_rect"/>
   <arg name="pointgrey_topic_name"  default="image_color"/>
   <arg name="start_manager"         default="true"/>
   <arg name="nodelet_manager"       default="gear_tracker"/>
 
   <!--kinect1 -->
-  <include file="$(find gear_launch)/launch/april_tag_tracker.launch">
+  <include file="$(find gear_launch)/launch/$(arg tag_type)_tag_tracker.launch">
     <arg name="start_manager"   value="$(arg start_manager)"/>
     <arg name="nodelet_manager" value="$(arg nodelet_manager)" unless="$(arg start_manager)"/>
     <arg name="base_name"       value="k1"/>
@@ -17,7 +18,7 @@
   </include>
 
   <!--kinect2 -->
-  <include file="$(find gear_launch)/launch/april_tag_tracker.launch">
+  <include file="$(find gear_launch)/launch/$(arg tag_type)_tag_tracker.launch">
     <arg name="start_manager"   value="$(arg start_manager)"/>
     <arg name="nodelet_manager" value="$(arg nodelet_manager)" unless="$(arg start_manager)"/>
     <arg name="base_name"       value="k2"/>
@@ -26,7 +27,7 @@
   </include>
 
   <!--kinect3 -->
-  <include file="$(find gear_launch)/launch/april_tag_tracker.launch">
+  <include file="$(find gear_launch)/launch/$(arg tag_type)_tag_tracker.launch">
     <arg name="start_manager"   value="$(arg start_manager)"/>
     <arg name="nodelet_manager" value="$(arg nodelet_manager)" unless="$(arg start_manager)"/>
     <arg name="base_name"       value="k3"/>
@@ -35,7 +36,7 @@
   </include>
 
   <!--pointgrey1 -->
-  <include file="$(find gear_launch)/launch/april_tag_tracker.launch">
+  <include file="$(find gear_launch)/launch/$(arg tag_type)_tag_tracker.launch">
     <arg name="start_manager"   value="$(arg start_manager)"/>
     <arg name="nodelet_manager" value="$(arg nodelet_manager)" unless="$(arg start_manager)"/>
     <arg name="base_name"       value="p1"/>
@@ -44,7 +45,7 @@
   </include>
 
   <!--pointgrey2 -->
-  <include file="$(find gear_launch)/launch/april_tag_tracker.launch">
+  <include file="$(find gear_launch)/launch/$(arg tag_type)_tag_tracker.launch">
     <arg name="start_manager"   value="$(arg start_manager)"/>
     <arg name="nodelet_manager" value="$(arg nodelet_manager)" unless="$(arg start_manager)"/>
     <arg name="base_name"       value="p2"/>
