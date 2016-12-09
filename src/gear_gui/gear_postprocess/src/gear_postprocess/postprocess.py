@@ -282,6 +282,8 @@ class PostprocessGUI(Plugin):
             start_dir = DEFAULT_DATA_DIR
             
         root_dir = QFileDialog.getExistingDirectory(self._widget, "Open a folder", start_dir, QFileDialog.ShowDirsOnly)
+        if root_dir == "":
+            root_dir = DEFAULT_DATA_DIR
         self._update_textbox(self._widget.txtFilepath, root_dir)
         self._onchanged_txtFilepath()
         return
