@@ -5,6 +5,7 @@
 #include <nodelet/nodelet.h>
 #include <pluginlib/class_list_macros.h>
 #include <apriltags_ros/AprilTagDetectionArray.h>
+#include <ar_track_alvar_msgs/AlvarMarkers.h>
 #include <gear_data_handler/logger.h>
 #include <rosbag/bag.h>
 
@@ -23,9 +24,14 @@ public:
   void onInit();
 
   /**
-   * Pointcloud callback function
+   * April-tag tracking callback function
    **/
-  void trackingCallback(const apriltags_ros::AprilTagDetectionArray& msg);
+  void aprilTrackingCallback(const apriltags_ros::AprilTagDetectionArray& msg);
+
+  /**
+   * AR-tag tracking callback function
+   **/
+  void arTrackingCallback(const ar_track_alvar_msgs::AlvarMarkers& msg);
 
   /**
    * Overrides default directory initialization
@@ -41,6 +47,7 @@ public:
 private:
   ros::Subscriber tracking_sub_;
   rosbag::Bag bag_;
+  std::string tag_type_;
 
 }; //class PointcloudLogger
 
