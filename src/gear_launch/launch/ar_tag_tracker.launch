@@ -12,11 +12,12 @@
   <arg name="cam_image_topic"       default="/$(arg base_name)/$(arg image_def)/$(arg topic_name)" />
   <arg name="cam_info_topic"        default="/$(arg base_name)/$(arg image_def)/camera_info" /> 
   <arg name="output_frame"          default="/$(arg base_name)_link" />
+  <arg name="max_frequency"         default="1" />
 
   <group ns="$(arg base_name)/$(arg image_def)/">
     <!-- Using global nodelet manager -->
     <node pkg="ar_track_alvar" type="individualMarkersNoKinect" name="$(arg base_name)_$(arg topic_name)_tracker"
-        args="$(arg marker_size) $(arg max_new_marker_error) $(arg max_track_error) $(arg cam_image_topic) $(arg cam_info_topic) $(arg output_frame)" 
+        args="$(arg marker_size) $(arg max_new_marker_error) $(arg max_track_error) $(arg cam_image_topic) $(arg cam_info_topic) $(arg output_frame) $(arg max_frequency)" 
         output="screen">
         <!-- Remap topic required by the node to custom topics -->
         <remap from="ar_pose_marker" to="/tag_detections" />

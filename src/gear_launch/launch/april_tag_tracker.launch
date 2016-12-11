@@ -14,7 +14,7 @@
     <node pkg="nodelet" type="nodelet" name="$(arg base_name)_$(arg topic_name)_tracker"
         args="load apriltags_ros/AprilTagDetectorNodelet /$(arg nodelet_manager)" output="screen" unless="$(arg start_manager)">
         <!-- Remap topic required by the node to custom topics -->
-        <remap from="image_rect" to="/$(arg base_name)/$(arg image_def)/$(arg topic_name)" />
+        <remap from="image_rect" to="/$(arg base_name)/$(arg image_def)/$(arg topic_name)_rect" />
         <remap from="camera_info" to="/$(arg base_name)/$(arg image_def)/camera_info" />
         <remap from="tag_detections" to="/tag_detections" />
 
@@ -42,7 +42,7 @@
     <node pkg="nodelet" type="nodelet" name="$(arg base_name)_$(arg topic_name)_tracker"
         args="load apriltags_ros/AprilTagDetectorNodelet $(arg nodelet_manager)" output="screen" if="$(arg start_manager)">
         <!-- Remap topic required by the node to custom topics -->
-        <remap from="image_rect" to="/$(arg base_name)/$(arg image_def)/$(arg topic_name)" />
+        <remap from="image_rect" to="/$(arg base_name)/$(arg image_def)/$(arg topic_name)_rect" />
         <remap from="camera_info" to="/$(arg base_name)/$(arg image_def)/camera_info" />
         <remap from="tag_detections" to="/tag_detections" />
 

@@ -3,8 +3,7 @@
   <arg name="image_def"             default="hd"/>
   <arg name="base_name"             default="k1"/>
   <arg name="tag_type"              default="ar"/>
-  <arg name="kinect_topic_name"     default="image_color_rect"/>
-  <arg name="pointgrey_topic_name"  default="image_color"/>
+  <arg name="topic_name"            default="image_color"/>
   <arg name="start_manager"         default="true"/>
   <arg name="nodelet_manager"       default="gear_tracker"/>
 
@@ -14,7 +13,7 @@
     <arg name="nodelet_manager" value="$(arg nodelet_manager)" unless="$(arg start_manager)"/>
     <arg name="base_name"       value="k1"/>
     <arg name="image_def"       value="$(arg image_def)"/>
-    <arg name="topic_name"      value="$(arg kinect_topic_name)"/>
+    <arg name="topic_name"      value="$(arg topic_name)"/>
   </include>
 
   <!--kinect2 -->
@@ -23,7 +22,7 @@
     <arg name="nodelet_manager" value="$(arg nodelet_manager)" unless="$(arg start_manager)"/>
     <arg name="base_name"       value="k2"/>
     <arg name="image_def"       value="$(arg image_def)"/>
-    <arg name="topic_name"      value="$(arg kinect_topic_name)"/>
+    <arg name="topic_name"      value="$(arg topic_name)"/>
   </include>
 
   <!--kinect3 -->
@@ -32,7 +31,7 @@
     <arg name="nodelet_manager" value="$(arg nodelet_manager)" unless="$(arg start_manager)"/>
     <arg name="base_name"       value="k3"/>
     <arg name="image_def"       value="$(arg image_def)"/>
-    <arg name="topic_name"      value="$(arg kinect_topic_name)"/>
+    <arg name="topic_name"      value="$(arg topic_name)"/>
   </include>
 
   <!--pointgrey1 -->
@@ -41,7 +40,7 @@
     <arg name="nodelet_manager" value="$(arg nodelet_manager)" unless="$(arg start_manager)"/>
     <arg name="base_name"       value="p1"/>
     <arg name="image_def"       value="$(arg image_def)"/>
-    <arg name="topic_name"      value="$(arg pointgrey_topic_name)"/>
+    <arg name="topic_name"      value="$(arg topic_name)"/>
   </include>
 
   <!--pointgrey2 -->
@@ -50,6 +49,6 @@
     <arg name="nodelet_manager" value="$(arg nodelet_manager)" unless="$(arg start_manager)"/>
     <arg name="base_name"       value="p2"/>
     <arg name="image_def"       value="$(arg image_def)"/>
-    <arg name="topic_name"      value="$(arg pointgrey_topic_name)"/>
+    <arg name="topic_name"      value="$(arg topic_name)"/>
   </include>
 </launch>
