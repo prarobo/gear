@@ -12,7 +12,7 @@
   <arg name="cam_image_topic"       default="/$(arg base_name)/$(arg image_def)/$(arg topic_name)" />
   <arg name="cam_info_topic"        default="/$(arg base_name)/$(arg image_def)/camera_info" /> 
   <arg name="output_frame"          default="/$(arg base_name)_link" />
-  <arg name="max_frequency"         default="1" />
+  <arg name="max_frequency"         default="10" />
 
   <group ns="$(arg base_name)/$(arg image_def)/">
     <!-- Using global nodelet manager -->
