@@ -45,6 +45,31 @@ DEFAULT_DATA_DIR = "/mnt/md0/gear_data"
 DEFAULT_SUBJECT = "x"
 DEFAULT_DELETABLE_DIR_SIZE = "2" #Gb
 
+class TaskThread(QtCore.QThread):
+    task_finished = QtCore.pyqtSignal()
+    
+    def __init__(self):
+        super(TaskThread, self).__init__()
+        return
+     
+    def initialize(self, dir_name):
+        '''
+        Constructor
+        '''
+        self.dir_name = dir_name
+        return
+
+    @QtCore.pyqtSlot()     
+    def run(self):
+        '''
+        Interface with the backend postprocessing
+        '''
+        
+        # Delete directory
+        shutil.rmtree(self.dir_name)
+        self.task_finished.emit()
+        return
+        
 class ImageCaptureGUI(Plugin):
 
     def __init__(self, context):
@@ -90,12 +115,7 @@ class ImageCaptureGUI(Plugin):
          
         # Configure gui
         self._configure_gui()
-                
-        # Register callbacks for the gui elements
-        self._widget.btnInitialize.clicked[bool].connect(self._onclicked_initialize);
-        self._widget.btnStart.clicked[bool].connect(self._onclicked_start);
-        self._widget.btnStop.clicked[bool].connect(self._onclicked_stop);
-        
+                        
     def _configure_node(self):
         '''
         Configure the rosnode
@@ -138,6 +158,15 @@ class ImageCaptureGUI(Plugin):
         # Configure button states
         self._configure_button_states()
         
+        # Create worker thread
+        self.task_thread = TaskThread()
+        self.task_thread.task_finished.connect(self._onfinished_task)
+        
+        # Register callbacks for the gui elements
+        self._widget.btnInitialize.clicked[bool].connect(self._onclicked_initialize);
+        self._widget.btnStart.clicked[bool].connect(self._onclicked_start);
+        self._widget.btnStop.clicked[bool].connect(self._onclicked_stop);
+
     def _configure_button_states(self):
         '''
         Configure the button appearance on startup
@@ -145,7 +174,15 @@ class ImageCaptureGUI(Plugin):
         self._widget.btnInitialize.setEnabled(True)
         self._widget.btnStart.setEnabled(False)
         self._widget.btnStop.setEnabled(False)
-            
+    
+    @QtCore.pyqtSlot()    
+    def _onfinished_task(self):
+        self.exists_logging_dir = False
+        self._widget.btnInitialize.setEnabled(True)
+        self._widget.btnInitialize.clicked.emit(True)
+        return      
+    
+    @QtCore.pyqtSlot()    
     def _onclicked_initialize(self):
         '''
         Initializing the image capture utility on user request
@@ -164,18 +201,11 @@ class ImageCaptureGUI(Plugin):
                        
             # Delete logging directory to clear old data
             if exists_logging_dir:
+                self.task_thread.initialize(logging_dir)
+                self.task_thread.start()
+                self._widget.btnInitialize.setEnabled(False)
+                return
 
-                # Check size of logging directory   
-                dir_size = int(commands.getoutput('du -sh -BG '+logging_dir).split()[0][:-1])
-                if dir_size > DEFAULT_DELETABLE_DIR_SIZE:
-                    self._logger("[GearImageCapture] Logging directory too big (cannot delete from UI," 
-                                 "please manually delete to proceed)", type="warn")
-                    return                
-                else:
-                    shutil.rmtree(logging_dir)
-                    
-            self.exists_logging_dir = False
-                
             self._logger("[GearImageCapture] Setting data collection parameters")
             rospy.set_param("subject_id", subject_id)
             rospy.set_param("session_id", session_id)
@@ -210,6 +240,7 @@ class ImageCaptureGUI(Plugin):
             self.exists_logging_dir = True
             self._logger("[GearImageCapture] Logging directory exists (initialize again if you want to overwrite)", type="warn")
 
+    @QtCore.pyqtSlot()    
     def _onclicked_start(self):
         '''
         Initializing the image capture utility on user request
@@ -237,6 +268,7 @@ class ImageCaptureGUI(Plugin):
         self._widget.btnStart.setDown(True)   
         self._widget.btnStop.setEnabled(True)
             
+    @QtCore.pyqtSlot()    
     def _onclicked_stop(self):
         '''
         Initializing the image capture utility on user request
