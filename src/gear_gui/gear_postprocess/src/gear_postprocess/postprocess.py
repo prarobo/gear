@@ -107,6 +107,7 @@ class PostprocessGUI(Plugin):
         '''        
         # Just call reset callback
         self._onclicked_btnReset()
+        self._onchanged_txtFilepath()
 
         # Register callbacks for the gui elements
         self._widget.btnFileselect.clicked[bool].connect(self._onclicked_btnFileselect);
@@ -437,9 +438,7 @@ class PostprocessGUI(Plugin):
             self._widget.progressBar.setValue(0)
             self._widget.btnStop.setEnabled(False)
             self._widget.btnFileselect.setEnabled(True)
-            self._widget.txtFilepath.setEnabled(True)
-           
-            self._onchanged_txtFilepath()
+            self._widget.txtFilepath.setEnabled(True)           
         return
 
     def _disable_all(self):

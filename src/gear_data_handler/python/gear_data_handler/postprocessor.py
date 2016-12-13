@@ -88,13 +88,15 @@ class PostProcessor(object):
             std_time_diff = np.std(np.array(time_diff),ddof=1)
             mean_fps = np.mean(np.array(np.reciprocal(time_diff)))
             std_fps = np.std(np.array(np.reciprocal(time_diff)),ddof=1)
+            min_delay = min(time_diff)
+            max_delay = max(time_diff)
         else:
             mean_time_diff = 0
             std_time_diff = 0
             mean_fps = 0
             std_fps = 0
             
-        return mean_time_diff, std_time_diff, mean_fps, std_fps
+        return mean_time_diff, std_time_diff, mean_fps, std_fps, min_delay, max_delay
     
     def generate_framerate_statistics(self, task):
         '''
@@ -118,7 +120,7 @@ class PostProcessor(object):
         std_fps_list = [0]
         for t in time_seq_list:
             # Compute the time sequence statistics
-            mean_time_diff, std_time_diff, mean_fps, std_fps = self.compute_time_seq_statistics(t)
+            _, _, mean_fps, std_fps, _, _ = self.compute_time_seq_statistics(t)
             
             mean_fps_list.append(mean_fps)
             std_fps_list.append(std_fps)
@@ -192,7 +194,8 @@ class PostProcessor(object):
         num_frames = sum([min_time<=t<=max_time for t in time_seq])
         current_fps = Decimal(num_frames)/time_diff
         if int(round(current_fps)) != int(self.fps):
-            print("Framerate mismatch: expected {e} current {c}".format(e=self.fps_,c=current_fps))
+            sys.stderr.write("Framerate mismatch: expected {e} current {c}\n".format(e=self.fps,c=current_fps))
+            sys.stderr.flush()
         
         # Get image extension
         image_name = os.listdir(image_dir)[0]
@@ -245,17 +248,31 @@ class PostProcessor(object):
         image_root_dir, video_root_dir, frame_size, is_color, current_fps, \
             image_extn, image_prefix, time_seq, min_time, max_time, image_dir \
             = self._initialize_video_info(task)
-                
-        # Create video writer object
+            
+        # Get video file information
         video_name = self.build_video_name(task)
         video_path = os.path.join(video_root_dir, video_name+self.video_extn)
+        sys.stdout.write("Processing video "+video_name+self.video_extn+" ...\n")
+        sys.stdout.flush()
+        
+        # Create video writer object
         video_writer = cv2.VideoWriter(video_path, self.video_enc, float(current_fps), frame_size, is_color)
         if not video_writer.isOpened():
             sys.stderr.out("Failed to load video")
             sys.stdout.flush()
+
+        # Get frame rate statistics
+        mean_time_diff, std_time_diff, mean_fps, std_fps, min_delay, max_delay = self.compute_time_seq_statistics(time_seq)
         
-        sys.stdout.write("Processing video "+video_name+self.video_extn+" ...\n")
+        # Print useful information
+        sys.stdout.write("Mean frame rate :"+str(mean_fps)+"\n")
+        sys.stdout.write("Std deviation frame rate :"+str(std_fps)+"\n")
+        sys.stdout.write("Mean time delay :"+str(mean_time_diff)+"\n")
+        sys.stdout.write("Std deviation time delay :"+str(std_time_diff)+"\n")
+        sys.stdout.write("Min time delay :"+str(min_delay)+"\n")
+        sys.stdout.write("Max time delay :"+str(max_delay)+"\n")
         sys.stdout.flush()
+                                
         for t in time_seq:
             if min_time<=t<=max_time:
                 image_name = self._build_image_name(t, image_extn, image_prefix)
