@@ -498,12 +498,10 @@ class PostprocessGUI(Plugin):
         '''
         Stop generating videos
         '''
-        self.mutex.acquire()
         self.tasks = []
         self.composition_tasks = []
-        self.mutex.release()
         self._output_statustext("Stopping ...")
-        self._widget.btnStop.setEnabled(True)
+        self._widget.btnStop.setEnabled(False)
         return
 
     def _output_statustext(self, text):
