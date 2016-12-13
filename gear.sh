@@ -3,7 +3,7 @@
 roscore &
 sleep 1
 
-roslaunch gear_launch gear.launch do_pointcloud:=false enable_loggers:=false &
+roslaunch gear_launch gear.launch do_pointcloud:=false enable_loggers:=false enable_trackers:=false&
 sleep 2
 
 roslaunch gear_launch logger_gear.launch start_manager:=false nodelet_manager:=gear &
