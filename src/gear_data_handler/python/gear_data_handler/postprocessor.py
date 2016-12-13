@@ -14,6 +14,9 @@ VIDEO_ENCODING = cv2.cv.CV_FOURCC('M','J','P','G')
 IMAGE_DIR = "images"
 VIDEO_DIR = "videos"
 SCALING_FACTOR = 0.25
+RED = '\033[01;31m' 
+GREEN = '\033[92m'
+COLOR_RESET = '\x1B[0m'
 
 class PostProcessor(object):
     def __init__(self, root_dir="/mnt/md0/gear_data", 
@@ -194,7 +197,7 @@ class PostProcessor(object):
         num_frames = sum([min_time<=t<=max_time for t in time_seq])
         current_fps = Decimal(num_frames)/time_diff
         if int(round(current_fps)) != int(self.fps):
-            sys.stderr.write("Framerate mismatch: expected {e} current {c}\n".format(e=self.fps,c=current_fps))
+            sys.stderr.write(RED+"Framerate mismatch: expected {e} current {c}\n".format(e=self.fps,c=current_fps)+COLOR_RESET)
             sys.stderr.flush()
         
         # Get image extension
@@ -252,25 +255,25 @@ class PostProcessor(object):
         # Get video file information
         video_name = self.build_video_name(task)
         video_path = os.path.join(video_root_dir, video_name+self.video_extn)
-        sys.stdout.write("Processing video "+video_name+self.video_extn+" ...\n")
+        sys.stdout.write(GREEN+"Processing video "+video_name+self.video_extn+" ...\n"+COLOR_RESET)
         sys.stdout.flush()
         
         # Create video writer object
         video_writer = cv2.VideoWriter(video_path, self.video_enc, float(current_fps), frame_size, is_color)
         if not video_writer.isOpened():
-            sys.stderr.out("Failed to load video")
+            sys.stderr.out(RED+"Failed to load video"+COLOR_RESET)
             sys.stdout.flush()
 
         # Get frame rate statistics
         mean_time_diff, std_time_diff, mean_fps, std_fps, min_delay, max_delay = self.compute_time_seq_statistics(time_seq)
         
         # Print useful information
-        sys.stdout.write("Mean frame rate :"+str(mean_fps)+"\n")
-        sys.stdout.write("Std deviation frame rate :"+str(std_fps)+"\n")
-        sys.stdout.write("Mean time delay :"+str(mean_time_diff)+"\n")
-        sys.stdout.write("Std deviation time delay :"+str(std_time_diff)+"\n")
-        sys.stdout.write("Min time delay :"+str(min_delay)+"\n")
-        sys.stdout.write("Max time delay :"+str(max_delay)+"\n")
+        sys.stdout.write("Mean frame rate :\t\t"+str(mean_fps)+"\n")
+        sys.stdout.write("Std-dev frame rate :\t\t"+str(std_fps)+"\n")
+        sys.stdout.write("Mean time delay :\t\t"+str(mean_time_diff)+"\n")
+        sys.stdout.write("Std-dev time delay :\t\t"+str(std_time_diff)+"\n")
+        sys.stdout.write("Min time delay :\t\t"+str(min_delay)+"\n")
+        sys.stdout.write("Max time delay :\t\t"+str(max_delay)+"\n")
         sys.stdout.flush()
                                 
         for t in time_seq:
@@ -317,8 +320,8 @@ class PostProcessor(object):
         video_path = os.path.join(video_root_dir, video_name+self.video_extn)
         video_writer = cv2.VideoWriter(video_path, self.video_enc, float(current_fps), video_frame_size, is_color)
         if not video_writer.isOpened():
-            sys.stderr.out("Failed to load video")
-            sys.stdout.flush()
+            sys.stderr.out(RED+"Failed to load video"+COLOR_RESET)
+            sys.stderr.flush()
             return
         
         # Cleanup unwanted values from time sequences
@@ -331,10 +334,10 @@ class PostProcessor(object):
         # Sanity check to match time sequence lengths
         for i in xrange(1, len(time_seq_list)):
             if len(time_seq_list[i-1]) != len(time_seq_list[i]):
-                sys.stderr.write("Time sequence list does not match")
-                sys.stdout.flush()
+                sys.stderr.write(RED+"Time sequence list does not match\n"+COLOR_RESET)
+                sys.stderr.flush()
         
-        sys.stdout.write("Processing composition video "+video_name+self.video_extn+" ...\n")
+        sys.stdout.write(GREEN+"Processing composition video "+video_name+self.video_extn+" ...\n"+COLOR_RESET)
         sys.stdout.flush()
         
         for t in time_seq_list[0]:
