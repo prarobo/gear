@@ -6,10 +6,6 @@
 #include <sensor_msgs/Image.h>
 #include <ros/ros.h>
 
-// Boost dependencies
-#include <boost/filesystem.hpp>
-
-
 namespace gear_data_handler {
 
 class Playback {
@@ -29,17 +25,23 @@ public:
    */
   void loadImageInfo();
 
+  /**
+   * Parse timestamp from image name
+   */
+  double parseTimeStamp(const std::string &image_name);
+
 private:
   boost::shared_ptr<ros::NodeHandle> nh_, pnh_;
-  double rate_;
   std::string data_dir_;
   std::string subject_id_;
   std::string session_id_;
   std::string activity_id_;
   std::string condition_id_;
   int trial_id_;
+  double rate_;
   std::string image_extn_;
   std::string image_prefix_;
+  std::multimap <double, std::string> image_info_;
 };
 };
 

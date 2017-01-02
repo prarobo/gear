@@ -1,5 +1,12 @@
 #include <gear_data_handler/playback.h>
 
+// Boost dependencies
+#include <boost/filesystem.hpp>
+#include <boost/algorithm/string.hpp>
+#include <boost/lexical_cast.hpp>
+
+namespace fs=boost::filesystem;
+
 namespace gear_data_handler {
 Playback::Playback(ros::NodeHandle nh, ros::NodeHandle pnh) {
   // Get node handles
@@ -29,6 +36,30 @@ void Playback::loadParams() {
 
 void Playback::loadImageInfo() {
 
+  // Get all directories where images are present
+  fs::path image_root_dir = fs::path(data_dir_)/fs::path(subject_id_)/fs::path(session_id_)/
+                            fs::path(activity_id_+std::string("_")+condition_id_+std::string("_")+std::to_string(trial_id_))/
+                            fs::path("image");
+
+  // Iterate over all images over directories in image root directory
+  if ( fs::exists(image_root_dir) && fs::is_directory(image_root_dir))  {
+    for( fs::directory_iterator dir_iter(image_root_dir) ; dir_iter != fs::directory_iterator{} ; ++dir_iter) {
+      if (fs::is_directory(dir_iter->status())) {
+        for( fs::directory_iterator im_iter(*dir_iter) ; im_iter != fs::directory_iterator() ; ++im_iter) {
+          if (fs::is_regular_file(im_iter->status()) ) {
+            std::string image_name = im_iter->path().filename().string();
+            image_info_.insert(std::multimap<double,std::string>::value_type(1.0,dir_iter->path().filename().string()));
+          }
+        }
+      }
+    }
+  }
+}
+
+double Playback::parseTimeStamp(const std::string &image_name) {
+  std::vector<std::string> strs;
+  boost::split(strs, image_name, boost::is_any_of("_."));
+  return boost::lexical_cast<double>(strs[1]+std::string(".")+strs[2]);
 }
 
 };
