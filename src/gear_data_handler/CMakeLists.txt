@@ -63,3 +63,6 @@ target_link_libraries(data_handler
   ${Boost_LIBRARIES}
   ${OpenCV_LIBRARIES}
 )
+
+add_executable(playback src/playback.cpp)
+target_link_libraries(playback ${catkin_LIBRARIES})
