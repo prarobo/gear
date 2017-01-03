@@ -5,6 +5,7 @@
 #include <image_transport/image_transport.h>
 #include <sensor_msgs/Image.h>
 #include <ros/ros.h>
+#include <std_srvs/Trigger.h>
 
 namespace gear_data_handler {
 
@@ -30,6 +31,22 @@ public:
    */
   double parseTimeStamp(const std::string &image_name);
 
+  /**
+   * Enable playback service callback
+   */
+  bool startPlayback(std_srvs::Trigger::Request  &req,
+                     std_srvs::Trigger::Response &res);
+
+  /**
+   * Initialize components required for playback
+   */
+  void initializePlayback();
+
+  /**
+   * Play the data
+   */
+  void play();
+
 private:
   boost::shared_ptr<ros::NodeHandle> nh_, pnh_;
   std::string data_dir_;
@@ -42,6 +59,8 @@ private:
   std::string image_extn_;
   std::string image_prefix_;
   std::multimap <double, std::string> image_info_;
+  bool enabled_;
+  ros::ServiceServer enable_playback_;
 };
 };
 

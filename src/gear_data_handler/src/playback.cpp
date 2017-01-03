@@ -13,11 +13,46 @@ Playback::Playback(ros::NodeHandle nh, ros::NodeHandle pnh) {
   nh_.reset(new ros::NodeHandle(nh));
   pnh_.reset(new ros::NodeHandle(pnh));
 
+  // Enabled
+  enabled_ = false;
+
+  // Create service to enable playback
+  enable_playback_ = nh_->advertiseService("enable_playback", &Playback::startPlayback, this);
+}
+
+void Playback::initializePlayback() {
   //Load associated parameters
   loadParams();
 
   //Load image information
   loadImageInfo();
+}
+
+void Playback::play() {
+}
+
+bool Playback::startPlayback(std_srvs::Trigger::Request  &req,
+                             std_srvs::Trigger::Response &res) {
+
+  if (!enabled_) {
+    // Set the enable parameter based on service call value
+    ROS_INFO("[Playback] Starting playback");
+    res.message = "Playback ON";
+    enabled_ = true;
+
+    // Initialize playback
+    initializePlayback();
+
+    // Play messages
+    play();
+
+    res.success = true;
+    return true;
+  } else {
+    res.message = "Playback already started, doing nothing!";
+    res.success = false;
+    return false;
+  }
 }
 
 void Playback::loadParams() {
@@ -48,7 +83,8 @@ void Playback::loadImageInfo() {
         for( fs::directory_iterator im_iter(*dir_iter) ; im_iter != fs::directory_iterator() ; ++im_iter) {
           if (fs::is_regular_file(im_iter->status()) ) {
             std::string image_name = im_iter->path().filename().string();
-            image_info_.insert(std::multimap<double,std::string>::value_type(1.0,dir_iter->path().filename().string()));
+            image_info_.insert(std::multimap<double,std::string>::value_type(parseTimeStamp(image_name),
+                                                                             dir_iter->path().filename().string()));
           }
         }
       }
