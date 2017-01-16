@@ -21,7 +21,7 @@ public:
   /**
    * Constructor
    */
-  Playback(ros::NodeHandle nh, ros::NodeHandle pnh, int clock_frequency=100);
+  Playback(ros::NodeHandle nh, ros::NodeHandle pnh);
 
   /**
    * Load all the required parameters
@@ -82,9 +82,9 @@ private:
   int clock_frequency_;
 
   fs::path image_root_dir_;
-  std::string image_extn_;
   std::string image_prefix_;
   std::string image_def_;
+  std::map <std::string, std::string> image_extn_;
   std::multimap <ros::Time, std::string> image_info_;
 
   bool enabled_;
