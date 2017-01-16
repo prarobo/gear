@@ -3,6 +3,7 @@
 // ROS dependencies
 #include <rosgraph_msgs/Clock.h>
 #include <cv_bridge/cv_bridge.h>
+#include <camera_info_manager/camera_info_manager.h>
 
 // Boost dependencies
 #include <boost/algorithm/string.hpp>
@@ -157,6 +158,11 @@ void Playback::loadImageInfo() {
                     fs::path(activity_id_+std::string("_")+condition_id_+std::string("_")+std::to_string(trial_id_))/
                     fs::path("images");
 
+  // Get the directory where calibration information found
+  calibration_root_dir_ = fs::path(data_dir_)/fs::path(subject_id_)/fs::path(session_id_)/
+                          fs::path(activity_id_+std::string("_")+condition_id_+std::string("_")+std::to_string(trial_id_))/
+                          fs::path("calibration");
+
   // Iterate over all images over directories in image root directory
   if ( fs::exists(image_root_dir_) && fs::is_directory(image_root_dir_))  {
     for( fs::directory_iterator dir_iter(image_root_dir_) ; dir_iter != fs::directory_iterator{} ; ++dir_iter) {
@@ -217,7 +223,7 @@ void Playback::publishImage(const std::multimap <ros::Time, std::string>::iterat
   ros_image.header.stamp = image_it->first;
 
   // Publish
-  image_pub_.at(image_it->second)->publish(ros_image);
+  image_pub_.at(image_it->second)->publish(ros_image, *camera_info_.at(image_it->second));
 }
 
 void Playback::createPublisher(const std::string &dir_name) {
@@ -229,8 +235,15 @@ void Playback::createPublisher(const std::string &dir_name) {
     boost::split(strs, dir_name, boost::is_any_of("_"));
     std::string msg_name = std::string("/")+strs[0]+std::string("/")+image_def_
                            +std::string("/")+std::string("image_")+strs[1];
-    boost::shared_ptr<image_transport::Publisher> pub(new image_transport::Publisher(it_->advertise(msg_name, 1)));
+    boost::shared_ptr<image_transport::CameraPublisher> pub(new image_transport::CameraPublisher
+        (it_->advertiseCamera(msg_name, 1)));
     image_pub_[dir_name] = pub;
+
+    // Load camera information
+    fs::path camera_info_url = fs::path(calibration_root_dir_)/fs::path(dir_name+std::string(".yaml"));
+    camera_info_manager::CameraInfoManager c_info_manager(*nh_, std::string(""), camera_info_url.string());
+    boost::shared_ptr<sensor_msgs::CameraInfo> c_info(new sensor_msgs::CameraInfo(c_info_manager.getCameraInfo()));
+    camera_info_[dir_name] = c_info;
   }
 }
 

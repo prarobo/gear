@@ -68,7 +68,8 @@ private:
   boost::shared_ptr<ros::NodeHandle> nh_, pnh_;
   ros::ServiceServer enable_playback_;
   ros::Publisher clock_pub_;
-  std::map<std::string, boost::shared_ptr<image_transport::Publisher>> image_pub_;
+  std::map<std::string, boost::shared_ptr<image_transport::CameraPublisher>> image_pub_;
+  std::map<std::string, boost::shared_ptr<sensor_msgs::CameraInfo>> camera_info_;
   boost::shared_ptr<image_transport::ImageTransport> it_;
 
   std::string data_dir_;
@@ -81,7 +82,7 @@ private:
   double rate_;
   int clock_frequency_;
 
-  fs::path image_root_dir_;
+  fs::path image_root_dir_, calibration_root_dir_;
   std::string image_prefix_;
   std::string image_def_;
   std::map <std::string, std::string> image_extn_;
