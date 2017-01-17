@@ -8,7 +8,7 @@
         <label>GEAR</label>
         <icon type="theme">applications-system</icon>
         <statustip>GEAR project plugins</statustip>
-	  </group>
+	    </group>
       <label>control panel</label>
       <icon type="theme">media-playback-start</icon>
       <statustip>GEAR image capture</statustip>

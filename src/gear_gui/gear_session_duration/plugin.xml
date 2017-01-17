@@ -8,8 +8,8 @@
         <label>GEAR</label>
         <icon type="theme">applications-system</icon>
         <statustip>GEAR project plugins</statustip>
-	  </group>
-      <label>Timer</label>
+	    </group>
+      <label>timer</label>
       <icon type="theme">gnome-session-suspend</icon>
       <statustip>GEAR session duration</statustip>
     </qtgui>

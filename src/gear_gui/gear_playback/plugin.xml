@@ -1,0 +1,17 @@
+<library path="src">
+  <class name="PlaybackGUI" type="gear_playback.playback.PlaybackGUI" base_class_type="rqt_gui_py::Plugin">
+    <description>
+      Rqt plugin for playing back data.
+    </description>
+    <qtgui>
+      <group>
+        <label>GEAR</label>
+        <icon type="theme">applications-system</icon>
+        <statustip>GEAR project plugins</statustip>
+      </group>
+      <label>playback</label>
+      <icon type="theme">gtk-undo-ltr</icon>
+      <statustip>GEAR playback</statustip>
+    </qtgui>
+  </class>
+</library>

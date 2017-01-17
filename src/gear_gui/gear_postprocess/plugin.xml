@@ -8,9 +8,9 @@
         <label>GEAR</label>
         <icon type="theme">applications-system</icon>
         <statustip>GEAR project plugins</statustip>
-	  </group>
-      <label>control panel</label>
-      <icon type="theme">media-playback-start</icon>
+	    </group>
+      <label>postprocess</label>
+      <icon type="theme">stock_cut</icon>
       <statustip>GEAR postprocess</statustip>
     </qtgui>
   </class>
