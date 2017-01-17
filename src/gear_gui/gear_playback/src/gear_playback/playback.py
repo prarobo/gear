@@ -15,11 +15,6 @@ from gear_data_handler.postprocessor import PostProcessor
 import funcy
 
 DEFAULT_DATA_DIR = "/mnt/md0/gear_data"
-DEFAULT_COMPOSITION = [("k2", "color"), ("p1", "color"), ("p2", "color")]
-VIDEO_BLACKLIST = ["depth"]
-DEFAULT_VIDEO_EXTN = ".avi"
-DEFAULT_FRAME_RATE = 15
-DEFAULT_WORKER_THREADS = 8
          
 class TaskThread(QtCore.QThread):
     task_finished = QtCore.pyqtSignal(int, int)
@@ -78,13 +73,13 @@ class PlaybackGUI(Plugin):
         self._widget = QWidget()
         
         # Get path to UI file which should be in the "resource" folder of this package
-        ui_file = os.path.join(rospkg.RosPack().get_path('gear_postprocess'), 'resource', 'gear_postprocess.ui')
+        ui_file = os.path.join(rospkg.RosPack().get_path('gear_playback'), 'resource', 'gear_playback.ui')
         
         # Extend the widget with all attributes and children from UI file
         loadUi(ui_file, self._widget)
         
         # Give QObjects reasonable names
-        self._widget.setObjectName('GearPostprocessUi')
+        self._widget.setObjectName('GearPlaybackUi')
         # Show _widget.windowTitle on left-top of each plugin (when 
         # it's set in _widget). This is useful when you open multiple 
         # plugins at once. Also if you open multiple instances of your 
@@ -122,15 +117,7 @@ class PlaybackGUI(Plugin):
         self._widget.comboActivity.currentIndexChanged.connect(self._onchanged_comboActivity);  
         self._widget.comboCondition.currentIndexChanged.connect(self._onchanged_comboCondition);  
         self._widget.comboTrial.currentIndexChanged.connect(self._onchanged_comboTrial);  
-        self._widget.comboSensor.currentIndexChanged.connect(self._onchanged_comboSensor);  
-        self._widget.comboVideo.currentIndexChanged.connect(self._onchanged_comboVideo);  
 
-        self._widget.chkActivityAll.stateChanged.connect(self._onchanged_chkActivityAll);  
-        self._widget.chkConditionAll.stateChanged.connect(self._onchanged_chkConditionAll);  
-        self._widget.chkTrialAll.stateChanged.connect(self._onchanged_chkTrialAll);  
-        self._widget.chkSensorAll.stateChanged.connect(self._onchanged_chkSensorAll);  
-        self._widget.chkVideoAll.stateChanged.connect(self._onchanged_chkVideoAll);  
-        
         # Create worker thread
         self.task_threads = [TaskThread(i) for i in xrange(DEFAULT_WORKER_THREADS)]
         self.thread_idle = [True]*DEFAULT_WORKER_THREADS
@@ -139,99 +126,6 @@ class PlaybackGUI(Plugin):
         
         return
 
-    @QtCore.pyqtSlot(int, int)    
-    def _onfinished_task(self, tid, task_size):
-        '''
-        Update when an ongoing task is finished
-        '''
-        self.progress_value += task_size
-        self._widget.progressBar.setValue(self.progress_value)
-        task_started = False
-        composition_started = False
-        self.thread_idle[tid] = True
-        
-        # Process videos
-        if self.tasks:
-            task_started = True
-            self._output_statustext("Processing task "+PostProcessor.build_video_name(self.tasks[-1])+" ...")
-            self.task_threads[tid].initialize(self.root_dir, self.tasks.pop(), "video")
-            self.task_threads[tid].start()
-            self.thread_idle[tid] = False
-        
-        # Process compositions
-        if not task_started and self.composition_tasks:
-            composition_started = True
-            self._output_statustext("Processing composition "+PostProcessor.build_composition_name(self.composition_tasks[-1])+" ...")
-            self.task_threads[tid].initialize(self.root_dir, self.composition_tasks.pop(), "composition")
-            self.task_threads[tid].start()  
-            self.thread_idle[tid] = False      
-        
-        if not task_started and not composition_started and all(self.thread_idle):
-            self._output_statustext("Tasks complete")
-            self._onclicked_btnReset()
-            self._widget.progressBar.setValue(self.progress_value)
-        return
-
-    @QtCore.pyqtSlot()    
-    def _onchanged_chkActivityAll(self):
-        '''
-        Check box callback
-        '''
-        self._onchanged_comboActivity()
-        if self._widget.chkActivityAll.isChecked():
-            self._widget.comboActivity.setEnabled(False)
-        else:
-            self._widget.comboActivity.setEnabled(True)
-        return
-
-    @QtCore.pyqtSlot()
-    def _onchanged_chkConditionAll(self):
-        '''
-        Check box callback
-        '''
-        self._onchanged_comboCondition()
-        if self._widget.chkConditionAll.isChecked():
-            self._widget.comboCondition.setEnabled(False)
-        else:
-            self._widget.comboCondition.setEnabled(True)
-        return
-    
-    @QtCore.pyqtSlot()
-    def _onchanged_chkTrialAll(self):
-        '''
-        Check box callback
-        '''
-        self._onchanged_comboTrial()
-        if self._widget.chkTrialAll.isChecked():
-            self._widget.comboTrial.setEnabled(False)
-        else:
-            self._widget.comboTrial.setEnabled(True)
-        return
-    
-    @QtCore.pyqtSlot()
-    def _onchanged_chkSensorAll(self):
-        '''
-        Check box callback
-        '''
-        self._onchanged_comboSensor()
-        if self._widget.chkSensorAll.isChecked():
-            self._widget.comboSensor.setEnabled(False)
-        else:
-            self._widget.comboSensor.setEnabled(True)
-        return
-
-    @QtCore.pyqtSlot()
-    def _onchanged_chkVideoAll(self):
-        '''
-        Check box callback
-        '''
-        self._onchanged_comboVideo()
-        if self._widget.chkVideoAll.isChecked():
-            self._widget.comboVideo.setEnabled(False)
-        else:
-            self._widget.comboVideo.setEnabled(True)
-        return
-    
     def _update_combobox(self, q_obj, item_list):
         '''
         Update combobox without emitting signals
@@ -373,36 +267,6 @@ class PlaybackGUI(Plugin):
         self._onchanged_comboSensor()        
         return
     
-    @QtCore.pyqtSlot()
-    def _onchanged_comboSensor(self):
-        '''
-        Refresh GUI when subject changes
-        '''
-        if self._widget.chkSensorAll.isChecked():
-            self.sensor = self._get_sensor_video_list('sensor')
-        else:
-            self.sensor = set([str(self._widget.comboSensor.currentText())])
-        
-        video_list = self._get_sensor_video_list('video')
-        video_list.difference_update(set(VIDEO_BLACKLIST))        
-        if not video_list:
-            return
-        
-        self._update_combobox(self._widget.comboVideo, video_list)
-        self._onchanged_comboVideo()        
-        return
-    
-    def _onchanged_comboVideo(self):
-        '''
-        Refresh GUI when subject changes
-        '''
-        if self._widget.chkVideoAll.isChecked():
-            self.video = self._get_sensor_video_list('video')
-            self.video.difference_update(set(VIDEO_BLACKLIST))        
-        else:
-            self._update_combobox(self._widget.comboVideo, [str(self._widget.comboVideo.currentText())])
-        return
-
     @QtCore.pyqtSlot()            
     def _onclicked_btnReset(self):
         '''
@@ -421,20 +285,7 @@ class PlaybackGUI(Plugin):
             self._widget.btnReset.setEnabled(True)
             self._widget.comboSubject.setEnabled(True)
             self._widget.comboSession.setEnabled(True)
-            self._widget.chkComposition.setEnabled(True)
-            self._widget.chkActivityAll.setEnabled(True)
-            self._widget.chkConditionAll.setEnabled(True)
-            self._widget.chkTrialAll.setEnabled(True)
-            self._widget.chkSensorAll.setEnabled(True)
-            self._widget.chkVideoAll.setEnabled(True)
-            self._widget.chkComposition.setEnabled(True)
             self._widget.btnStart.setEnabled(True)
-            self._widget.chkComposition.setChecked(True)
-            self._widget.chkActivityAll.setChecked(True)
-            self._widget.chkConditionAll.setChecked(True)
-            self._widget.chkTrialAll.setChecked(True)
-            self._widget.chkSensorAll.setChecked(True)
-            self._widget.chkVideoAll.setChecked(True)
             self._widget.progressBar.setValue(0)
             self._widget.btnStop.setEnabled(False)
             self._widget.btnFileselect.setEnabled(True)
@@ -448,18 +299,9 @@ class PlaybackGUI(Plugin):
         self._widget.comboActivity.setEnabled(False)
         self._widget.comboCondition.setEnabled(False)
         self._widget.comboTrial.setEnabled(False)
-        self._widget.comboSensor.setEnabled(False)
-        self._widget.comboVideo.setEnabled(False)            
         self._widget.btnReset.setEnabled(True)
         self._widget.comboSubject.setEnabled(False)
         self._widget.comboSession.setEnabled(False)
-        self._widget.chkComposition.setEnabled(False)
-        self._widget.chkActivityAll.setEnabled(False)
-        self._widget.chkConditionAll.setEnabled(False)
-        self._widget.chkTrialAll.setEnabled(False)
-        self._widget.chkSensorAll.setEnabled(False)
-        self._widget.chkVideoAll.setEnabled(False)
-        self._widget.chkComposition.setEnabled(False)
         self._widget.btnStart.setEnabled(False)
         self._widget.btnStop.setEnabled(False)
         return
@@ -513,62 +355,6 @@ class PlaybackGUI(Plugin):
         self._widget.txtOutput.ensureCursorVisible()
         return
     
-    def _generate_tasks(self):
-        '''
-        Interface with the backend postprocessing
-        '''
-        # Generate all possible tasks
-        tasks = itertools.product([self.subject], [self.session], 
-                                  self.activity, self.condition, self.trial, 
-                                  self.sensor, self.video)
-        
-        # Find all valid tasks
-        valid_tasks = [t for t in tasks if self._validate_task(t)]
-        
-        # Get all possiblities till trials       
-        trials = itertools.product([self.subject], [self.session], 
-                                   self.activity, self.condition, self.trial)
-
-        # All possible compositions
-        compositions = []
-        for t in trials:
-            temp = itertools.product([t], DEFAULT_COMPOSITION)
-
-            compositions.append([t1[0]+t1[1] for t1 in temp])
-        
-        # Get valid compositions
-        valid_compositions = [c for c in compositions if self._validate_composition(c)]
-
-        return valid_tasks, valid_compositions
-        
-    def _validate_task(self, task):
-        '''
-        Validate if a given task is possible
-        '''
-        path = os.path.join(self.root_dir, task[0], task[1], '_'.join(task[2:5]), "images", '_'.join(task[5:]))
-        return os.path.exists(path)
-    
-    def _validate_composition(self, composition):
-        '''
-        Check if a composition is possible
-        '''
-        for t in composition:
-            if not self._validate_task(t):
-                return False
-        return True
-                
-    def _get_sensor_video_list(self, attr_type):
-        '''
-        Get list of sensors
-        '''
-        out_list = set([])
-        for i in itertools.product(self.activity, self.condition, self.trial):
-            path = os.path.join(self.root_dir, self.subject, self.session, '_'.join(i), "images")
-            if os.path.exists(path):
-                path1 = [d for d in glob(path+"/*/") if len(os.listdir(d))>0]
-                out_list.update(self._get_attribute_list(path1, attr_type))
-        return out_list
-    
     def _get_activity_condition_trial_list(self, attr_type):
         '''
         Get list of attributes
@@ -614,4 +400,5 @@ class PlaybackGUI(Plugin):
 
 if __name__ == "__main__":
     main = Main()
-    sys.exit(main.main(sys.argv, standalone='gear_postprocess.postprocess.PostprocessGUI'))
+    sys.exit(main.main(sys.argv, standalone='gear_playback.playback.PlaybackGUI'))
+    
