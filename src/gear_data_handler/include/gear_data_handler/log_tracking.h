@@ -6,12 +6,12 @@
 #include <pluginlib/class_list_macros.h>
 #include <apriltags_ros/AprilTagDetectionArray.h>
 #include <ar_track_alvar_msgs/AlvarMarkers.h>
-#include <gear_data_handler/logger.h>
+#include <gear_data_handler/log_bags.h>
 #include <rosbag/bag.h>
 
 namespace gear_data_handler {
 
-class TrackingLogger : public nodelet::Nodelet, public Logger {
+class TrackingLogger : public nodelet::Nodelet, public BagLogger {
 
 public:
   TrackingLogger();
@@ -33,20 +33,7 @@ public:
    **/
   void arTrackingCallback(const ar_track_alvar_msgs::AlvarMarkers& msg);
 
-  /**
-   * Overrides default directory initialization
-   */
-  void initializeSessionDirectories();
-
-  /**
-   * Overrides default toggling of logger
-   */
-  bool toggleLogger(std_srvs::SetBool::Request  &req,
-                    std_srvs::SetBool::Response &res);
-
 private:
-  ros::Subscriber tracking_sub_;
-  rosbag::Bag bag_;
   std::string tag_type_;
 
 }; //class PointcloudLogger

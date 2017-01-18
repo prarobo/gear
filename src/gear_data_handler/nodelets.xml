@@ -27,4 +27,11 @@
       A functionality to log tracking information.
     </description>
   </class>
+  <class name="gear_data_handler/AudioLogger"
+         type="gear_data_handler::AudioLogger"
+         base_class_type="nodelet::Nodelet">
+    <description>
+      A functionality to log audio information.
+    </description>
+  </class>
 </library>

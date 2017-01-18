@@ -26,7 +26,8 @@ DEFAULT_SERVICES_TO_ENABLE = ["/k1_color_enable",
                               "/k1_points_enable",
                               "/k2_points_enable",
                               "/k3_points_enable",
-                              "/track_tracking_enable"]
+                              "/track_tracking_enable",
+                              "/audio_audio_enable"]
 
 DEFAULT_SERVICES_SESSION_INFO = ["/k1_color_session_info",
                                  "/k2_color_session_info",
@@ -39,7 +40,8 @@ DEFAULT_SERVICES_SESSION_INFO = ["/k1_color_session_info",
                                  "/k1_points_session_info",
                                  "/k2_points_session_info",
                                  "/k3_points_session_info",
-                                 "/track_tracking_session_info"]
+                                 "/track_tracking_session_info",
+                                 "/audio_audio_session_info"]
 
 DEFAULT_DATA_DIR = "/mnt/md0/gear_data"
 DEFAULT_SUBJECT = "x"

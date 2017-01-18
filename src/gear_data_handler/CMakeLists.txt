@@ -33,6 +33,7 @@ catkin_package(
   # LIBRARIES gear_data_handler
   CATKIN_DEPENDS pluginlib nodelet cv_bridge roscpp rospy sensor_msgs std_msgs 
   std_srvs pcl_ros pcl_conversions apriltags_ros rosbag ar_track_alvar_msgs
+  audio_common_msgs
   # DEPENDS system_lib
 )
 
@@ -54,8 +55,10 @@ add_library(data_handler
   src/log_images.cpp
   src/log_pointcloud.cpp
   src/log_tracking.cpp
+  src/log_audio.cpp
   src/synchronize_images.cpp
   src/logger.cpp
+  src/log_bags.cpp
 )
 
 target_link_libraries(data_handler
