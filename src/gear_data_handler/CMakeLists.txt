@@ -16,6 +16,8 @@ find_package(catkin REQUIRED COMPONENTS
   ar_track_alvar_msgs
   rosbag
   camera_info_manager
+  tf2
+  tf2_ros
 )
 
 find_package(OpenCV REQUIRED)
@@ -34,7 +36,7 @@ catkin_package(
   # LIBRARIES gear_data_handler
   CATKIN_DEPENDS pluginlib nodelet cv_bridge roscpp rospy sensor_msgs std_msgs 
   std_srvs pcl_ros pcl_conversions apriltags_ros rosbag ar_track_alvar_msgs
-  camera_info_manager
+  camera_info_manager tf2 tf2_ros
   # DEPENDS system_lib
 )
 

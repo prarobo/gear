@@ -4,14 +4,27 @@
 #include <rosgraph_msgs/Clock.h>
 #include <cv_bridge/cv_bridge.h>
 #include <camera_info_manager/camera_info_manager.h>
+#include <geometry_msgs/TransformStamped.h>
+#include <tf2/LinearMath/Matrix3x3.h>
 
 // Boost dependencies
 #include <boost/algorithm/string.hpp>
 #include <boost/lexical_cast.hpp>
 
 // OpenCV dependencies
-#include <opencv2/core/core.hpp>
 #include <opencv2/highgui/highgui.hpp>
+
+#define KINECT_CALIB_CAMERA_MATRIX "cameraMatrix"
+#define KINECT_CALIB_DISTORTION "distortionCoefficients"
+#define KINECT_HD_SIZE_COLOR cv::Size(1920, 1080)
+#define KINECT_SD_SIZE_DEPTH cv::Size(512, 424)
+#define KINECT_TF_RGB_OPT_FRAME "_rgb_optical_frame"
+#define KINECT_TF_IR_OPT_FRAME "_ir_optical_frame"
+#define KINECT_TF_FRAME "_link"
+#define POINTGRAY_TF_FRAME "_link"
+#define KINECT_CALIB_ROTATION "rotation"
+#define KINECT_CALIB_TRANSLATION "translation"
+#define POSES_FILE_SUFFIX "_poses"
 
 namespace gear_data_handler {
 Playback::Playback(ros::NodeHandle nh, ros::NodeHandle pnh) {
@@ -219,8 +232,7 @@ void Playback::publishImage(const std::multimap <ros::Time, std::string>::iterat
   cv_image.toImageMsg(ros_image);
 
   // Set header information
-  ros_image.header.frame_id = image_it->second;
-  ros_image.header.stamp = image_it->first;
+  ros_image.header.frame_id = getFrameID(image_it->second);
 
   // Publish
   image_pub_.at(image_it->second)->publish(ros_image, *camera_info_.at(image_it->second));
@@ -231,20 +243,234 @@ void Playback::createPublisher(const std::string &dir_name) {
   if(image_pub_.find(dir_name) == image_pub_.end()) {
 
     // Parse directory name to get publisher details
-    std::vector<std::string> strs;
-    boost::split(strs, dir_name, boost::is_any_of("_"));
-    std::string msg_name = std::string("/")+strs[0]+std::string("/")+image_def_
-                           +std::string("/")+std::string("image_")+strs[1];
+    std::string camera_id = getCameraID(dir_name);
+    std::string camera_type = getCameraType(dir_name);
+
+    // Create message name
+    std::string msg_name = std::string("/")+camera_id+std::string("/")+image_def_
+                           +std::string("/")+std::string("image_")+camera_type;
     boost::shared_ptr<image_transport::CameraPublisher> pub(new image_transport::CameraPublisher
         (it_->advertiseCamera(msg_name, 1)));
     image_pub_[dir_name] = pub;
 
-    // Load camera information
-    fs::path camera_info_url = fs::path(calibration_root_dir_)/fs::path(dir_name+std::string(".yaml"));
-    camera_info_manager::CameraInfoManager c_info_manager(*nh_, std::string(""), camera_info_url.string());
-    boost::shared_ptr<sensor_msgs::CameraInfo> c_info(new sensor_msgs::CameraInfo(c_info_manager.getCameraInfo()));
-    camera_info_[dir_name] = c_info;
+    // Load camera information and publish tf
+    if (dir_name[0] == 'p') {
+
+      // Loading pointgray camera info
+      camera_info_[dir_name] = loadPointGreyCameraInfo(dir_name);
+    } else if (dir_name[0] == 'k') {
+
+      // Loading kinect camera info
+      camera_info_[dir_name] = loadKinectCameraInfo(dir_name);
+
+      // Publish kinect TF
+      cv::Mat rotation, translation;
+      fs::path pose_url = fs::path(calibration_root_dir_)/
+                          fs::path(camera_id+POSES_FILE_SUFFIX+std::string(".yaml"));
+
+      if(!loadKinectCalibrationPoseFile(pose_url.string(), rotation, translation)) {
+        ROS_ERROR_STREAM("[Playback] Failed to open calibration file: " << pose_url.string());
+      }
+      publishKinectStaticTF(camera_id, rotation, translation);
+    } else {
+      ROS_ERROR("[Playback] Unknown sensor type. Cannot find calibration information");
+    }
+
   }
+}
+
+std::string Playback::getCameraID(const std::string &camera_name) const {
+  std::vector<std::string> strs;
+  boost::split(strs, camera_name, boost::is_any_of("_"));
+  return strs[0];
+}
+
+std::string Playback::getCameraType(const std::string &camera_name) const {
+  std::vector<std::string> strs;
+  boost::split(strs, camera_name, boost::is_any_of("_"));
+  return strs[1];
+}
+
+boost::shared_ptr<sensor_msgs::CameraInfo>
+Playback::loadPointGreyCameraInfo(const std::string &camera_name) {
+  fs::path camera_info_url = fs::path(calibration_root_dir_)/fs::path(camera_name+std::string(".yaml"));
+  boost::shared_ptr<sensor_msgs::CameraInfo> c_info;
+
+  // Load camera info if it exists
+  if (fs::exists(camera_info_url)) {
+    camera_info_manager::CameraInfoManager c_info_manager(*nh_, std::string(""), camera_info_url.string());
+    c_info.reset(new sensor_msgs::CameraInfo(c_info_manager.getCameraInfo()));
+  } else {
+    ROS_ERROR("[Playback] Unable to find calibration file: %s", camera_info_url.string().c_str());
+  }
+  return c_info;
+}
+
+boost::shared_ptr<sensor_msgs::CameraInfo>
+Playback::loadKinectCameraInfo(const std::string &camera_name) {
+
+  // Initialize camera matrices
+  cv::Mat camera_matrix;
+  cv::Mat distortion;
+  cv::Mat rotation = cv::Mat::eye(3, 3, CV_64F);
+  cv::Mat projection = cv::Mat::zeros(3, 4, CV_64F);
+
+  // Initialize calibration filename
+  fs::path camera_info_url = fs::path(calibration_root_dir_)/fs::path(camera_name+std::string(".yaml"));
+
+  // Load information from input calibration files
+  if(!loadKinectCalibrationFile(camera_info_url.string(), camera_matrix, distortion)) {
+    ROS_ERROR_STREAM("[Playback] Failed to open calibration file: " << camera_info_url.string());
+  }
+
+  // Fill the projection matrix
+  camera_matrix.copyTo(projection(cv::Rect(0, 0, 3, 3)));
+
+  // Create the camera info object
+  boost::shared_ptr<sensor_msgs::CameraInfo> camera_info(new sensor_msgs::CameraInfo());
+
+  // Assign the right frame id
+  camera_info->header.frame_id = getFrameID(camera_name);
+
+  if (camera_name.find("color") != std::string::npos) {
+    createKinectCameraInfo(KINECT_HD_SIZE_COLOR, camera_matrix, distortion, rotation, projection, camera_info);
+  } else if (camera_name.find("depth") != std::string::npos) {
+    createKinectCameraInfo(KINECT_SD_SIZE_DEPTH, camera_matrix, distortion, rotation, projection, camera_info);
+  } else {
+    ROS_ERROR("[Playback] Unknown kinect data type %s", camera_name.c_str());
+  }
+
+  return camera_info;
+}
+
+bool Playback::loadKinectCalibrationFile(const std::string &filename,
+                                         cv::Mat &camera_matrix, cv::Mat &distortion) const {
+  cv::FileStorage fs;
+  if(fs.open(filename, cv::FileStorage::READ))
+  {
+    fs[KINECT_CALIB_CAMERA_MATRIX] >> camera_matrix;
+    fs[KINECT_CALIB_DISTORTION] >> distortion;
+    fs.release();
+  }
+  else  {
+    ROS_ERROR_STREAM("[Playback] Failed to open calibration file: " << filename);
+    return false;
+  }
+  return true;
+}
+
+void Playback::createKinectCameraInfo(const cv::Size &size, const cv::Mat &camera_matrix,
+                                      const cv::Mat &distortion, const cv::Mat &rotation,
+                                      const cv::Mat &projection,
+                                      boost::shared_ptr<sensor_msgs::CameraInfo> camera_info) const {
+  camera_info->height = size.height;
+  camera_info->width = size.width;
+
+  const double *itC = camera_matrix.ptr<double>(0, 0);
+  for(size_t i = 0; i < 9; ++i, ++itC)  {
+    camera_info->K[i] = *itC;
+  }
+
+  const double *itR = rotation.ptr<double>(0, 0);
+  for(size_t i = 0; i < 9; ++i, ++itR)  {
+    camera_info->R[i] = *itR;
+  }
+
+  const double *itP = projection.ptr<double>(0, 0);
+  for(size_t i = 0; i < 12; ++i, ++itP)  {
+    camera_info->P[i] = *itP;
+  }
+
+  camera_info->distortion_model = "plumb_bob";
+  camera_info->D.resize(distortion.cols);
+  const double *itD = distortion.ptr<double>(0, 0);
+  for(size_t i = 0; i < (size_t)distortion.cols; ++i, ++itD)  {
+    camera_info->D[i] = *itD;
+  }
+}
+
+std::string Playback::getFrameID(const std::string &camera_name) const {
+  std::string frame_id;
+  std::string camera_id = getCameraID(camera_name);
+  std::string camera_type = getCameraType(camera_name);
+
+  if (camera_name[0] == 'p') {
+    frame_id = camera_id;
+  } else if (camera_name[0] == 'k') {
+    if (camera_type.compare("color") == 0) {
+      frame_id = camera_id+KINECT_TF_RGB_OPT_FRAME;
+    } else if (camera_type.compare("depth") == 0) {
+      frame_id = camera_id+KINECT_TF_IR_OPT_FRAME;
+    } else {
+      ROS_ERROR("[Playback] Unknown kinect data type: %s", camera_name.c_str());
+    }
+  } else {
+    ROS_ERROR("[Playback] Unknown sensor type. Cannot find calibration information");
+  }
+  return frame_id;
+}
+
+void Playback::publishKinectStaticTF(const std::string &kinect, const cv::Mat &rotation, const cv::Mat &translation) {
+  // Get the rotation matrix
+  tf2::Matrix3x3 rot(rotation.at<double>(0, 0), rotation.at<double>(0, 1), rotation.at<double>(0, 2),
+                     rotation.at<double>(1, 0), rotation.at<double>(1, 1), rotation.at<double>(1, 2),
+                     rotation.at<double>(2, 0), rotation.at<double>(2, 1), rotation.at<double>(2, 2));
+
+  // Get the quarternion from rotation matrix
+  tf2::Quaternion quat;
+  rot.getRotation(quat);
+
+  // Get the translation
+  tf2::Vector3 trans(translation.at<double>(0), translation.at<double>(1), translation.at<double>(2));
+
+  // Get the color transform
+  geometry_msgs::TransformStamped color_transform;
+  color_transform.header.stamp = ros::Time::now();
+  color_transform.header.frame_id = kinect + KINECT_TF_FRAME;
+  color_transform.child_frame_id = kinect + KINECT_TF_RGB_OPT_FRAME;
+  color_transform.transform.translation.x = 0;
+  color_transform.transform.translation.y = 0;
+  color_transform.transform.translation.z = 0;
+  color_transform.transform.rotation.x = 0;
+  color_transform.transform.rotation.y = 0;
+  color_transform.transform.rotation.z = 0;
+  color_transform.transform.rotation.w = 0;
+
+  // Get the depth transform
+  geometry_msgs::TransformStamped depth_transform;
+  depth_transform.header.stamp = ros::Time::now();
+  depth_transform.header.frame_id = kinect + KINECT_TF_RGB_OPT_FRAME;
+  depth_transform.child_frame_id = kinect + KINECT_TF_IR_OPT_FRAME;
+  depth_transform.transform.translation.x = trans.x();
+  depth_transform.transform.translation.y = trans.y();
+  depth_transform.transform.translation.z = trans.z();
+  depth_transform.transform.rotation.x = quat.x();
+  depth_transform.transform.rotation.y = quat.y();
+  depth_transform.transform.rotation.z = quat.z();
+  depth_transform.transform.rotation.w = quat.w();
+
+  // Transform list
+  std::vector<geometry_msgs::TransformStamped> transforms = {color_transform, depth_transform};
+
+  // Publish transforms
+  tf_pub_.sendTransform(transforms);
+}
+
+bool Playback::loadKinectCalibrationPoseFile(const std::string &filename,
+                                             cv::Mat &rotation, cv::Mat &translation) const{
+  cv::FileStorage fs;
+  if(fs.open(filename, cv::FileStorage::READ))
+  {
+    fs[KINECT_CALIB_ROTATION] >> rotation;
+    fs[KINECT_CALIB_TRANSLATION] >> translation;
+    fs.release();
+  }
+  else
+  {
+    ROS_ERROR_STREAM("[Playback can't open calibration pose file: " << filename);
+    return false;
+  }
+  return true;
 }
 
 };
