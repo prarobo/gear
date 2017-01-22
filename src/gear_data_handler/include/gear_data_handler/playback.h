@@ -7,6 +7,8 @@
 #include <ros/ros.h>
 #include <std_srvs/Trigger.h>
 #include <tf2_ros/static_transform_broadcaster.h>
+#include <geometry_msgs/TransformStamped.h>
+#include <tf2/LinearMath/Matrix3x3.h>
 
 // Boost dependencies
 #include <boost/thread/mutex.hpp>
@@ -117,6 +119,20 @@ public:
    */
   std::string getCameraType(const std::string &camera_name) const;
 
+  /**
+   * Create transform message
+   */
+  geometry_msgs::TransformStamped createTransformMsg(const std::string &parent_frame,
+                                                     const std::string &child_frame,
+                                                     const tf2::Vector3 &trans = tf2::Vector3(0,0,0),
+                                                     const tf2::Quaternion &quat = tf2::Quaternion(0,0,0,0),
+                                                     const ros::Time &stamp = ros::Time::now()) const;
+
+  /**
+   * Publish the static tf that links camera frame with world frame
+   */
+  void publishLinkStaticTF(const std::string &camera_id);
+
 private:
   boost::shared_ptr<ros::NodeHandle> nh_, pnh_;
   ros::ServiceServer enable_playback_;
@@ -135,6 +151,11 @@ private:
 
   double rate_;
   int clock_frequency_;
+
+  bool publish_tf_;
+  std::vector<geometry_msgs::TransformStamped> transforms_;
+
+  bool initialized_;
 
   fs::path image_root_dir_, calibration_root_dir_;
   std::string image_prefix_;

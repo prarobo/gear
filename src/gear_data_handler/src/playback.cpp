@@ -4,8 +4,6 @@
 #include <rosgraph_msgs/Clock.h>
 #include <cv_bridge/cv_bridge.h>
 #include <camera_info_manager/camera_info_manager.h>
-#include <geometry_msgs/TransformStamped.h>
-#include <tf2/LinearMath/Matrix3x3.h>
 
 // Boost dependencies
 #include <boost/algorithm/string.hpp>
@@ -20,22 +18,19 @@
 #define KINECT_SD_SIZE_DEPTH cv::Size(512, 424)
 #define KINECT_TF_RGB_OPT_FRAME "_rgb_optical_frame"
 #define KINECT_TF_IR_OPT_FRAME "_ir_optical_frame"
-#define KINECT_TF_FRAME "_link"
-#define POINTGRAY_TF_FRAME "_link"
+#define LINK_TF_FRAME "_link"
 #define KINECT_CALIB_ROTATION "rotation"
 #define KINECT_CALIB_TRANSLATION "translation"
-#define POSES_FILE_SUFFIX "_poses"
+#define POSES_FILE_SUFFIX "_pose"
 
 namespace gear_data_handler {
-Playback::Playback(ros::NodeHandle nh, ros::NodeHandle pnh) {
+Playback::Playback(ros::NodeHandle nh, ros::NodeHandle pnh):
+    enabled_(false), initialized_(false), publish_tf_(true) {
   boost::mutex::scoped_lock(enable_lock_);
 
   // Get node handles
   nh_.reset(new ros::NodeHandle(nh));
   pnh_.reset(new ros::NodeHandle(pnh));
-
-  // Enabled
-  enabled_ = false;
 
   // Time publisher
   clock_pub_ = nh_->advertise<rosgraph_msgs::Clock>("clock", 1);
@@ -138,7 +133,10 @@ bool Playback::startPlayback(std_srvs::Trigger::Request  &req,
     enabled_ = true;
 
     // Initialize playback
-    initializePlayback();
+    if (!initialized_) {
+      initialized_ = true;
+      initializePlayback();
+    }
 
     res.success = true;
   } else {
@@ -162,6 +160,7 @@ void Playback::loadParams() {
   pnh_->param<std::string>("image_def", image_def_, "hd");
   pnh_->param<int>("clock_frequency", clock_frequency_, 100);
   pnh_->param<double>("rate", rate_, 1.0);
+  pnh_->param<bool>("publish_tf", publish_tf_, true);
 }
 
 void Playback::loadImageInfo() {
@@ -176,10 +175,19 @@ void Playback::loadImageInfo() {
                           fs::path(activity_id_+std::string("_")+condition_id_+std::string("_")+std::to_string(trial_id_))/
                           fs::path("calibration");
 
+  // Check if calibration data is present
+  if ( !fs::exists(calibration_root_dir_) || fs::is_empty(calibration_root_dir_))  {
+    ROS_ERROR("[Playback] Calibration data is missing");
+    return;
+  }
+
   // Iterate over all images over directories in image root directory
-  if ( fs::exists(image_root_dir_) && fs::is_directory(image_root_dir_))  {
+  if ( fs::exists(image_root_dir_) && fs::is_directory(image_root_dir_) && !fs::is_empty(image_root_dir_))  {
     for( fs::directory_iterator dir_iter(image_root_dir_) ; dir_iter != fs::directory_iterator{} ; ++dir_iter) {
-      if (fs::is_directory(dir_iter->status())) {
+
+      // Check if the directory is not empty before proceeding
+      if (fs::is_directory(dir_iter->status()) && !fs::is_empty(dir_iter->path())) {
+
         std::string dir_name = dir_iter->path().filename().string();
         createPublisher(dir_name);
         for( fs::directory_iterator im_iter(*dir_iter) ; im_iter != fs::directory_iterator() ; ++im_iter) {
@@ -199,6 +207,8 @@ void Playback::loadImageInfo() {
         }
       }
     }
+  } else {
+    ROS_ERROR("[Playback] No image data found");
   }
 }
 
@@ -253,7 +263,7 @@ void Playback::createPublisher(const std::string &dir_name) {
         (it_->advertiseCamera(msg_name, 1)));
     image_pub_[dir_name] = pub;
 
-    // Load camera information and publish tf
+    // Load camera information
     if (dir_name[0] == 'p') {
 
       // Loading pointgray camera info
@@ -262,20 +272,38 @@ void Playback::createPublisher(const std::string &dir_name) {
 
       // Loading kinect camera info
       camera_info_[dir_name] = loadKinectCameraInfo(dir_name);
-
-      // Publish kinect TF
-      cv::Mat rotation, translation;
-      fs::path pose_url = fs::path(calibration_root_dir_)/
-                          fs::path(camera_id+POSES_FILE_SUFFIX+std::string(".yaml"));
-
-      if(!loadKinectCalibrationPoseFile(pose_url.string(), rotation, translation)) {
-        ROS_ERROR_STREAM("[Playback] Failed to open calibration file: " << pose_url.string());
-      }
-      publishKinectStaticTF(camera_id, rotation, translation);
     } else {
       ROS_ERROR("[Playback] Unknown sensor type. Cannot find calibration information");
     }
 
+    // Publish tf
+    if (publish_tf_) {
+      if (dir_name[0] == 'p') {
+
+        // Publish the link tf that connects to world tf tree
+        publishLinkStaticTF(camera_id);
+      } else if (dir_name[0] == 'k') {
+
+        // Publish the link tf that connects to world tf tree
+        publishLinkStaticTF(camera_id);
+
+        // Publish kinect internal frames TF
+        cv::Mat rotation, translation;
+        fs::path pose_url = fs::path(calibration_root_dir_)/
+                            fs::path(camera_id+POSES_FILE_SUFFIX+std::string(".yaml"));
+
+        if(!loadKinectCalibrationPoseFile(pose_url.string(), rotation, translation)) {
+          ROS_ERROR_STREAM("[Playback] Failed to open pose file: " << pose_url.string());
+        }
+        publishKinectStaticTF(camera_id, rotation, translation);
+
+      } else {
+        ROS_WARN("[Playback] Unknown sensor type. Cannot find tf information");
+      }
+
+      // Publish transforms
+      tf_pub_.sendTransform(transforms_);
+    }
   }
 }
 
@@ -298,7 +326,7 @@ Playback::loadPointGreyCameraInfo(const std::string &camera_name) {
 
   // Load camera info if it exists
   if (fs::exists(camera_info_url)) {
-    camera_info_manager::CameraInfoManager c_info_manager(*nh_, std::string(""), camera_info_url.string());
+    camera_info_manager::CameraInfoManager c_info_manager(*nh_, "narrow_stereo", std::string("file://")+camera_info_url.string());
     c_info.reset(new sensor_msgs::CameraInfo(c_info_manager.getCameraInfo()));
   } else {
     ROS_ERROR("[Playback] Unable to find calibration file: %s", camera_info_url.string().c_str());
@@ -424,36 +452,41 @@ void Playback::publishKinectStaticTF(const std::string &kinect, const cv::Mat &r
   tf2::Vector3 trans(translation.at<double>(0), translation.at<double>(1), translation.at<double>(2));
 
   // Get the color transform
-  geometry_msgs::TransformStamped color_transform;
-  color_transform.header.stamp = ros::Time::now();
-  color_transform.header.frame_id = kinect + KINECT_TF_FRAME;
-  color_transform.child_frame_id = kinect + KINECT_TF_RGB_OPT_FRAME;
-  color_transform.transform.translation.x = 0;
-  color_transform.transform.translation.y = 0;
-  color_transform.transform.translation.z = 0;
-  color_transform.transform.rotation.x = 0;
-  color_transform.transform.rotation.y = 0;
-  color_transform.transform.rotation.z = 0;
-  color_transform.transform.rotation.w = 0;
+  geometry_msgs::TransformStamped color_transform = createTransformMsg(kinect + LINK_TF_FRAME,
+                                                                       kinect + KINECT_TF_RGB_OPT_FRAME);
+  transforms_.push_back(color_transform);
 
   // Get the depth transform
-  geometry_msgs::TransformStamped depth_transform;
-  depth_transform.header.stamp = ros::Time::now();
-  depth_transform.header.frame_id = kinect + KINECT_TF_RGB_OPT_FRAME;
-  depth_transform.child_frame_id = kinect + KINECT_TF_IR_OPT_FRAME;
-  depth_transform.transform.translation.x = trans.x();
-  depth_transform.transform.translation.y = trans.y();
-  depth_transform.transform.translation.z = trans.z();
-  depth_transform.transform.rotation.x = quat.x();
-  depth_transform.transform.rotation.y = quat.y();
-  depth_transform.transform.rotation.z = quat.z();
-  depth_transform.transform.rotation.w = quat.w();
+  geometry_msgs::TransformStamped depth_transform = createTransformMsg(kinect + KINECT_TF_RGB_OPT_FRAME,
+                                                                       kinect + KINECT_TF_IR_OPT_FRAME,
+                                                                       trans, quat);
+  transforms_.push_back(depth_transform);
+}
 
-  // Transform list
-  std::vector<geometry_msgs::TransformStamped> transforms = {color_transform, depth_transform};
+void Playback::publishLinkStaticTF(const std::string &camera_id) {
+  geometry_msgs::TransformStamped tf_transform = createTransformMsg(camera_id, camera_id+LINK_TF_FRAME);
+  transforms_.push_back(tf_transform);
+}
 
-  // Publish transforms
-  tf_pub_.sendTransform(transforms);
+geometry_msgs::TransformStamped Playback::createTransformMsg(const std::string &parent_frame,
+                                                             const std::string &child_frame,
+                                                             const tf2::Vector3 &trans,
+                                                             const tf2::Quaternion &quat,
+                                                             const ros::Time &stamp) const{
+
+  // Get the color transform
+  geometry_msgs::TransformStamped transform;
+  transform.header.stamp = stamp;
+  transform.header.frame_id = parent_frame;
+  transform.child_frame_id = child_frame;
+  transform.transform.translation.x = trans.x();
+  transform.transform.translation.y = trans.y();
+  transform.transform.translation.z = trans.z();
+  transform.transform.rotation.x = quat.x();
+  transform.transform.rotation.y = quat.y();
+  transform.transform.rotation.z = quat.z();
+  transform.transform.rotation.w = quat.w();
+  return transform;
 }
 
 bool Playback::loadKinectCalibrationPoseFile(const std::string &filename,
