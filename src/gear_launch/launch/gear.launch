@@ -13,6 +13,7 @@
   <arg name="enable_kinect3"        default="true"/>
   <arg name="enable_pointgrey1"     default="true"/>
   <arg name="enable_pointgrey2"     default="true"/>
+  <arg name="enable_audio"          default="true"/>
   <arg name="enable_loggers"        default="true"/>
   <arg name="enable_diagnostics"    default="true"/>
   <arg name="enable_tf"    					default="true"/>
@@ -58,12 +59,22 @@
     <arg name="nodelet_manager"     value="$(arg nodelet_manager)"/>
   </include>
 
+  <!-- Launch Audio -->
+  <include file="$(find gear_launch)/launch/audio_gear.launch" if="$(arg enable_audio)"/>
+
   <!-- Launch loggers -->
   <include file="$(find gear_launch)/launch/logger_gear.launch" if="$(arg enable_loggers)">
     <arg name="start_manager"       value="$(arg start_indiv_manager)"/>
     <arg name="nodelet_manager"     value="$(arg nodelet_manager)"/>
     <arg name="synchronize"         value="$(arg synchronize)"/>
     <arg name="data_dir"         		value="$(arg data_dir)"/>
+    <arg name="enable_kinect1"      value="$(arg enable_kinect1)"/>
+    <arg name="enable_kinect2"      value="$(arg enable_kinect2)"/>
+    <arg name="enable_kinect3"      value="$(arg enable_kinect3)"/>
+    <arg name="enable_pointgrey1"   value="$(arg enable_pointgrey1)"/>
+    <arg name="enable_pointgrey2"   value="$(arg enable_pointgrey2)"/>
+    <arg name="enable_audio"        value="$(arg enable_audio)"/>
+    <arg name="enable_trackers"     value="$(arg enable_trackers)"/>
   </include> 
 
   <!-- Launch trackers -->

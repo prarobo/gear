@@ -63,14 +63,14 @@ bool Logger::toggleLogger(std_srvs::SetBool::Request  &req,
   // Set the enable parameter based on service call value
   if (req.data) {
     initializeSessionDirectories();
-    ROS_INFO("[Logger][%s%s] Turning on image logging", sensor_id_.c_str(), image_type_.c_str());
+    ROS_INFO("[Logger][%s%s] Turning on data logging", sensor_id_.c_str(), image_type_.c_str());
 
     enable_ = true;
-    res.message = sensor_id_+"_"+image_type_+": ImageLogger ON";
+    res.message = sensor_id_+"_"+image_type_+": Logger ON";
   } else {
-    ROS_INFO("[Logger][%s%s] Turning off image logging", sensor_id_.c_str(), image_type_.c_str());
+    ROS_INFO("[Logger][%s%s] Turning off data logging", sensor_id_.c_str(), image_type_.c_str());
     enable_ = false;
-    res.message = sensor_id_+"_"+image_type_+": ImageLogger OFF";
+    res.message = sensor_id_+"_"+image_type_+": Logger OFF";
   }
 
   res.success = true;
@@ -115,7 +115,7 @@ void Logger::initializeSessionDirectories() {
   if (!boost::filesystem::exists(image_dir_)) {
     boost::filesystem::create_directories(image_dir_);
   }
-  ROS_INFO("[Logger][%s%s] Logging images to directory: %s",
+  ROS_INFO("[Logger][%s%s] Logging data to directory: %s",
             sensor_id_.c_str(), image_type_.c_str(), image_dir_.c_str());
 }
 
