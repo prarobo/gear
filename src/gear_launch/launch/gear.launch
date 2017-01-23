@@ -14,9 +14,10 @@
   <arg name="enable_kinect3"        default="true"/>
   <arg name="enable_pointgrey1"     default="true"/>
   <arg name="enable_pointgrey2"     default="true"/>
+  <arg name="enable_audio"          default="true"/>
   <arg name="enable_loggers"        default="true"/>
   <arg name="enable_diagnostics"    default="true"/>
-  <arg name="enable_tf"    					default="true"/>
+  <arg name="enable_tf"    	    default="true"/>
   <arg name="enable_trackers"       default="true"/>
 
   <!-- Parameters -->
@@ -30,7 +31,7 @@
   <arg name="activity_id"           default="act"/>
   <arg name="condition_id"          default="in"/>
   <arg name="trial_id"              default="1"/>
-  <arg name="data_dir"           		default="/mnt/md0/gear_data"/>  
+  <arg name="data_dir"              default="/mnt/md0/gear_data"/>  
   
   <!-- Setting session wide parameters -->
   <param name="subject_id"          value="$(arg subject_id)"/>
@@ -70,15 +71,25 @@
       <arg name="start_manager"       value="$(arg start_indiv_manager)"/>
       <arg name="nodelet_manager"     value="$(arg nodelet_manager)"/>
       <arg name="synchronize"         value="$(arg synchronize)"/>
-      <arg name="data_dir"         		value="$(arg data_dir)"/>
-    </include> 
+      <arg name="data_dir"            value="$(arg data_dir)"/>
+      <arg name="enable_kinect1"      value="$(arg enable_kinect1)"/>
+      <arg name="enable_kinect2"      value="$(arg enable_kinect2)"/>
+      <arg name="enable_kinect3"      value="$(arg enable_kinect3)"/>
+      <arg name="enable_pointgrey1"   value="$(arg enable_pointgrey1)"/>
+      <arg name="enable_pointgrey2"   value="$(arg enable_pointgrey2)"/>
+      <arg name="enable_audio"        value="$(arg enable_audio)"/>
+      <arg name="enable_trackers"     value="$(arg enable_trackers)"/>    
+    </include>
+
+    <!-- Launch Audio -->
+    <include file="$(find gear_launch)/launch/audio_gear.launch" if="$(arg enable_audio)"/>
   </group>
 
   <!-- Launch diagnostics -->
   <include file="$(find gear_diagnostics)/launch/diagnostics.launch" if="$(arg enable_diagnostics)">
     <arg name="frame_rate"          value="$(arg frame_rate)"/>
     <arg name="use_sim_time"        value="$(arg use_sim_time)"/>
-  </include> 
+  </include>
 
   <!-- Launch trackers -->
   <include file="$(find gear_launch)/launch/tracker_gear.launch" if="$(arg enable_trackers)">

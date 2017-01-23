@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<launch>
+  <!-- arecord -l will show available input devices, use the car number as
+      the first number and the subdevice number as the second in a string
+      like hw:1,0 -->
+  <arg name="channels" 		   default="1"/>
+  <arg name="sample_rate" 	 default="16000"/>
+  <arg name="quality"        default="2.0"/>
+  <arg name="bitrate"        default="128"/>
+  <arg name="format" 		     default="mp3"/>
+  <arg name="ns" 			       default="audio"/>
+
+  <group ns="$(arg ns)">
+    <node name="audio_capture" pkg="audio_capture" type="audio_capture" output="screen">
+      <param name="bitrate" 	   value="$(arg bitrate)"/>
+      <param name="device" 		   command="$(find gear_launch)/scripts/get_mic_info.py"/>
+      <param name="channels" 	   value="$(arg channels)"/>
+      <param name="sample_rate"  value="$(arg sample_rate)"/>
+      <param name="format" 		   value="$(arg format)"/>
+      <param name="quality"      value="$(arg quality)"/>
+    </node>
+  </group>
+</launch>

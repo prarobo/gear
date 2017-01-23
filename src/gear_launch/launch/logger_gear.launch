@@ -18,6 +18,8 @@
   <arg name="enable_kinect3"    default="true"/>
   <arg name="enable_pointgrey1" default="true"/>
   <arg name="enable_pointgrey2" default="true"/>
+  <arg name="enable_audio"      default="true"/>
+  <arg name="enable_trackers"   default="true"/>
 
   <!-- Synchronizer -->
   <include file="$(find gear_data_handler)/launch/synchronizer.launch" if="$(arg synchronize)">
@@ -32,7 +34,13 @@
   <include file="$(find gear_data_handler)/launch/calibration_logger.launch"/>
  
   <!-- Tracking logger-->
-  <include file="$(find gear_data_handler)/launch/tracking_logger.launch">
+  <include file="$(find gear_data_handler)/launch/tracking_logger.launch" if="$(arg enable_trackers)">
+    <arg name="start_manager"   value="$(arg start_manager)"/>
+    <arg name="nodelet_manager" value="$(arg nodelet_manager)" unless="$(arg start_manager)"/>
+  </include>
+
+  <!-- Tracking logger-->
+  <include file="$(find gear_data_handler)/launch/audio_logger.launch" if="$(arg enable_audio)">
     <arg name="start_manager"   value="$(arg start_manager)"/>
     <arg name="nodelet_manager" value="$(arg nodelet_manager)" unless="$(arg start_manager)"/>
   </include>

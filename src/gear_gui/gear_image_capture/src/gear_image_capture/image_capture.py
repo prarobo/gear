@@ -27,7 +27,8 @@ DEFAULT_SERVICES_TO_ENABLE = ["/k1_color_enable",
                               "/k2_points_enable",
                               "/k3_points_enable",
                               "/track_tracking_enable",
-                              "/log_calibration_data_enable"]
+                              "/log_calibration_data_enable",
+                              "/audio_audio_enable"]
 
 DEFAULT_SERVICES_SESSION_INFO = ["/k1_color_session_info",
                                  "/k2_color_session_info",
@@ -40,7 +41,8 @@ DEFAULT_SERVICES_SESSION_INFO = ["/k1_color_session_info",
                                  "/k1_points_session_info",
                                  "/k2_points_session_info",
                                  "/k3_points_session_info",
-                                 "/track_tracking_session_info"]
+                                 "/track_tracking_session_info",
+                                 "/audio_audio_session_info"]
 
 DEFAULT_DATA_DIR = "/mnt/md0/gear_data"
 DEFAULT_SUBJECT = "x"
@@ -320,8 +322,9 @@ class ImageCaptureGUI(Plugin):
         return
 
     def shutdown_plugin(self):
-        # TODO unregister all publishers here
-        pass
+        self.session_timer_start_pub.unregister()
+        self.session_timer_stop_pub.unregister()
+        return
 
     def save_settings(self, plugin_settings, instance_settings):
         # TODO save intrinsic configuration, usually using:
