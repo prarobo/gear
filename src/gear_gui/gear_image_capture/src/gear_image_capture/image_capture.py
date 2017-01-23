@@ -319,8 +319,9 @@ class ImageCaptureGUI(Plugin):
         return
 
     def shutdown_plugin(self):
-        # TODO unregister all publishers here
-        pass
+        self.session_timer_start_pub.unregister()
+        self.session_timer_stop_pub.unregister()
+        return
 
     def save_settings(self, plugin_settings, instance_settings):
         # TODO save intrinsic configuration, usually using:
