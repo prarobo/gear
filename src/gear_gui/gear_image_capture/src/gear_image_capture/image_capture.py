@@ -26,7 +26,8 @@ DEFAULT_SERVICES_TO_ENABLE = ["/k1_color_enable",
                               "/k1_points_enable",
                               "/k2_points_enable",
                               "/k3_points_enable",
-                              "/track_tracking_enable"]
+                              "/track_tracking_enable",
+                              "/log_calibration_data_enable"]
 
 DEFAULT_SERVICES_SESSION_INFO = ["/k1_color_session_info",
                                  "/k2_color_session_info",
@@ -233,7 +234,7 @@ class ImageCaptureGUI(Plugin):
                 resp = sensor_session_info(TriggerRequest())
                 self._logger("[GearImageCapture] Service "+service_name+" logging started: ("
                              +str(resp.success)+","+resp.message+")", skip_ui=True)
-            
+                
             # Set button states
             self._widget.btnStart.setEnabled(True)
         else:

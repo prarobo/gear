@@ -20,12 +20,14 @@
 
   <!-- Playback node -->
   <node pkg="gear_data_handler" type="playback" name="playback" output="screen">
-    <param name="data_dir"            value="$(arg data_dir)"/>
-    <param name="image_def"           value="$(arg image_def)"/>
-    <param name="image_prefix"        value="$(arg image_prefix)"/>
+    <param name="data_dir"          value="$(arg data_dir)"/>
+    <param name="image_def"         value="$(arg image_def)"/>
+    <param name="image_prefix"      value="$(arg image_prefix)"/>
   </node>
 
     <!-- Launch TF -->
-  <include file="$(find gear_tf)/launch/tf_broadcaster.launch"/>
+  <include file="$(find gear_tf)/launch/tf_broadcaster.launch">
+    <arg name="playback_mode"       value="true"/>
+  </include>  
 
 </launch>

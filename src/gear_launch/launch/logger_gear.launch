@@ -27,6 +27,9 @@
     <arg name="color_def"       default="$(arg color_def)"/>
     <arg name="depth_def"       default="$(arg depth_def)"/>
   </include>  
+
+  <!-- Calibration logger-->
+  <include file="$(find gear_data_handler)/launch/calibration_logger.launch"/>
  
   <!-- Tracking logger-->
   <include file="$(find gear_data_handler)/launch/tracking_logger.launch">
