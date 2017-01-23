@@ -57,7 +57,7 @@ if __name__ == '__main__':
     tf_path = os.path.join(tf_dir, tf_file)
     rospy.loginfo("[TFBroadcaster] Loading tf from file: "+tf_path)
     if not os.path.exists(tf_path):
-        rospy.logerror("[TFBroadcaster] Invalid tf file")
+        rospy.logerr("[TFBroadcaster] Invalid tf file")
     
     # Load tf information from file
     tf_info = yaml.load(open(tf_path))

@@ -38,6 +38,9 @@
   <param name="activity_id"         value="$(arg activity_id)"/>
   <param name="condition_id"        value="$(arg condition_id)"/>
   <param name="trial_id"            value="$(arg trial_id)"/>  
+
+  <!-- Launch playback -->
+  <include file="$(find gear_data_handler)/launch/playback.launch" if="$(arg use_sim_time)"/>
   
   <!-- Exclude some nodes while playback -->
   <group unless="$(arg use_sim_time)">
@@ -69,12 +72,13 @@
       <arg name="synchronize"         value="$(arg synchronize)"/>
       <arg name="data_dir"         		value="$(arg data_dir)"/>
     </include> 
-
-    <!-- Launch diagnostics -->
-    <include file="$(find gear_diagnostics)/launch/diagnostics.launch" if="$(arg enable_diagnostics)">
-      <arg name="frame_rate"          value="$(arg frame_rate)"/>
-    </include> 
   </group>
+
+  <!-- Launch diagnostics -->
+  <include file="$(find gear_diagnostics)/launch/diagnostics.launch" if="$(arg enable_diagnostics)">
+    <arg name="frame_rate"          value="$(arg frame_rate)"/>
+    <arg name="use_sim_time"        value="$(arg use_sim_time)"/>
+  </include> 
 
   <!-- Launch trackers -->
   <include file="$(find gear_launch)/launch/tracker_gear.launch" if="$(arg enable_trackers)">
@@ -84,7 +88,10 @@
   </include> 
 
   <!-- Launch TF -->
-  <include file="$(find gear_tf)/launch/tf_broadcaster.launch" if="$(arg enable_tf)"/>
+  <include file="$(find gear_tf)/launch/tf_broadcaster.launch" if="$(arg enable_tf)">
+    <arg name="playback_mode"       value="true" if="$(arg use_sim_time)"/>
+    <arg name="use_sim_time"        value="$(arg use_sim_time)"/>
+  </include>  
 
   <!-- Launch nodelet manager -->
   <node pkg="nodelet" type="nodelet" name="$(arg nodelet_manager)"  

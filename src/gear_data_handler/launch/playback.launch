@@ -4,30 +4,10 @@
   <arg name="image_def"         default="hd"/>
   <arg name="image_prefix"      default="im"/>      
 
-  <!-- Session wide arguments -->
-  <arg name="subject_id"            default="D01"/>
-  <arg name="session_id"            default="S2"/>
-  <arg name="activity_id"           default="FP"/>
-  <arg name="condition_id"          default="IN"/>
-  <arg name="trial_id"              default="1"/>
- 
-  <!-- Setting session wide parameters -->
-  <param name="subject_id"          value="$(arg subject_id)"/>
-  <param name="session_id"          value="$(arg session_id)"/>
-  <param name="activity_id"         value="$(arg activity_id)"/>
-  <param name="condition_id"        value="$(arg condition_id)"/>
-  <param name="trial_id"            value="$(arg trial_id)"/>  
-
   <!-- Playback node -->
   <node pkg="gear_data_handler" type="playback" name="playback" output="screen">
     <param name="data_dir"          value="$(arg data_dir)"/>
     <param name="image_def"         value="$(arg image_def)"/>
     <param name="image_prefix"      value="$(arg image_prefix)"/>
   </node>
-
-    <!-- Launch TF -->
-  <include file="$(find gear_tf)/launch/tf_broadcaster.launch">
-    <arg name="playback_mode"       value="true"/>
-  </include>  
-
 </launch>
