@@ -19,7 +19,7 @@ class Logger {
 public:
   Logger();
 
-  ~Logger() {};
+  virtual ~Logger() {};
 
   /**
    * Initialization after onInit

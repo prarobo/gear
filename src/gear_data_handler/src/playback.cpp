@@ -1,13 +1,16 @@
 #include <gear_data_handler/playback.h>
 
 // ROS dependencies
-#include <rosgraph_msgs/Clock.h>
 #include <cv_bridge/cv_bridge.h>
 #include <camera_info_manager/camera_info_manager.h>
+#include <rosbag/bag.h>
+#include <rosbag/view.h>
 
 // Boost dependencies
 #include <boost/algorithm/string.hpp>
 #include <boost/lexical_cast.hpp>
+#include <boost/thread/thread.hpp>
+#include <boost/foreach.hpp>
 
 // OpenCV dependencies
 #include <opencv2/highgui/highgui.hpp>
@@ -25,7 +28,9 @@
 
 namespace gear_data_handler {
 Playback::Playback(ros::NodeHandle nh, ros::NodeHandle pnh):
-    enabled_(false), initialized_(false), publish_tf_(true) {
+    enabled_(false), initialized_(false), publish_tf_(true), queue_size_(1000),
+    clock_frequency_(100), rate_(1.0), trial_id_(1), done_(false),
+    published_msgs_(0), loaded_msgs_(0) {
   boost::mutex::scoped_lock(enable_lock_);
 
   // Get node handles
@@ -40,86 +45,49 @@ Playback::Playback(ros::NodeHandle nh, ros::NodeHandle pnh):
 
   // Create service to enable playback
   enable_playback_ = nh_->advertiseService("enable_playback", &Playback::startPlayback, this);
+
+  // Initialize message queue
+  msg_queue_.reset(new boost::lockfree::spsc_queue<MessageWrapper>(queue_size_));
+
+  // Create audio publisher
+  audio_pub_ = nh_->advertise<audio_common_msgs::StampedAudioData>("/audio/audio", 10);
 }
 
 void Playback::initializePlayback() {
+  trial_root_dir_ = fs::path(data_dir_)/fs::path(subject_id_)/fs::path(session_id_)/
+                    fs::path(activity_id_+std::string("_")
+                    +condition_id_+std::string("_")+std::to_string(trial_id_));
+
   //Load associated parameters
   loadParams();
 
   //Load image information
   loadImageInfo();
-  ROS_INFO("[Playback] Loaded image information: %d directories, %d images", int(image_extn_.size()),int(image_info_.size()));
+  ROS_INFO("[Playback] Loaded image information: %d directories, %d images",
+           int(image_extn_.size()),int(image_info_.size()));
+
+  //Load audio information
+  loadAudioInfo();
+
+  //Load clock information
+  loadClockInfo();
 }
 
 void Playback::play() {
   boost::mutex::scoped_lock(enable_lock_);
   if(enabled_) {
-    std::multimap<ros::Time, std::string>::iterator it=image_info_.begin();
-    ros::Time sim_t_current = it->first;
-    ros::Time sim_t_next = it->first+ros::Duration(1.0/clock_frequency_);
-    ros::Duration t_diff(0);
+    ROS_INFO("[Playback] Starting playback ...");
 
-    // Publish current time
-    rosgraph_msgs::Clock clk;
-    clk.clock = sim_t_current;
-    clock_pub_.publish(clk);
+    // Create threads
+    boost::thread load_thread(boost::bind(&Playback::loadMsg, this));
+    boost::thread pickup_thread(boost::bind(&Playback::pickupMsg, this));
 
-    // Iterate over all time stamps in tandem with clock frequency
-    while (it != image_info_.end()) {
+    load_thread.join();
+    done_ = true;
+    pickup_thread.join();
 
-      ros::Time t_start=ros::Time::now();
-      ROS_DEBUG_STREAM("Wall start time: "<<t_start);
-
-      ros::Time sim_next_msg_t = it->first;
-      bool msg_published = false;
-
-      // Check if there are any messages before the next clock tick
-      if (sim_next_msg_t<=sim_t_next) {
-        t_diff = ros::Duration((sim_next_msg_t.toSec()-sim_t_current.toSec())/rate_);
-        sim_t_current = sim_next_msg_t;
-
-        msg_published = true;
-      }
-
-      // If no messages within the next clock tick update clock ticks
-      if(!msg_published) {
-        t_diff = ros::Duration((sim_t_next.toSec()-sim_t_current.toSec())/rate_);
-        sim_t_current = sim_t_next;
-        sim_t_next = sim_t_current+ros::Duration(1.0/clock_frequency_);
-      }
-
-      // Update only clock tick if the message has the same time stamp as clock tick
-      if(msg_published && sim_t_current == sim_t_next) {
-        sim_t_next = sim_t_current+ros::Duration(1.0/clock_frequency_);
-      }
-
-      // Wait for some time
-      ros::Time t_before = ros::Time::now();
-      ros::Time::sleepUntil(ros::Time::now()+t_diff);
-      ros::Time t_after = ros::Time::now();
-
-      // Publish current time
-      if (t_diff>ros::Duration(0.0)) {
-        clk.clock = sim_t_current;
-        clock_pub_.publish(clk);
-      }
-
-      // Publish message
-      if (msg_published) {
-        publishImage(it);
-        it++;
-      }
-
-      ros::Time t_end=ros::Time::now();
-
-      ROS_DEBUG_STREAM("Before sleeping: "<<t_before);
-      ROS_DEBUG_STREAM("After sleeping: "<<t_after);
-      ROS_DEBUG_STREAM("Expected time difference: "<<t_diff);
-      ROS_DEBUG_STREAM("Actual time difference: "<<t_after-t_before);
-      ROS_DEBUG_STREAM("Msg published "<<msg_published);
-      ROS_DEBUG_STREAM("Wall end time: "<<t_end);
-      ROS_DEBUG_STREAM("Iteration time: "<<t_end-t_start);
-    }
+    ROS_INFO_STREAM("Loaded messages: " << loaded_msgs_);
+    ROS_INFO_STREAM("Published messages: " << published_msgs_);
   }
 }
 
@@ -161,19 +129,16 @@ void Playback::loadParams() {
   pnh_->param<int>("clock_frequency", clock_frequency_, 100);
   pnh_->param<double>("rate", rate_, 1.0);
   pnh_->param<bool>("publish_tf", publish_tf_, true);
+  //pnh_->param<int>("queue_size", queue_size_, 1000);
 }
 
 void Playback::loadImageInfo() {
 
   // Get all directories where images are present
-  image_root_dir_ = fs::path(data_dir_)/fs::path(subject_id_)/fs::path(session_id_)/
-                    fs::path(activity_id_+std::string("_")+condition_id_+std::string("_")+std::to_string(trial_id_))/
-                    fs::path("images");
+  image_root_dir_ = trial_root_dir_/fs::path("images");
 
   // Get the directory where calibration information found
-  calibration_root_dir_ = fs::path(data_dir_)/fs::path(subject_id_)/fs::path(session_id_)/
-                          fs::path(activity_id_+std::string("_")+condition_id_+std::string("_")+std::to_string(trial_id_))/
-                          fs::path("calibration");
+  calibration_root_dir_ = trial_root_dir_/fs::path("calibration");
 
   // Check if calibration data is present
   if ( !fs::exists(calibration_root_dir_) || fs::is_empty(calibration_root_dir_))  {
@@ -212,6 +177,48 @@ void Playback::loadImageInfo() {
   }
 }
 
+void Playback::loadClockInfo() {
+
+  // Set start time as minimum of all messages
+  ros::Time t_start = std::min(image_info_.begin()->first, audio_info_.begin()->first);
+
+  // Set stop time as maximum of all messages
+  ros::Time t_stop = std::max(image_info_.rbegin()->first, audio_info_.rbegin()->first);
+
+  // Compute time step
+  ros::Duration t_interval(1.0/clock_frequency_);
+
+  // Fill clock vector
+  for(ros::Time t=t_start; t<=t_stop; t+=t_interval) {
+    clock_info_.push_back(t);
+  }
+}
+
+void Playback::loadAudioInfo() {
+
+  // Get audio bag path
+  fs::path audio_bag_path = trial_root_dir_/fs::path("bags/audio.bag");
+
+  // Open audio bag
+  rosbag::Bag audio_bag;
+  audio_bag.open(audio_bag_path.string(), rosbag::bagmode::Read);
+
+  // Get bag topics
+  std::vector<std::string> topics;
+  topics.push_back(std::string("audio_info"));
+
+  // Iterate through messages in bag
+  rosbag::View view(audio_bag, rosbag::TopicQuery(topics));
+
+  BOOST_FOREACH(rosbag::MessageInstance const m, view) {
+      audio_common_msgs::StampedAudioDataConstPtr msg = m.instantiate<audio_common_msgs::StampedAudioData>();
+      audio_info_.insert(std::multimap<ros::Time, audio_common_msgs::StampedAudioDataConstPtr>::value_type
+          (msg->header.stamp, msg));
+  }
+
+  audio_bag.close();
+}
+
 ros::Time Playback::parseTimeStamp(const std::string &image_name) {
   std::vector<std::string> strs;
   boost::split(strs, image_name, boost::is_any_of("_."));
@@ -219,33 +226,12 @@ ros::Time Playback::parseTimeStamp(const std::string &image_name) {
   return t;
 }
 
-void Playback::publishImage(const std::multimap <ros::Time, std::string>::iterator &image_it) {
-  // Pad non seconds with zeros
-  boost::format nsec("%09d");
-  nsec % image_it->first.nsec;
-
-  // Get image file path
-  std::string image_name = image_prefix_+std::string("_")+std::to_string(image_it->first.sec)
-                           +std::string("_")+nsec.str()
-                           +image_extn_.at(image_it->second);
-  fs::path image_path = image_root_dir_/fs::path(image_it->second)/fs::path(image_name);
-
-  // Load image
-  cv_bridge::CvImage cv_image;
-  if (fs::exists(image_path)) {
-    cv_image.image = cv::imread(image_path.string(),CV_LOAD_IMAGE_COLOR);
-  } else {
-    ROS_ERROR("[Playback] Unable to find image: %s", image_path.string().c_str());
-  }
-  cv_image.encoding = "bgr8";
-  sensor_msgs::Image ros_image;
-  cv_image.toImageMsg(ros_image);
-
-  // Set header information
-  ros_image.header.frame_id = getFrameID(image_it->second);
+void Playback::publishImageOld(const std::multimap <ros::Time, std::string>::iterator &image_it) {
+  // Create image message
+  sensor_msgs::ImageConstPtr ros_image_ptr = createImageMsg(image_it);
 
   // Publish
-  image_pub_.at(image_it->second)->publish(ros_image, *camera_info_.at(image_it->second));
+  image_pub_.at(image_it->second)->publish(*ros_image_ptr, *camera_info_.at(image_it->second));
 }
 
 void Playback::createPublisher(const std::string &dir_name) {
@@ -504,6 +490,200 @@ bool Playback::loadKinectCalibrationPoseFile(const std::string &filename,
     return false;
   }
   return true;
+}
+
+void Playback::loadMsg(){
+  std::multimap<ros::Time, std::string>::iterator image_it=image_info_.begin();
+  std::multimap<ros::Time, audio_common_msgs::StampedAudioDataConstPtr>::iterator audio_it=audio_info_.begin();
+  std::vector<ros::Time>::iterator clock_it=clock_info_.begin();
+
+  bool all_done = image_it == image_info_.end() && audio_it == audio_info_.end() && clock_it == clock_info_.end();
+
+  while (!all_done) {
+    ros::Time image_time = (image_it != image_info_.end()) ? image_it->first: ros::TIME_MAX;
+    ros::Time audio_time = (audio_it != audio_info_.end()) ? audio_it->first: ros::TIME_MAX;
+    ros::Time clock_time = (clock_it != clock_info_.end()) ? *clock_it: ros::TIME_MAX;
+
+    // Get the current time vector
+    std::vector<ros::Time> curr_time = {image_time, audio_time, clock_time};
+
+    // Get the minimum element
+    std::vector<ros::Time>::iterator min_time = std::min_element(curr_time.begin(), curr_time.end());
+    std::vector<ros::Time>::iterator::difference_type index = std::distance(curr_time.begin(), min_time);
+
+    // Create message wrapper based on message type
+    MessageWrapper msg_wrapper;
+    switch(index){
+    // Image message
+    case 0: {
+      sensor_msgs::ImageConstPtr image_msg_ptr(createImageMsg(image_it));
+      msg_wrapper.setImageData(image_msg_ptr, image_it->second);
+      image_it++;
+      break;
+    }
+    case 1: {
+      msg_wrapper.setAudioData(audio_it->second);
+      audio_it++;
+      break;
+    }
+    case 2: {
+      rosgraph_msgs::Clock clk;
+      clk.clock = *clock_it;
+      rosgraph_msgs::ClockConstPtr clk_ptr(new rosgraph_msgs::Clock(clk));
+      msg_wrapper.setClockData(clk_ptr);
+      clock_it++;
+      break;
+    }
+    }
+
+    // Push into message queue
+    while (!msg_queue_->push(msg_wrapper));
+    loaded_msgs_++;
+
+    all_done = image_it == image_info_.end() && audio_it == audio_info_.end() && clock_it == clock_info_.end();
+  }
+}
+
+sensor_msgs::ImageConstPtr
+Playback::createImageMsg(const std::multimap <ros::Time, std::string>::iterator &image_it) {
+  // Pad nano seconds with zeros
+  boost::format nsec("%09d");
+  nsec % image_it->first.nsec;
+
+  // Get image file path
+  std::string image_name = image_prefix_+std::string("_")+std::to_string(image_it->first.sec)
+                           +std::string("_")+nsec.str()
+                           +image_extn_.at(image_it->second);
+  fs::path image_path = image_root_dir_/fs::path(image_it->second)/fs::path(image_name);
+
+  // Load image
+  cv_bridge::CvImage cv_image;
+  if (fs::exists(image_path)) {
+    cv_image.image = cv::imread(image_path.string(),CV_LOAD_IMAGE_COLOR);
+  } else {
+    ROS_ERROR("[Playback] Unable to find image: %s", image_path.string().c_str());
+  }
+  cv_image.encoding = "bgr8";
+  sensor_msgs::Image ros_image;
+  cv_image.toImageMsg(ros_image);
+
+  // Set header information
+  ros_image.header.frame_id = getFrameID(image_it->second);
+
+  sensor_msgs::ImageConstPtr ros_image_ptr(new sensor_msgs::Image(ros_image));
+  return ros_image_ptr;
+}
+
+void Playback::pickupMsg(){
+  MessageWrapper msg_wrapper;
+  ros::Time t_prev(*clock_info_.begin());
+  ros::Time t_next(*clock_info_.begin());
+
+  while (!done_) {
+      while (msg_queue_->pop(msg_wrapper));
+
+      // Get the time of current message
+      t_next = msg_wrapper.getMessageTime();
+
+      // Wait for sometime
+      ros::Duration t_diff = t_next-t_prev;
+      ros::Time::sleepUntil(ros::Time::now()+t_diff);
+
+      published_msgs_++;
+      if (t_diff == ros::Duration(0.0) && msg_wrapper.hasClockData()) continue;
+
+      // Publish message
+      publishMsg(msg_wrapper);
+  }
+  while (msg_queue_->pop(msg_wrapper));
+  publishMsg(msg_wrapper);
+}
+
+void Playback::publishMsg(const MessageWrapper &msg_wrapper) const{
+  ROS_ERROR_COND(!msg_wrapper.hasData(), "[Playback] No data in message wrapper");
+
+  if (msg_wrapper.hasAudioData()) {
+
+    // Publish audio data
+    audio_pub_.publish(msg_wrapper.getAudioData());
+  } else if (msg_wrapper.hasImageData()) {
+    std::string pub_name = msg_wrapper.getPublisherName();
+
+    // Publish image data
+    image_pub_.at(pub_name)->publish(*msg_wrapper.getImageData(), *camera_info_.at(pub_name));
+  } else if (msg_wrapper.hasClockData()) {
+
+    // Publish clock data
+    clock_pub_.publish(msg_wrapper.getClockData());
+  }
+}
+
+MessageWrapper::MessageWrapper() : has_data_(false), has_audio_data_(false),
+    has_image_data_(false), has_clock_data_(false), pub_name_(""){};
+
+bool MessageWrapper::setAudioData(const audio_common_msgs::StampedAudioDataConstPtr &audio_msg) {
+  if (!has_data_) {
+    audio_msg_ = audio_msg;
+    has_audio_data_ = true;
+    updateStatus();
+    return false;
+  } else {
+    ROS_ERROR("[Playback] Cannot add audio data to a container that has data");
+    return true;
+  }
+}
+
+bool MessageWrapper::setClockData(const rosgraph_msgs::ClockConstPtr &clock_msg) {
+  if (!has_data_) {
+    clock_msg_ = clock_msg;
+    has_clock_data_ = true;
+    updateStatus();
+    return false;
+  } else {
+    ROS_ERROR("[Playback] Cannot add audio data to a container that has data");
+    return true;
+  }
+}
+
+bool MessageWrapper::setImageData(const sensor_msgs::ImageConstPtr &image_msg, const std::string &pub_name) {
+  if (!has_data_) {
+    image_msg_ = image_msg;
+    pub_name_ = pub_name;
+    has_image_data_ = true;
+    updateStatus();
+    return false;
+  } else {
+    ROS_ERROR("[Playback] Cannot add image data to a container that has data");
+    return true;
+  }
+}
+
+void MessageWrapper::updateStatus() {
+  has_data_ = (has_image_data_ || has_audio_data_ || has_clock_data_);
+}
+
+ros::Time MessageWrapper::getMessageTime() {
+  if (hasAudioData()) {
+    return audio_msg_->header.stamp;
+  } else if (hasImageData()) {
+    return image_msg_->header.stamp;
+  } else if (hasClockData()) {
+    return clock_msg_->clock;
+  } else {
+    ROS_ERROR("[Playback] No recognized data to get time stamp from");
+    return ros::Time(0);
+  }
+}
+audio_common_msgs::StampedAudioDataConstPtr MessageWrapper::getAudioData() const{
+  return audio_msg_;
+}
+
+sensor_msgs::ImageConstPtr MessageWrapper::getImageData() const{
+  return image_msg_;
+}
+
+rosgraph_msgs::ClockConstPtr MessageWrapper::getClockData() const{
+  return clock_msg_;
 }
 
 };
