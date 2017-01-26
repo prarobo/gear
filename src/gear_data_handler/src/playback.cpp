@@ -54,29 +54,35 @@ Playback::Playback(ros::NodeHandle nh, ros::NodeHandle pnh):
 }
 
 void Playback::initializePlayback() {
+  //Load associated parameters
+  loadParams();
+
+  //Set the trial root directory where all data is present
   trial_root_dir_ = fs::path(data_dir_)/fs::path(subject_id_)/fs::path(session_id_)/
                     fs::path(activity_id_+std::string("_")
                     +condition_id_+std::string("_")+std::to_string(trial_id_));
 
-  //Load associated parameters
-  loadParams();
-
   //Load image information
+  ROS_INFO("[Playback] Loading image information ...");
   loadImageInfo();
   ROS_INFO("[Playback] Loaded image information: %d directories, %d images",
            int(image_extn_.size()),int(image_info_.size()));
 
   //Load audio information
+  ROS_INFO("[Playback] Loading audio information ...");
   loadAudioInfo();
+  ROS_INFO("[Playback] Loaded audio information: %d messages", int(audio_info_.size()));
 
   //Load clock information
+  ROS_INFO("[Playback] Loading clock information ...");
   loadClockInfo();
+  ROS_INFO("[Playback] Loaded clock information: %d messages", int(clock_info_.size()));
 }
 
 void Playback::play() {
   boost::mutex::scoped_lock(enable_lock_);
   if(enabled_) {
-    ROS_INFO("[Playback] Starting playback ...");
+    ROS_INFO_ONCE("[Playback] Starting playback ...");
 
     // Create threads
     boost::thread load_thread(boost::bind(&Playback::loadMsg, this));
@@ -125,11 +131,27 @@ void Playback::loadParams() {
   // Getting node specific parameters
   pnh_->param<std::string>("data_dir", data_dir_, "/mnt/md0/gear_data");
   pnh_->param<std::string>("image_prefix", image_prefix_, "im");
-  pnh_->param<std::string>("image_def", image_def_, "hd");
+  pnh_->param<std::string>("image_def_color", image_def_color_, "hd");
+  pnh_->param<std::string>("image_def_depth", image_def_depth_, "sd");
   pnh_->param<int>("clock_frequency", clock_frequency_, 100);
   pnh_->param<double>("rate", rate_, 1.0);
   pnh_->param<bool>("publish_tf", publish_tf_, true);
   //pnh_->param<int>("queue_size", queue_size_, 1000);
+
+  // Print
+  ROS_INFO_STREAM("[Playback] Parameters loaded");
+  ROS_INFO_STREAM("[Playback] Subject: "<<subject_id_);
+  ROS_INFO_STREAM("[Playback] Session: "<<session_id_);
+  ROS_INFO_STREAM("[Playback] Activity: "<<activity_id_);
+  ROS_INFO_STREAM("[Playback] Condition: "<<condition_id_);
+  ROS_INFO_STREAM("[Playback] Trial: "<<trial_id_);
+  ROS_INFO_STREAM("[Playback] Data directory: "<<data_dir_);
+  ROS_INFO_STREAM("[Playback] Image prefix: "<<image_prefix_);
+  ROS_INFO_STREAM("[Playback] Image definition color: "<<image_def_color_);
+  ROS_INFO_STREAM("[Playback] Image definition depth: "<<image_def_depth_);
+  ROS_INFO_STREAM("[Playback] Clock frequency: "<<clock_frequency_);
+  ROS_INFO_STREAM("[Playback] Rate: "<<rate_);
+  ROS_INFO_STREAM("[Playback] Publish TF: "<<publish_tf_);
 }
 
 void Playback::loadImageInfo() {
@@ -142,7 +164,7 @@ void Playback::loadImageInfo() {
 
   // Check if calibration data is present
   if ( !fs::exists(calibration_root_dir_) || fs::is_empty(calibration_root_dir_))  {
-    ROS_ERROR("[Playback] Calibration data is missing");
+    ROS_ERROR_STREAM("[Playback] Calibration data is missing: "<<calibration_root_dir_.string());
     return;
   }
 
@@ -179,11 +201,20 @@ void Playback::loadImageInfo() {
 
 void Playback::loadClockInfo() {
 
-  // Set start time as minimum of all messages
-  ros::Time t_start = std::min(image_info_.begin()->first, audio_info_.begin()->first);
+  ros::Time t_start, t_stop;
 
-  // Set stop time as maximum of all messages
-  ros::Time t_stop = std::max(image_info_.rbegin()->first, audio_info_.rbegin()->first);
+  // Check if audio data is available
+  if( audio_info_.begin() != audio_info_.end()) {
+
+    // Set start time as minimum of all messages
+    t_start = std::min(image_info_.begin()->first, audio_info_.begin()->first);
+
+    // Set stop time as maximum of all messages
+    t_stop = std::max(image_info_.rbegin()->first, audio_info_.rbegin()->first);
+  } else {
+    t_start = image_info_.begin()->first;
+    t_stop = image_info_.rbegin()->first;
+  }
 
   // Compute time step
   ros::Duration t_interval(1.0/clock_frequency_);
@@ -198,6 +229,13 @@ void Playback::loadAudioInfo() {
 
   // Get audio bag path
   fs::path audio_bag_path = trial_root_dir_/fs::path("bags/audio.bag");
+
+  // Check if audio information exists
+  if (!fs::exists(audio_bag_path)) {
+    ROS_WARN_STREAM("[Playback] Audio file missing: "<<audio_bag_path.string());
+    ROS_WARN("[Playback] Not playing audio");
+    return;
+  }
 
   // Open audio bag
   rosbag::Bag audio_bag;
@@ -242,8 +280,15 @@ void Playback::createPublisher(const std::string &dir_name) {
     std::string camera_id = getCameraID(dir_name);
     std::string camera_type = getCameraType(dir_name);
 
+    std::string image_def;
+    if (camera_type.compare("depth") == 0) {
+      image_def = image_def_depth_;
+    } else {
+      image_def = image_def_color_;
+    }
+
     // Create message name
-    std::string msg_name = std::string("/")+camera_id+std::string("/")+image_def_
+    std::string msg_name = std::string("/")+camera_id+std::string("/")+image_def
                            +std::string("/")+std::string("image_")+camera_type;
     boost::shared_ptr<image_transport::CameraPublisher> pub(new image_transport::CameraPublisher
         (it_->advertiseCamera(msg_name, 1)));
@@ -516,17 +561,20 @@ void Playback::loadMsg(){
     switch(index){
     // Image message
     case 0: {
+      ROS_DEBUG("[Playback] Loading image message into queue ...");
       sensor_msgs::ImageConstPtr image_msg_ptr(createImageMsg(image_it));
       msg_wrapper.setImageData(image_msg_ptr, image_it->second);
       image_it++;
       break;
     }
     case 1: {
+      ROS_DEBUG("[Playback] Loading audio message queue ...");
       msg_wrapper.setAudioData(audio_it->second);
       audio_it++;
       break;
     }
     case 2: {
+      ROS_DEBUG("[Playback] Loading clock message into queue ...");
       rosgraph_msgs::Clock clk;
       clk.clock = *clock_it;
       rosgraph_msgs::ClockConstPtr clk_ptr(new rosgraph_msgs::Clock(clk));
@@ -534,9 +582,16 @@ void Playback::loadMsg(){
       clock_it++;
       break;
     }
+    default: {
+      ROS_ERROR("[Playback] Unknown message type, not loading message");
+      loaded_msgs_++;
+      all_done = image_it == image_info_.end() && audio_it == audio_info_.end() && clock_it == clock_info_.end();
+      continue;
+    }
     }
 
     // Push into message queue
+    ROS_DEBUG("[Playback] Pushing message into queue (has data: %d)", msg_wrapper.hasData());
     while (!msg_queue_->push(msg_wrapper));
     loaded_msgs_++;
 
@@ -568,6 +623,7 @@ Playback::createImageMsg(const std::multimap <ros::Time, std::string>::iterator 
   cv_image.toImageMsg(ros_image);
 
   // Set header information
+  ros_image.header.stamp = image_it->first;
   ros_image.header.frame_id = getFrameID(image_it->second);
 
   sensor_msgs::ImageConstPtr ros_image_ptr(new sensor_msgs::Image(ros_image));
@@ -576,26 +632,28 @@ Playback::createImageMsg(const std::multimap <ros::Time, std::string>::iterator 
 
 void Playback::pickupMsg(){
   MessageWrapper msg_wrapper;
-  ros::Time t_prev(*clock_info_.begin());
-  ros::Time t_next(*clock_info_.begin());
+  ros::Time t_prev(clock_info_.front());
+  ros::Time t_next(clock_info_.front());
 
   while (!done_) {
-      while (msg_queue_->pop(msg_wrapper));
+      while (!msg_queue_->pop(msg_wrapper));
 
       // Get the time of current message
       t_next = msg_wrapper.getMessageTime();
 
       // Wait for sometime
       ros::Duration t_diff = t_next-t_prev;
+      ROS_DEBUG("[Playback] Times computed (t_prev, t_next, t_diff) = (%f, %f, %f)",
+                t_prev.toSec(), t_next.toSec(), t_diff.toSec());
       ros::Time::sleepUntil(ros::Time::now()+t_diff);
+      t_prev = t_next;
 
       published_msgs_++;
-      if (t_diff == ros::Duration(0.0) && msg_wrapper.hasClockData()) continue;
 
       // Publish message
       publishMsg(msg_wrapper);
   }
-  while (msg_queue_->pop(msg_wrapper));
+  while (!msg_queue_->pop(msg_wrapper));
   publishMsg(msg_wrapper);
 }
 
@@ -605,15 +663,18 @@ void Playback::publishMsg(const MessageWrapper &msg_wrapper) const{
   if (msg_wrapper.hasAudioData()) {
 
     // Publish audio data
+    ROS_DEBUG("[Playback] Publishing audio data ...");
     audio_pub_.publish(msg_wrapper.getAudioData());
   } else if (msg_wrapper.hasImageData()) {
     std::string pub_name = msg_wrapper.getPublisherName();
 
     // Publish image data
+    ROS_DEBUG("[Playback] Publishing image data ...");
     image_pub_.at(pub_name)->publish(*msg_wrapper.getImageData(), *camera_info_.at(pub_name));
   } else if (msg_wrapper.hasClockData()) {
 
     // Publish clock data
+    ROS_DEBUG("[Playback] Publishing clock data ...");
     clock_pub_.publish(msg_wrapper.getClockData());
   }
 }
@@ -674,6 +735,7 @@ ros::Time MessageWrapper::getMessageTime() {
     return ros::Time(0);
   }
 }
+
 audio_common_msgs::StampedAudioDataConstPtr MessageWrapper::getAudioData() const{
   return audio_msg_;
 }

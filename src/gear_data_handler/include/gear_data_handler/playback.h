@@ -272,7 +272,7 @@ private:
 
   fs::path image_root_dir_, calibration_root_dir_, trial_root_dir_;
   std::string image_prefix_;
-  std::string image_def_;
+  std::string image_def_color_, image_def_depth_;
   std::map <std::string, std::string> image_extn_;
 
   std::multimap <ros::Time, std::string> image_info_;
