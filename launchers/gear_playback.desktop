@@ -1,0 +1,10 @@
+[Desktop Entry]
+Name=Gear Playback
+Comment=Gear Playback tool
+Exec=bash -i -c $HOME/gear/bin/gear_playback.sh
+Terminal=true
+Type=Application
+Categories=Development;
+StartupNotify=true
+Name[en_US]=Gear Playback
+Comment[en_US.UTF-8]=Gear Playback tool

@@ -12,6 +12,7 @@
   <arg name="slow_update_interval"     default="5"/>
   <arg name="low_free_space"			 		 default="500"/>
   <arg name="critical_free_space"			 default="100"/>
+  <arg name="use_sim_time"             default="false"/>
 
   <!-- Image logger diagnostics -->
   <include file="$(find gear_diagnostics)/launch/diagnostics_image_logger.launch"> 
@@ -23,6 +24,7 @@
 	  <arg name="update_interval"        value="$(arg update_interval)"/>
 	  <arg name="min_frequency"			 		 value="$(arg min_frequency)"/>
 	  <arg name="max_frequency"			 		 value="$(arg max_frequency)"/>
+    <arg name="use_sim_time"           value="$(arg use_sim_time)"/>
   </include>       
 
   <!-- Disk diagnostics -->
@@ -36,5 +38,6 @@
 	<!-- Dignostics aggregator -->
 	<node pkg="diagnostic_aggregator" type="aggregator_node" name="diagnostics_aggregator" output="screen">
 	  <rosparam command="load" file="$(find gear_diagnostics)/config/gear_analyzers.yaml" />
+    <param  name="use_sim_time"       value="$(arg use_sim_time)"/>
 	</node>
 </launch>

@@ -1,7 +1,7 @@
 [Desktop Entry]
 Name=Gear
 Comment=Gear
-Exec=bash -i -c $HOME/gear/gear.sh
+Exec=bash -i -c $HOME/gear/bin/gear.sh
 Terminal=true
 Type=Application
 Categories=Development;

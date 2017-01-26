@@ -1,28 +1,41 @@
 #include <gear_data_handler/playback.h>
 
 // ROS dependencies
-#include <rosgraph_msgs/Clock.h>
 #include <cv_bridge/cv_bridge.h>
 #include <camera_info_manager/camera_info_manager.h>
+#include <rosbag/bag.h>
+#include <rosbag/view.h>
 
 // Boost dependencies
 #include <boost/algorithm/string.hpp>
 #include <boost/lexical_cast.hpp>
+#include <boost/thread/thread.hpp>
+#include <boost/foreach.hpp>
 
 // OpenCV dependencies
-#include <opencv2/core/core.hpp>
 #include <opencv2/highgui/highgui.hpp>
 
+#define KINECT_CALIB_CAMERA_MATRIX "cameraMatrix"
+#define KINECT_CALIB_DISTORTION "distortionCoefficients"
+#define KINECT_HD_SIZE_COLOR cv::Size(1920, 1080)
+#define KINECT_SD_SIZE_DEPTH cv::Size(512, 424)
+#define KINECT_TF_RGB_OPT_FRAME "_rgb_optical_frame"
+#define KINECT_TF_IR_OPT_FRAME "_ir_optical_frame"
+#define LINK_TF_FRAME "_link"
+#define KINECT_CALIB_ROTATION "rotation"
+#define KINECT_CALIB_TRANSLATION "translation"
+#define POSES_FILE_SUFFIX "_pose"
+
 namespace gear_data_handler {
-Playback::Playback(ros::NodeHandle nh, ros::NodeHandle pnh) {
+Playback::Playback(ros::NodeHandle nh, ros::NodeHandle pnh):
+    enabled_(false), initialized_(false), publish_tf_(true), queue_size_(1000),
+    clock_frequency_(100), rate_(1.0), trial_id_(1), done_(false),
+    published_msgs_(0), loaded_msgs_(0) {
   boost::mutex::scoped_lock(enable_lock_);
 
   // Get node handles
   nh_.reset(new ros::NodeHandle(nh));
   pnh_.reset(new ros::NodeHandle(pnh));
-
-  // Enabled
-  enabled_ = false;
 
   // Time publisher
   clock_pub_ = nh_->advertise<rosgraph_msgs::Clock>("clock", 1);
@@ -32,86 +45,55 @@ Playback::Playback(ros::NodeHandle nh, ros::NodeHandle pnh) {
 
   // Create service to enable playback
   enable_playback_ = nh_->advertiseService("enable_playback", &Playback::startPlayback, this);
+
+  // Initialize message queue
+  msg_queue_.reset(new boost::lockfree::spsc_queue<MessageWrapper>(queue_size_));
+
+  // Create audio publisher
+  audio_pub_ = nh_->advertise<audio_common_msgs::StampedAudioData>("/audio/audio", 10);
 }
 
 void Playback::initializePlayback() {
   //Load associated parameters
   loadParams();
 
+  //Set the trial root directory where all data is present
+  trial_root_dir_ = fs::path(data_dir_)/fs::path(subject_id_)/fs::path(session_id_)/
+                    fs::path(activity_id_+std::string("_")
+                    +condition_id_+std::string("_")+std::to_string(trial_id_));
+
   //Load image information
+  ROS_INFO("[Playback] Loading image information ...");
   loadImageInfo();
-  ROS_INFO("[Playback] Loaded image information: %d directories, %d images", int(image_extn_.size()),int(image_info_.size()));
+  ROS_INFO("[Playback] Loaded image information: %d directories, %d images",
+           int(image_extn_.size()),int(image_info_.size()));
+
+  //Load audio information
+  ROS_INFO("[Playback] Loading audio information ...");
+  loadAudioInfo();
+  ROS_INFO("[Playback] Loaded audio information: %d messages", int(audio_info_.size()));
+
+  //Load clock information
+  ROS_INFO("[Playback] Loading clock information ...");
+  loadClockInfo();
+  ROS_INFO("[Playback] Loaded clock information: %d messages", int(clock_info_.size()));
 }
 
 void Playback::play() {
   boost::mutex::scoped_lock(enable_lock_);
   if(enabled_) {
-    std::multimap<ros::Time, std::string>::iterator it=image_info_.begin();
-    ros::Time sim_t_current = it->first;
-    ros::Time sim_t_next = it->first+ros::Duration(1.0/clock_frequency_);
-    ros::Duration t_diff(0);
+    ROS_INFO_ONCE("[Playback] Starting playback ...");
 
-    // Publish current time
-    rosgraph_msgs::Clock clk;
-    clk.clock = sim_t_current;
-    clock_pub_.publish(clk);
+    // Create threads
+    boost::thread load_thread(boost::bind(&Playback::loadMsg, this));
+    boost::thread pickup_thread(boost::bind(&Playback::pickupMsg, this));
 
-    // Iterate over all time stamps in tandem with clock frequency
-    while (it != image_info_.end()) {
+    load_thread.join();
+    done_ = true;
+    pickup_thread.join();
 
-      ros::Time t_start=ros::Time::now();
-      ROS_DEBUG_STREAM("Wall start time: "<<t_start);
-
-      ros::Time sim_next_msg_t = it->first;
-      bool msg_published = false;
-
-      // Check if there are any messages before the next clock tick
-      if (sim_next_msg_t<=sim_t_next) {
-        t_diff = ros::Duration((sim_next_msg_t.toSec()-sim_t_current.toSec())/rate_);
-        sim_t_current = sim_next_msg_t;
-
-        msg_published = true;
-      }
-
-      // If no messages within the next clock tick update clock ticks
-      if(!msg_published) {
-        t_diff = ros::Duration((sim_t_next.toSec()-sim_t_current.toSec())/rate_);
-        sim_t_current = sim_t_next;
-        sim_t_next = sim_t_current+ros::Duration(1.0/clock_frequency_);
-      }
-
-      // Update only clock tick if the message has the same time stamp as clock tick
-      if(msg_published && sim_t_current == sim_t_next) {
-        sim_t_next = sim_t_current+ros::Duration(1.0/clock_frequency_);
-      }
-
-      // Wait for some time
-      ros::Time t_before = ros::Time::now();
-      ros::Time::sleepUntil(ros::Time::now()+t_diff);
-      ros::Time t_after = ros::Time::now();
-
-      // Publish current time
-      if (t_diff>ros::Duration(0.0)) {
-        clk.clock = sim_t_current;
-        clock_pub_.publish(clk);
-      }
-
-      // Publish message
-      if (msg_published) {
-        publishImage(it);
-        it++;
-      }
-
-      ros::Time t_end=ros::Time::now();
-
-      ROS_DEBUG_STREAM("Before sleeping: "<<t_before);
-      ROS_DEBUG_STREAM("After sleeping: "<<t_after);
-      ROS_DEBUG_STREAM("Expected time difference: "<<t_diff);
-      ROS_DEBUG_STREAM("Actual time difference: "<<t_after-t_before);
-      ROS_DEBUG_STREAM("Msg published "<<msg_published);
-      ROS_DEBUG_STREAM("Wall end time: "<<t_end);
-      ROS_DEBUG_STREAM("Iteration time: "<<t_end-t_start);
-    }
+    ROS_INFO_STREAM("Loaded messages: " << loaded_msgs_);
+    ROS_INFO_STREAM("Published messages: " << published_msgs_);
   }
 }
 
@@ -125,7 +107,10 @@ bool Playback::startPlayback(std_srvs::Trigger::Request  &req,
     enabled_ = true;
 
     // Initialize playback
-    initializePlayback();
+    if (!initialized_) {
+      initialized_ = true;
+      initializePlayback();
+    }
 
     res.success = true;
   } else {
@@ -146,27 +131,50 @@ void Playback::loadParams() {
   // Getting node specific parameters
   pnh_->param<std::string>("data_dir", data_dir_, "/mnt/md0/gear_data");
   pnh_->param<std::string>("image_prefix", image_prefix_, "im");
-  pnh_->param<std::string>("image_def", image_def_, "hd");
+  pnh_->param<std::string>("image_def_color", image_def_color_, "hd");
+  pnh_->param<std::string>("image_def_depth", image_def_depth_, "sd");
   pnh_->param<int>("clock_frequency", clock_frequency_, 100);
   pnh_->param<double>("rate", rate_, 1.0);
+  pnh_->param<bool>("publish_tf", publish_tf_, true);
+  //pnh_->param<int>("queue_size", queue_size_, 1000);
+
+  // Print
+  ROS_INFO_STREAM("[Playback] Parameters loaded");
+  ROS_INFO_STREAM("[Playback] Subject: "<<subject_id_);
+  ROS_INFO_STREAM("[Playback] Session: "<<session_id_);
+  ROS_INFO_STREAM("[Playback] Activity: "<<activity_id_);
+  ROS_INFO_STREAM("[Playback] Condition: "<<condition_id_);
+  ROS_INFO_STREAM("[Playback] Trial: "<<trial_id_);
+  ROS_INFO_STREAM("[Playback] Data directory: "<<data_dir_);
+  ROS_INFO_STREAM("[Playback] Image prefix: "<<image_prefix_);
+  ROS_INFO_STREAM("[Playback] Image definition color: "<<image_def_color_);
+  ROS_INFO_STREAM("[Playback] Image definition depth: "<<image_def_depth_);
+  ROS_INFO_STREAM("[Playback] Clock frequency: "<<clock_frequency_);
+  ROS_INFO_STREAM("[Playback] Rate: "<<rate_);
+  ROS_INFO_STREAM("[Playback] Publish TF: "<<publish_tf_);
 }
 
 void Playback::loadImageInfo() {
 
   // Get all directories where images are present
-  image_root_dir_ = fs::path(data_dir_)/fs::path(subject_id_)/fs::path(session_id_)/
-                    fs::path(activity_id_+std::string("_")+condition_id_+std::string("_")+std::to_string(trial_id_))/
-                    fs::path("images");
+  image_root_dir_ = trial_root_dir_/fs::path("images");
 
   // Get the directory where calibration information found
-  calibration_root_dir_ = fs::path(data_dir_)/fs::path(subject_id_)/fs::path(session_id_)/
-                          fs::path(activity_id_+std::string("_")+condition_id_+std::string("_")+std::to_string(trial_id_))/
-                          fs::path("calibration");
+  calibration_root_dir_ = trial_root_dir_/fs::path("calibration");
+
+  // Check if calibration data is present
+  if ( !fs::exists(calibration_root_dir_) || fs::is_empty(calibration_root_dir_))  {
+    ROS_ERROR_STREAM("[Playback] Calibration data is missing: "<<calibration_root_dir_.string());
+    return;
+  }
 
   // Iterate over all images over directories in image root directory
-  if ( fs::exists(image_root_dir_) && fs::is_directory(image_root_dir_))  {
+  if ( fs::exists(image_root_dir_) && fs::is_directory(image_root_dir_) && !fs::is_empty(image_root_dir_))  {
     for( fs::directory_iterator dir_iter(image_root_dir_) ; dir_iter != fs::directory_iterator{} ; ++dir_iter) {
-      if (fs::is_directory(dir_iter->status())) {
+
+      // Check if the directory is not empty before proceeding
+      if (fs::is_directory(dir_iter->status()) && !fs::is_empty(dir_iter->path())) {
+
         std::string dir_name = dir_iter->path().filename().string();
         createPublisher(dir_name);
         for( fs::directory_iterator im_iter(*dir_iter) ; im_iter != fs::directory_iterator() ; ++im_iter) {
@@ -186,7 +194,67 @@ void Playback::loadImageInfo() {
         }
       }
     }
+  } else {
+    ROS_ERROR("[Playback] No image data found");
   }
+}
+
+void Playback::loadClockInfo() {
+
+  ros::Time t_start, t_stop;
+
+  // Check if audio data is available
+  if( audio_info_.begin() != audio_info_.end()) {
+
+    // Set start time as minimum of all messages
+    t_start = std::min(image_info_.begin()->first, audio_info_.begin()->first);
+
+    // Set stop time as maximum of all messages
+    t_stop = std::max(image_info_.rbegin()->first, audio_info_.rbegin()->first);
+  } else {
+    t_start = image_info_.begin()->first;
+    t_stop = image_info_.rbegin()->first;
+  }
+
+  // Compute time step
+  ros::Duration t_interval(1.0/clock_frequency_);
+
+  // Fill clock vector
+  for(ros::Time t=t_start; t<=t_stop; t+=t_interval) {
+    clock_info_.push_back(t);
+  }
+}
+
+void Playback::loadAudioInfo() {
+
+  // Get audio bag path
+  fs::path audio_bag_path = trial_root_dir_/fs::path("bags/audio.bag");
+
+  // Check if audio information exists
+  if (!fs::exists(audio_bag_path)) {
+    ROS_WARN_STREAM("[Playback] Audio file missing: "<<audio_bag_path.string());
+    ROS_WARN("[Playback] Not playing audio");
+    return;
+  }
+
+  // Open audio bag
+  rosbag::Bag audio_bag;
+  audio_bag.open(audio_bag_path.string(), rosbag::bagmode::Read);
+
+  // Get bag topics
+  std::vector<std::string> topics;
+  topics.push_back(std::string("audio_info"));
+
+  // Iterate through messages in bag
+  rosbag::View view(audio_bag, rosbag::TopicQuery(topics));
+
+  BOOST_FOREACH(rosbag::MessageInstance const m, view) {
+      audio_common_msgs::StampedAudioDataConstPtr msg = m.instantiate<audio_common_msgs::StampedAudioData>();
+      audio_info_.insert(std::multimap<ros::Time, audio_common_msgs::StampedAudioDataConstPtr>::value_type
+          (msg->header.stamp, msg));
+  }
+
+  audio_bag.close();
 }
 
 ros::Time Playback::parseTimeStamp(const std::string &image_name) {
@@ -196,8 +264,344 @@ ros::Time Playback::parseTimeStamp(const std::string &image_name) {
   return t;
 }
 
-void Playback::publishImage(const std::multimap <ros::Time, std::string>::iterator &image_it) {
-  // Pad non seconds with zeros
+void Playback::publishImageOld(const std::multimap <ros::Time, std::string>::iterator &image_it) {
+  // Create image message
+  sensor_msgs::ImageConstPtr ros_image_ptr = createImageMsg(image_it);
+
+  // Publish
+  image_pub_.at(image_it->second)->publish(*ros_image_ptr, *camera_info_.at(image_it->second));
+}
+
+void Playback::createPublisher(const std::string &dir_name) {
+  // Check if the specified publisher exists
+  if(image_pub_.find(dir_name) == image_pub_.end()) {
+
+    // Parse directory name to get publisher details
+    std::string camera_id = getCameraID(dir_name);
+    std::string camera_type = getCameraType(dir_name);
+
+    std::string image_def;
+    if (camera_type.compare("depth") == 0) {
+      image_def = image_def_depth_;
+    } else {
+      image_def = image_def_color_;
+    }
+
+    // Create message name
+    std::string msg_name = std::string("/")+camera_id+std::string("/")+image_def
+                           +std::string("/")+std::string("image_")+camera_type;
+    boost::shared_ptr<image_transport::CameraPublisher> pub(new image_transport::CameraPublisher
+        (it_->advertiseCamera(msg_name, 1)));
+    image_pub_[dir_name] = pub;
+
+    // Load camera information
+    if (dir_name[0] == 'p') {
+
+      // Loading pointgray camera info
+      camera_info_[dir_name] = loadPointGreyCameraInfo(dir_name);
+    } else if (dir_name[0] == 'k') {
+
+      // Loading kinect camera info
+      camera_info_[dir_name] = loadKinectCameraInfo(dir_name);
+    } else {
+      ROS_ERROR("[Playback] Unknown sensor type. Cannot find calibration information");
+    }
+
+    // Publish tf
+    if (publish_tf_) {
+      if (dir_name[0] == 'p') {
+
+        // Publish the link tf that connects to world tf tree
+        publishLinkStaticTF(camera_id);
+      } else if (dir_name[0] == 'k') {
+
+        // Publish the link tf that connects to world tf tree
+        publishLinkStaticTF(camera_id);
+
+        // Publish kinect internal frames TF
+        cv::Mat rotation, translation;
+        fs::path pose_url = fs::path(calibration_root_dir_)/
+                            fs::path(camera_id+POSES_FILE_SUFFIX+std::string(".yaml"));
+
+        if(!loadKinectCalibrationPoseFile(pose_url.string(), rotation, translation)) {
+          ROS_ERROR_STREAM("[Playback] Failed to open pose file: " << pose_url.string());
+        }
+        publishKinectStaticTF(camera_id, rotation, translation);
+
+      } else {
+        ROS_WARN("[Playback] Unknown sensor type. Cannot find tf information");
+      }
+
+      // Publish transforms
+      tf_pub_.sendTransform(transforms_);
+    }
+  }
+}
+
+std::string Playback::getCameraID(const std::string &camera_name) const {
+  std::vector<std::string> strs;
+  boost::split(strs, camera_name, boost::is_any_of("_"));
+  return strs[0];
+}
+
+std::string Playback::getCameraType(const std::string &camera_name) const {
+  std::vector<std::string> strs;
+  boost::split(strs, camera_name, boost::is_any_of("_"));
+  return strs[1];
+}
+
+boost::shared_ptr<sensor_msgs::CameraInfo>
+Playback::loadPointGreyCameraInfo(const std::string &camera_name) {
+  fs::path camera_info_url = fs::path(calibration_root_dir_)/fs::path(camera_name+std::string(".yaml"));
+  boost::shared_ptr<sensor_msgs::CameraInfo> c_info;
+
+  // Load camera info if it exists
+  if (fs::exists(camera_info_url)) {
+    camera_info_manager::CameraInfoManager c_info_manager(*nh_, "narrow_stereo", std::string("file://")+camera_info_url.string());
+    c_info.reset(new sensor_msgs::CameraInfo(c_info_manager.getCameraInfo()));
+  } else {
+    ROS_ERROR("[Playback] Unable to find calibration file: %s", camera_info_url.string().c_str());
+  }
+  return c_info;
+}
+
+boost::shared_ptr<sensor_msgs::CameraInfo>
+Playback::loadKinectCameraInfo(const std::string &camera_name) {
+
+  // Initialize camera matrices
+  cv::Mat camera_matrix;
+  cv::Mat distortion;
+  cv::Mat rotation = cv::Mat::eye(3, 3, CV_64F);
+  cv::Mat projection = cv::Mat::zeros(3, 4, CV_64F);
+
+  // Initialize calibration filename
+  fs::path camera_info_url = fs::path(calibration_root_dir_)/fs::path(camera_name+std::string(".yaml"));
+
+  // Load information from input calibration files
+  if(!loadKinectCalibrationFile(camera_info_url.string(), camera_matrix, distortion)) {
+    ROS_ERROR_STREAM("[Playback] Failed to open calibration file: " << camera_info_url.string());
+  }
+
+  // Fill the projection matrix
+  camera_matrix.copyTo(projection(cv::Rect(0, 0, 3, 3)));
+
+  // Create the camera info object
+  boost::shared_ptr<sensor_msgs::CameraInfo> camera_info(new sensor_msgs::CameraInfo());
+
+  // Assign the right frame id
+  camera_info->header.frame_id = getFrameID(camera_name);
+
+  if (camera_name.find("color") != std::string::npos) {
+    createKinectCameraInfo(KINECT_HD_SIZE_COLOR, camera_matrix, distortion, rotation, projection, camera_info);
+  } else if (camera_name.find("depth") != std::string::npos) {
+    createKinectCameraInfo(KINECT_SD_SIZE_DEPTH, camera_matrix, distortion, rotation, projection, camera_info);
+  } else {
+    ROS_ERROR("[Playback] Unknown kinect data type %s", camera_name.c_str());
+  }
+
+  return camera_info;
+}
+
+bool Playback::loadKinectCalibrationFile(const std::string &filename,
+                                         cv::Mat &camera_matrix, cv::Mat &distortion) const {
+  cv::FileStorage fs;
+  if(fs.open(filename, cv::FileStorage::READ))
+  {
+    fs[KINECT_CALIB_CAMERA_MATRIX] >> camera_matrix;
+    fs[KINECT_CALIB_DISTORTION] >> distortion;
+    fs.release();
+  }
+  else  {
+    ROS_ERROR_STREAM("[Playback] Failed to open calibration file: " << filename);
+    return false;
+  }
+  return true;
+}
+
+void Playback::createKinectCameraInfo(const cv::Size &size, const cv::Mat &camera_matrix,
+                                      const cv::Mat &distortion, const cv::Mat &rotation,
+                                      const cv::Mat &projection,
+                                      boost::shared_ptr<sensor_msgs::CameraInfo> camera_info) const {
+  camera_info->height = size.height;
+  camera_info->width = size.width;
+
+  const double *itC = camera_matrix.ptr<double>(0, 0);
+  for(size_t i = 0; i < 9; ++i, ++itC)  {
+    camera_info->K[i] = *itC;
+  }
+
+  const double *itR = rotation.ptr<double>(0, 0);
+  for(size_t i = 0; i < 9; ++i, ++itR)  {
+    camera_info->R[i] = *itR;
+  }
+
+  const double *itP = projection.ptr<double>(0, 0);
+  for(size_t i = 0; i < 12; ++i, ++itP)  {
+    camera_info->P[i] = *itP;
+  }
+
+  camera_info->distortion_model = "plumb_bob";
+  camera_info->D.resize(distortion.cols);
+  const double *itD = distortion.ptr<double>(0, 0);
+  for(size_t i = 0; i < (size_t)distortion.cols; ++i, ++itD)  {
+    camera_info->D[i] = *itD;
+  }
+}
+
+std::string Playback::getFrameID(const std::string &camera_name) const {
+  std::string frame_id;
+  std::string camera_id = getCameraID(camera_name);
+  std::string camera_type = getCameraType(camera_name);
+
+  if (camera_name[0] == 'p') {
+    frame_id = camera_id;
+  } else if (camera_name[0] == 'k') {
+    if (camera_type.compare("color") == 0) {
+      frame_id = camera_id+KINECT_TF_RGB_OPT_FRAME;
+    } else if (camera_type.compare("depth") == 0) {
+      frame_id = camera_id+KINECT_TF_IR_OPT_FRAME;
+    } else {
+      ROS_ERROR("[Playback] Unknown kinect data type: %s", camera_name.c_str());
+    }
+  } else {
+    ROS_ERROR("[Playback] Unknown sensor type. Cannot find calibration information");
+  }
+  return frame_id;
+}
+
+void Playback::publishKinectStaticTF(const std::string &kinect, const cv::Mat &rotation, const cv::Mat &translation) {
+  // Get the rotation matrix
+  tf2::Matrix3x3 rot(rotation.at<double>(0, 0), rotation.at<double>(0, 1), rotation.at<double>(0, 2),
+                     rotation.at<double>(1, 0), rotation.at<double>(1, 1), rotation.at<double>(1, 2),
+                     rotation.at<double>(2, 0), rotation.at<double>(2, 1), rotation.at<double>(2, 2));
+
+  // Get the quarternion from rotation matrix
+  tf2::Quaternion quat;
+  rot.getRotation(quat);
+
+  // Get the translation
+  tf2::Vector3 trans(translation.at<double>(0), translation.at<double>(1), translation.at<double>(2));
+
+  // Get the color transform
+  geometry_msgs::TransformStamped color_transform = createTransformMsg(kinect + LINK_TF_FRAME,
+                                                                       kinect + KINECT_TF_RGB_OPT_FRAME);
+  transforms_.push_back(color_transform);
+
+  // Get the depth transform
+  geometry_msgs::TransformStamped depth_transform = createTransformMsg(kinect + KINECT_TF_RGB_OPT_FRAME,
+                                                                       kinect + KINECT_TF_IR_OPT_FRAME,
+                                                                       trans, quat);
+  transforms_.push_back(depth_transform);
+}
+
+void Playback::publishLinkStaticTF(const std::string &camera_id) {
+  geometry_msgs::TransformStamped tf_transform = createTransformMsg(camera_id, camera_id+LINK_TF_FRAME);
+  transforms_.push_back(tf_transform);
+}
+
+geometry_msgs::TransformStamped Playback::createTransformMsg(const std::string &parent_frame,
+                                                             const std::string &child_frame,
+                                                             const tf2::Vector3 &trans,
+                                                             const tf2::Quaternion &quat,
+                                                             const ros::Time &stamp) const{
+
+  // Get the color transform
+  geometry_msgs::TransformStamped transform;
+  transform.header.stamp = stamp;
+  transform.header.frame_id = parent_frame;
+  transform.child_frame_id = child_frame;
+  transform.transform.translation.x = trans.x();
+  transform.transform.translation.y = trans.y();
+  transform.transform.translation.z = trans.z();
+  transform.transform.rotation.x = quat.x();
+  transform.transform.rotation.y = quat.y();
+  transform.transform.rotation.z = quat.z();
+  transform.transform.rotation.w = quat.w();
+  return transform;
+}
+
+bool Playback::loadKinectCalibrationPoseFile(const std::string &filename,
+                                             cv::Mat &rotation, cv::Mat &translation) const{
+  cv::FileStorage fs;
+  if(fs.open(filename, cv::FileStorage::READ))
+  {
+    fs[KINECT_CALIB_ROTATION] >> rotation;
+    fs[KINECT_CALIB_TRANSLATION] >> translation;
+    fs.release();
+  }
+  else
+  {
+    ROS_ERROR_STREAM("[Playback can't open calibration pose file: " << filename);
+    return false;
+  }
+  return true;
+}
+
+void Playback::loadMsg(){
+  std::multimap<ros::Time, std::string>::iterator image_it=image_info_.begin();
+  std::multimap<ros::Time, audio_common_msgs::StampedAudioDataConstPtr>::iterator audio_it=audio_info_.begin();
+  std::vector<ros::Time>::iterator clock_it=clock_info_.begin();
+
+  bool all_done = image_it == image_info_.end() && audio_it == audio_info_.end() && clock_it == clock_info_.end();
+
+  while (!all_done) {
+    ros::Time image_time = (image_it != image_info_.end()) ? image_it->first: ros::TIME_MAX;
+    ros::Time audio_time = (audio_it != audio_info_.end()) ? audio_it->first: ros::TIME_MAX;
+    ros::Time clock_time = (clock_it != clock_info_.end()) ? *clock_it: ros::TIME_MAX;
+
+    // Get the current time vector
+    std::vector<ros::Time> curr_time = {image_time, audio_time, clock_time};
+
+    // Get the minimum element
+    std::vector<ros::Time>::iterator min_time = std::min_element(curr_time.begin(), curr_time.end());
+    std::vector<ros::Time>::iterator::difference_type index = std::distance(curr_time.begin(), min_time);
+
+    // Create message wrapper based on message type
+    MessageWrapper msg_wrapper;
+    switch(index){
+    // Image message
+    case 0: {
+      ROS_DEBUG("[Playback] Loading image message into queue ...");
+      sensor_msgs::ImageConstPtr image_msg_ptr(createImageMsg(image_it));
+      msg_wrapper.setImageData(image_msg_ptr, image_it->second);
+      image_it++;
+      break;
+    }
+    case 1: {
+      ROS_DEBUG("[Playback] Loading audio message queue ...");
+      msg_wrapper.setAudioData(audio_it->second);
+      audio_it++;
+      break;
+    }
+    case 2: {
+      ROS_DEBUG("[Playback] Loading clock message into queue ...");
+      rosgraph_msgs::Clock clk;
+      clk.clock = *clock_it;
+      rosgraph_msgs::ClockConstPtr clk_ptr(new rosgraph_msgs::Clock(clk));
+      msg_wrapper.setClockData(clk_ptr);
+      clock_it++;
+      break;
+    }
+    default: {
+      ROS_ERROR("[Playback] Unknown message type, not loading message");
+      loaded_msgs_++;
+      all_done = image_it == image_info_.end() && audio_it == audio_info_.end() && clock_it == clock_info_.end();
+      continue;
+    }
+    }
+
+    // Push into message queue
+    ROS_DEBUG("[Playback] Pushing message into queue (has data: %d)", msg_wrapper.hasData());
+    while (!msg_queue_->push(msg_wrapper));
+    loaded_msgs_++;
+
+    all_done = image_it == image_info_.end() && audio_it == audio_info_.end() && clock_it == clock_info_.end();
+  }
+}
+
+sensor_msgs::ImageConstPtr
+Playback::createImageMsg(const std::multimap <ros::Time, std::string>::iterator &image_it) {
+  // Pad nano seconds with zeros
   boost::format nsec("%09d");
   nsec % image_it->first.nsec;
 
@@ -219,32 +623,129 @@ void Playback::publishImage(const std::multimap <ros::Time, std::string>::iterat
   cv_image.toImageMsg(ros_image);
 
   // Set header information
-  ros_image.header.frame_id = image_it->second;
   ros_image.header.stamp = image_it->first;
+  ros_image.header.frame_id = getFrameID(image_it->second);
 
-  // Publish
-  image_pub_.at(image_it->second)->publish(ros_image, *camera_info_.at(image_it->second));
+  sensor_msgs::ImageConstPtr ros_image_ptr(new sensor_msgs::Image(ros_image));
+  return ros_image_ptr;
 }
 
-void Playback::createPublisher(const std::string &dir_name) {
-  // Check if the specified publisher exists
-  if(image_pub_.find(dir_name) == image_pub_.end()) {
+void Playback::pickupMsg(){
+  MessageWrapper msg_wrapper;
+  ros::Time t_prev(clock_info_.front());
+  ros::Time t_next(clock_info_.front());
 
-    // Parse directory name to get publisher details
-    std::vector<std::string> strs;
-    boost::split(strs, dir_name, boost::is_any_of("_"));
-    std::string msg_name = std::string("/")+strs[0]+std::string("/")+image_def_
-                           +std::string("/")+std::string("image_")+strs[1];
-    boost::shared_ptr<image_transport::CameraPublisher> pub(new image_transport::CameraPublisher
-        (it_->advertiseCamera(msg_name, 1)));
-    image_pub_[dir_name] = pub;
+  while (!done_) {
+      while (!msg_queue_->pop(msg_wrapper));
 
-    // Load camera information
-    fs::path camera_info_url = fs::path(calibration_root_dir_)/fs::path(dir_name+std::string(".yaml"));
-    camera_info_manager::CameraInfoManager c_info_manager(*nh_, std::string(""), camera_info_url.string());
-    boost::shared_ptr<sensor_msgs::CameraInfo> c_info(new sensor_msgs::CameraInfo(c_info_manager.getCameraInfo()));
-    camera_info_[dir_name] = c_info;
+      // Get the time of current message
+      t_next = msg_wrapper.getMessageTime();
+
+      // Wait for sometime
+      ros::Duration t_diff = t_next-t_prev;
+      ROS_DEBUG("[Playback] Times computed (t_prev, t_next, t_diff) = (%f, %f, %f)",
+                t_prev.toSec(), t_next.toSec(), t_diff.toSec());
+      ros::Time::sleepUntil(ros::Time::now()+t_diff);
+      t_prev = t_next;
+
+      published_msgs_++;
+
+      // Publish message
+      publishMsg(msg_wrapper);
   }
+  while (!msg_queue_->pop(msg_wrapper));
+  publishMsg(msg_wrapper);
+}
+
+void Playback::publishMsg(const MessageWrapper &msg_wrapper) const{
+  ROS_ERROR_COND(!msg_wrapper.hasData(), "[Playback] No data in message wrapper");
+
+  if (msg_wrapper.hasAudioData()) {
+
+    // Publish audio data
+    ROS_DEBUG("[Playback] Publishing audio data ...");
+    audio_pub_.publish(msg_wrapper.getAudioData());
+  } else if (msg_wrapper.hasImageData()) {
+    std::string pub_name = msg_wrapper.getPublisherName();
+
+    // Publish image data
+    ROS_DEBUG("[Playback] Publishing image data ...");
+    image_pub_.at(pub_name)->publish(*msg_wrapper.getImageData(), *camera_info_.at(pub_name));
+  } else if (msg_wrapper.hasClockData()) {
+
+    // Publish clock data
+    ROS_DEBUG("[Playback] Publishing clock data ...");
+    clock_pub_.publish(msg_wrapper.getClockData());
+  }
+}
+
+MessageWrapper::MessageWrapper() : has_data_(false), has_audio_data_(false),
+    has_image_data_(false), has_clock_data_(false), pub_name_(""){};
+
+bool MessageWrapper::setAudioData(const audio_common_msgs::StampedAudioDataConstPtr &audio_msg) {
+  if (!has_data_) {
+    audio_msg_ = audio_msg;
+    has_audio_data_ = true;
+    updateStatus();
+    return false;
+  } else {
+    ROS_ERROR("[Playback] Cannot add audio data to a container that has data");
+    return true;
+  }
+}
+
+bool MessageWrapper::setClockData(const rosgraph_msgs::ClockConstPtr &clock_msg) {
+  if (!has_data_) {
+    clock_msg_ = clock_msg;
+    has_clock_data_ = true;
+    updateStatus();
+    return false;
+  } else {
+    ROS_ERROR("[Playback] Cannot add audio data to a container that has data");
+    return true;
+  }
+}
+
+bool MessageWrapper::setImageData(const sensor_msgs::ImageConstPtr &image_msg, const std::string &pub_name) {
+  if (!has_data_) {
+    image_msg_ = image_msg;
+    pub_name_ = pub_name;
+    has_image_data_ = true;
+    updateStatus();
+    return false;
+  } else {
+    ROS_ERROR("[Playback] Cannot add image data to a container that has data");
+    return true;
+  }
+}
+
+void MessageWrapper::updateStatus() {
+  has_data_ = (has_image_data_ || has_audio_data_ || has_clock_data_);
+}
+
+ros::Time MessageWrapper::getMessageTime() {
+  if (hasAudioData()) {
+    return audio_msg_->header.stamp;
+  } else if (hasImageData()) {
+    return image_msg_->header.stamp;
+  } else if (hasClockData()) {
+    return clock_msg_->clock;
+  } else {
+    ROS_ERROR("[Playback] No recognized data to get time stamp from");
+    return ros::Time(0);
+  }
+}
+
+audio_common_msgs::StampedAudioDataConstPtr MessageWrapper::getAudioData() const{
+  return audio_msg_;
+}
+
+sensor_msgs::ImageConstPtr MessageWrapper::getImageData() const{
+  return image_msg_;
+}
+
+rosgraph_msgs::ClockConstPtr MessageWrapper::getClockData() const{
+  return clock_msg_;
 }
 
 };

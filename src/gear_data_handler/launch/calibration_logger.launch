@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<launch>
+  <!-- Calibration logger python node -->
+  <node name="calibration_logger" pkg="gear_data_handler" type="log_calibration_data.py"  output="screen"/>
+
+</launch>

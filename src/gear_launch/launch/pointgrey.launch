@@ -10,7 +10,10 @@
   <arg name="start_manager"     default="true"/>
   <arg name="base_name_tf"      default="$(arg base_name)" />
 
-    <!-- Publish top level TF -->
+  <!-- Push camera serial into parameter server -->
+  <param name="$(arg base_name)_serial"    type="str"  value="$(arg camera_serial)"/>
+
+  <!-- Publish top level TF -->
   <node pkg="tf" type="static_transform_publisher" name="$(arg base_name)_broadcaster" args="0 0 0 0 0 0 /$(arg base_name_tf) /$(arg base_name_tf)_link  100" />
 
   <group ns="$(arg base_name)/hd">
