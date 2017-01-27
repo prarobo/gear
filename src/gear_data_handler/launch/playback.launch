@@ -2,12 +2,26 @@
 <launch>
   <arg name="data_dir"          default="/mnt/md0/gear_data"/>
   <arg name="image_def"         default="hd"/>
-  <arg name="image_prefix"      default="im"/>      
+  <arg name="image_prefix"      default="im"/>   
+  <arg name="start_manager"     default="false"/>  
+  
+  <arg name="nodelet_manager"   default="playback_manager" if="$(arg start_manager)"/>
+  <arg name="nodelet_manager"   default="gear" unless="$(arg start_manager)"/>
 
+  <node pkg="nodelet" type="nodelet" name="$(arg nodelet_manager)"  
+        args="manager" output="screen" if="$(arg start_manager)">
+    <param name="num_worker_threads" value="4"/>
+  </node>
+ 
   <!-- Playback node -->
-  <node pkg="gear_data_handler" type="playback" name="playback" output="screen">
+  <node pkg="nodelet" type="nodelet" name="playback"
+        args="load gear_data_handler/Playback $(arg nodelet_manager)" output="screen">
     <param name="data_dir"          value="$(arg data_dir)"/>
     <param name="image_def"         value="$(arg image_def)"/>
     <param name="image_prefix"      value="$(arg image_prefix)"/>
-  </node>
+  </node>  
+ 
+  <!-- Audio -->
+  <include file="$(find audio_play)/launch/play.launch"/>
+
 </launch>

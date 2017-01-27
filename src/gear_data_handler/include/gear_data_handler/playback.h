@@ -11,6 +11,9 @@
 #include <tf2/LinearMath/Matrix3x3.h>
 #include <audio_common_msgs/StampedAudioData.h>
 #include <rosgraph_msgs/Clock.h>
+#include <nodelet/nodelet.h>
+#include <pluginlib/class_list_macros.h>
+#include <gear_data_handler/TimeExtent.h>
 
 // Boost dependencies
 #include <boost/thread/mutex.hpp>
@@ -18,6 +21,7 @@
 #include <boost/filesystem.hpp>
 #include <boost/lockfree/spsc_queue.hpp>
 #include <boost/atomic.hpp>
+#include <boost/thread/thread.hpp>
 
 // OpenCV dependencies
 #include <opencv2/core/core.hpp>
@@ -97,12 +101,22 @@ private:
   bool has_data_;
 };
 
-class Playback {
+class Playback: public nodelet::Nodelet {
 public:
   /**
    * Constructor
    */
-  Playback(ros::NodeHandle nh, ros::NodeHandle pnh);
+  Playback();
+
+  /**
+   * Initialize playback
+   */
+  void initialize();
+
+  /**
+   * Implements the Nodelet interface
+   **/
+  void onInit();
 
   /**
    * Load all the required parameters
@@ -125,15 +139,27 @@ public:
   void loadAudioInfo();
 
   /**
+   * Publish the time extents of playback
+   */
+  bool publishTimeExtent(gear_data_handler::TimeExtent::Request &req,
+                         gear_data_handler::TimeExtent::Response &res);
+
+  /**
    * Parse timestamp from image name
    */
   ros::Time parseTimeStamp(const std::string &image_name);
 
   /**
-   * Enable playback service callback
+   * Start playback service callback
    */
   bool startPlayback(std_srvs::Trigger::Request  &req,
                      std_srvs::Trigger::Response &res);
+
+  /**
+   * Stop playback service callback
+   */
+  bool stopPlayback(std_srvs::Trigger::Request  &req,
+                    std_srvs::Trigger::Response &res);
 
   /**
    * Initialize components required for playback
@@ -242,7 +268,7 @@ public:
 
 private:
   boost::shared_ptr<ros::NodeHandle> nh_, pnh_;
-  ros::ServiceServer enable_playback_;
+  ros::ServiceServer start_playback_, pause_playback_, stop_playback_;
   ros::Publisher clock_pub_;
   std::map<std::string, boost::shared_ptr<image_transport::CameraPublisher>> image_pub_;
   std::map<std::string, boost::shared_ptr<sensor_msgs::CameraInfo>> camera_info_;
@@ -262,7 +288,6 @@ private:
 
   int published_msgs_, loaded_msgs_;
   size_t queue_size_;
-  boost::atomic<bool> done_;
   boost::shared_ptr<boost::lockfree::spsc_queue<MessageWrapper>> msg_queue_;
 
   bool publish_tf_;
@@ -279,9 +304,15 @@ private:
   std::vector <ros::Time> clock_info_;
   std::multimap <ros::Time, audio_common_msgs::StampedAudioDataConstPtr> audio_info_;
 
-  bool enabled_;
-  boost::recursive_mutex enable_lock_;
+  boost::atomic<bool> finished_, started_;
+  boost::shared_ptr<boost::thread> load_thread_, pickup_thread_;
+
+  ros::ServiceServer time_extent_service_;
 };
+
+PLUGINLIB_DECLARE_CLASS(gear_data_handler, Playback,
+                        gear_data_handler::Playback,
+                        nodelet::Nodelet);
 };
 
 #endif // PLAYBACK_H_

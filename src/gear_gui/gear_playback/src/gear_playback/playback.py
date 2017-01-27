@@ -11,46 +11,17 @@ import itertools
 from time import sleep
 import shutil
 from glob import glob
-from gear_data_handler.postprocessor import PostProcessor
-import funcy
+from std_srvs.srv._Trigger import Trigger
+from gear_data_handler.srv._TimeExtent import TimeExtent
+from rosgraph_msgs.msg._Clock import Clock
+from decimal import Decimal
 
 DEFAULT_DATA_DIR = "/mnt/md0/gear_data"
-         
-class TaskThread(QtCore.QThread):
-    task_finished = QtCore.pyqtSignal(int, int)
-    
-    def __init__(self, tid):
-        super(TaskThread, self).__init__()
-        self.tid = tid
-     
-    def initialize(self, root_dir, task, task_type):
-        '''
-        Constructor
-        '''
-        self.root_dir = root_dir
-        self.task = task
-        self.task_type = task_type
-        return
-
-    @QtCore.pyqtSlot()     
-    def run(self):
-        '''
-        Interface with the backend postprocessing
-        '''
-        # Create postprocessing object
-        post_processor_obj = PostProcessor(self.root_dir, DEFAULT_VIDEO_EXTN, DEFAULT_FRAME_RATE)
-         
-        # Generate video or composition
-        if self.task_type == "video":
-            post_processor_obj.create_video(self.task)
-            task_size = 1
-        elif self.task_type == "composition":
-            post_processor_obj.create_composition(self.task)
-            task_size = len(self.task)
-
-        self.task_finished.emit(self.tid, task_size)
-        return
-                     
+PLAYBACK_START_SERVICE_NAME = "/start_playback"
+PLAYBACK_PAUSE_SERVICE_NAME = "/pause_playback"
+PLAYBACK_STOP_SERVICE_NAME = "/stop_playback"
+PLAYBACK_TIME_SERVICE_NAME  = "/playback_time_extents"
+                              
 class PlaybackGUI(Plugin):
 
     def __init__(self, context):
@@ -91,16 +62,32 @@ class PlaybackGUI(Plugin):
         # Add widget to the user interface
         context.add_widget(self._widget)
         
+        # Configure node
+        self._configure_node()
+        
         # Configure gui
         self._configure_gui()
+        
+        # Setup timer
+        self.timer = QtCore.QTimer()
+        self.timer.timeout.connect(self._check_completion)
+        self.timer.start(2000)
                 
         return      
-            
+     
+    def _configure_node(self):
+        '''
+        Configure node specific paarameters
+        '''
+        rospy.Subscriber("/clock", Clock, self._update_time)
+        return
+           
     def _configure_gui(self):
         '''
         Configure the gui elements on startup
         '''        
         # Just call reset callback
+        self._widget.txtFilepath.setText(DEFAULT_DATA_DIR)
         self._onclicked_btnReset()
         self._onchanged_txtFilepath()
 
@@ -116,16 +103,29 @@ class PlaybackGUI(Plugin):
         self._widget.comboSession.currentIndexChanged.connect(self._onchanged_comboSession);  
         self._widget.comboActivity.currentIndexChanged.connect(self._onchanged_comboActivity);  
         self._widget.comboCondition.currentIndexChanged.connect(self._onchanged_comboCondition);  
-        self._widget.comboTrial.currentIndexChanged.connect(self._onchanged_comboTrial);  
-
-        # Create worker thread
-        self.task_threads = [TaskThread(i) for i in xrange(DEFAULT_WORKER_THREADS)]
-        self.thread_idle = [True]*DEFAULT_WORKER_THREADS
-        for t in self.task_threads: 
-            t.task_finished.connect(self._onfinished_task)
-        
+        self._widget.comboTrial.currentIndexChanged.connect(self._onchanged_comboTrial);
+                
         return
-
+    
+    def _check_completion(self):
+        '''
+        Check if there are update from clock server to determine completion of playback
+        '''
+        if self._started:
+            if self._prev_time != rospy.Time(0) and self._curr_time == self._prev_time:
+                self._widget.btnReset.clicked.emit(True)                 
+            self._prev_time = self._curr_time
+        return
+    
+    def _update_time(self, clock_time):
+        '''
+        Update time from clock
+        '''
+        self._curr_time = clock_time.clock
+        val  = self._compute_time_sec(clock_time.clock) - self._compute_time_sec(self._start_time)
+        self._widget.progressBar.setValue(val)
+        return
+        
     def _update_combobox(self, q_obj, item_list):
         '''
         Update combobox without emitting signals
@@ -218,10 +218,7 @@ class PlaybackGUI(Plugin):
         '''
         Refresh GUI when subject changes
         '''
-        if self._widget.chkActivityAll.isChecked():
-            self.activity = self._get_activity_condition_trial_list("activity")
-        else:
-            self.activity = set([str(self._widget.comboActivity.currentText())])
+        self.activity = set([str(self._widget.comboActivity.currentText())])
             
         condition_list = self._get_activity_condition_trial_list("condition")
         if not condition_list:
@@ -236,10 +233,7 @@ class PlaybackGUI(Plugin):
         '''
         Refresh GUI when subject changes
         '''
-        if self._widget.chkConditionAll.isChecked():
-            self.condition = self._get_activity_condition_trial_list("condition")
-        else:
-            self.condition = set([str(self._widget.comboCondition.currentText())])
+        self.condition = set([str(self._widget.comboCondition.currentText())])
             
         trial_list = self._get_activity_condition_trial_list("trial")
         if not trial_list:
@@ -254,42 +248,33 @@ class PlaybackGUI(Plugin):
         '''
         Refresh GUI when subject changes
         '''
-        if self._widget.chkTrialAll.isChecked():
-            self.trial = self._get_activity_condition_trial_list("trial")
-        else:
-            self.trial = set([str(self._widget.comboTrial.currentText())])
-        
-        sensor_list = self._get_sensor_video_list('sensor')                
-        if not sensor_list:
-            return
-
-        self._update_combobox(self._widget.comboSensor, sensor_list)        
-        self._onchanged_comboSensor()        
+        self.trial = set([str(self._widget.comboTrial.currentText())])
         return
     
     @QtCore.pyqtSlot()            
     def _onclicked_btnReset(self):
         '''
         Reset everything to default
-        '''
-        self._widget.txtFilepath.setText(DEFAULT_DATA_DIR)
-
+        '''               
         if not os.path.isdir(self._widget.txtFilepath.text()):
             self._disable_all()
         else:
-            self._widget.comboActivity.setEnabled(False)
-            self._widget.comboCondition.setEnabled(False)
-            self._widget.comboTrial.setEnabled(False)
-            self._widget.comboSensor.setEnabled(False)
-            self._widget.comboVideo.setEnabled(False)            
-            self._widget.btnReset.setEnabled(True)
             self._widget.comboSubject.setEnabled(True)
             self._widget.comboSession.setEnabled(True)
+            self._widget.comboActivity.setEnabled(True)
+            self._widget.comboCondition.setEnabled(True)
+            self._widget.comboTrial.setEnabled(True)
+            self._widget.btnReset.setEnabled(True)
             self._widget.btnStart.setEnabled(True)
             self._widget.progressBar.setValue(0)
             self._widget.btnStop.setEnabled(False)
             self._widget.btnFileselect.setEnabled(True)
-            self._widget.txtFilepath.setEnabled(True)           
+            self._widget.txtFilepath.setEnabled(True)   
+            
+        self._curr_time = rospy.Time(0)
+        self._prev_time = rospy.Time(0)
+        self._start_time = rospy.Time(0)
+        self._started = False          
         return
 
     def _disable_all(self):
@@ -311,39 +296,90 @@ class PlaybackGUI(Plugin):
         '''
         Start generating videos
         '''                        
-        # Generate all tasks
-        self.tasks, self.composition_tasks = self._generate_tasks()
-        totalTasks = len(self.tasks)+len(funcy.cat(self.composition_tasks))
-
         # Configure gui elements
         self._disable_all()
         self._widget.btnFileselect.setEnabled(False)
         self._widget.txtFilepath.setEnabled(False)
-        self._widget.progressBar.setValue(0)
-        self._widget.progressBar.setRange(0, totalTasks)
-        self._widget.btnStop.setEnabled(True)
-        self._widget.btnReset.setEnabled(False)
+        self._widget.btnStart.setEnabled(False)
         self.progress_value = 0
         self._widget.txtOutput.clear()
-        self._output_statustext("Total videos: "+str(len(self.tasks)))
-        self._output_statustext("Total compositions: "+str(len(self.composition_tasks)))
-        self._output_statustext("Starting tasks on {num_workers} workers...".format(num_workers=DEFAULT_WORKER_THREADS))
+        self._output_statustext("Starting playback ...")
         
-        # Process tasks
-        for t in self.task_threads:
-            t.task_finished.emit(t.tid, 0)
+        # Setting ros parameters
+        if not self._started:
+            self._set_ros_parameters()
         
+        # Start playback node
+        playback_start_service = rospy.ServiceProxy(PLAYBACK_START_SERVICE_NAME, Trigger)
+        resp = playback_start_service()
+        if resp.success:
+            rospy.loginfo("[GearPlayback] Playback started: "+str(resp.success))
+            playback_time_service = rospy.ServiceProxy(PLAYBACK_TIME_SERVICE_NAME, TimeExtent)
+            resp = playback_time_service()
+            time_diff = self._compute_time_sec(resp.stop_time)-self._compute_time_sec(resp.start_time)
+            self._start_time = resp.start_time
+            self._widget.progressBar.setRange(0, time_diff)
+            self._widget.progressBar.setValue(0)
+            self._started = True
+            self._output_statustext("Started playback")
+            self._widget.btnStop.setEnabled(True)
+        else:                                
+            rospy.logerr("[GearPlayback] Playback starting failed")
+            self._widget.btnReset.clicked.emit(True)
+            self._output_statustext("Failed to start playback")
         return
+    
+    def _set_ros_parameters(self):
+        '''
+        Set parameters to ros param server
+        '''
+        subject_id = str(self._widget.comboSubject.currentText())
+        session_id = str(self._widget.comboSession.currentText())
+        activity_id = str(self._widget.comboActivity.currentText())
+        condition_id = str(self._widget.comboCondition.currentText())
+        trial_id = str(self._widget.comboTrial.currentText())
+        
+        rospy.set_param("subject_id", subject_id)
+        rospy.set_param("session_id", session_id)
+        rospy.set_param("activity_id", activity_id)
+        rospy.set_param("condition_id", condition_id)
+        rospy.set_param("trial_id", int(trial_id))
+
+        rospy.loginfo("[GearPlayback] Setting parameter subject_id: "+subject_id)    
+        rospy.loginfo("[GearPlayback] Setting parameter session_id: "+session_id)
+        rospy.loginfo("[GearPlayback] Setting parameter activity_id: "+activity_id)
+        rospy.loginfo("[GearPlayback] Setting parameter condition_id: "+condition_id)
+        rospy.loginfo("[GearPlayback] Setting parameter trial_id: "+trial_id)
+        sleep(2)
+        return
+        
+    def _compute_time_sec(self, time_obj):
+        '''
+        Compute time in minutes
+        '''
+        time_sec = round(time_obj.to_sec())
+        return time_sec
 
     @QtCore.pyqtSlot()
     def _onclicked_btnStop(self):
         '''
         Stop generating videos
         '''
-        self.tasks = []
-        self.composition_tasks = []
-        self._output_statustext("Stopping ...")
+        self._output_statustext("Stopping playback ...")
         self._widget.btnStop.setEnabled(False)
+
+        # Stop playback node
+        playback_stop_service = rospy.ServiceProxy(PLAYBACK_STOP_SERVICE_NAME, Trigger)
+        resp = playback_stop_service()
+        if resp.success:
+            rospy.loginfo("[GearPlayback] Playback stopped: "+str(resp.success))
+            self._widget.btnReset.setEnabled(True)
+            self._widget.btnStart.setEnabled(True)
+            self._output_statustext("Stopped playback")
+        else:                                
+            rospy.logerr("[GearPlayback] Playback stopping failed")
+            self._widget.btnReset.clicked.emit(True)
+            self._output_statustext("Failed to stop playback")
         return
 
     def _output_statustext(self, text):

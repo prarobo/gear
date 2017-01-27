@@ -34,4 +34,11 @@
       A functionality to log audio information.
     </description>
   </class>
+  <class name="gear_data_handler/Playback"
+         type="gear_data_handler::Playback"
+         base_class_type="nodelet::Nodelet">
+    <description>
+      A functionality to playback data.
+    </description>
+  </class>
 </library>

@@ -9,7 +9,6 @@
 // Boost dependencies
 #include <boost/algorithm/string.hpp>
 #include <boost/lexical_cast.hpp>
-#include <boost/thread/thread.hpp>
 #include <boost/foreach.hpp>
 
 // OpenCV dependencies
@@ -27,15 +26,31 @@
 #define POSES_FILE_SUFFIX "_pose"
 
 namespace gear_data_handler {
-Playback::Playback(ros::NodeHandle nh, ros::NodeHandle pnh):
-    enabled_(false), initialized_(false), publish_tf_(true), queue_size_(1000),
-    clock_frequency_(100), rate_(1.0), trial_id_(1), done_(false),
-    published_msgs_(0), loaded_msgs_(0) {
-  boost::mutex::scoped_lock(enable_lock_);
+Playback::Playback():
+    publish_tf_(true), queue_size_(1000),
+    clock_frequency_(100), rate_(1.0), trial_id_(1) {
+  initialize();
+};
 
+void Playback::initialize() {
+  started_ = false;
+  finished_ = false;
+  published_msgs_ = 0;
+  loaded_msgs_ = 0;
+
+  // Clear all message information
+  image_info_.clear();
+  clock_info_.clear();
+  audio_info_.clear();
+
+  // Initialize message queue
+  msg_queue_.reset(new boost::lockfree::spsc_queue<MessageWrapper>(queue_size_));
+}
+
+void Playback::onInit() {
   // Get node handles
-  nh_.reset(new ros::NodeHandle(nh));
-  pnh_.reset(new ros::NodeHandle(pnh));
+  nh_.reset(new ros::NodeHandle(getNodeHandle()));
+  pnh_.reset(new ros::NodeHandle(getPrivateNodeHandle()));
 
   // Time publisher
   clock_pub_ = nh_->advertise<rosgraph_msgs::Clock>("clock", 1);
@@ -43,14 +58,53 @@ Playback::Playback(ros::NodeHandle nh, ros::NodeHandle pnh):
   // Image transport
   it_.reset(new image_transport::ImageTransport(*nh_));
 
-  // Create service to enable playback
-  enable_playback_ = nh_->advertiseService("enable_playback", &Playback::startPlayback, this);
+  // Create service to start playback
+  start_playback_ = nh_->advertiseService("start_playback", &Playback::startPlayback, this);
 
-  // Initialize message queue
-  msg_queue_.reset(new boost::lockfree::spsc_queue<MessageWrapper>(queue_size_));
+  // Create service to pause playback
+  stop_playback_ = nh_->advertiseService("stop_playback", &Playback::stopPlayback, this);
 
   // Create audio publisher
   audio_pub_ = nh_->advertise<audio_common_msgs::StampedAudioData>("/audio/audio", 10);
+
+  // Create service to send time extents
+  time_extent_service_ = nh_->advertiseService("playback_time_extents", &Playback::publishTimeExtent, this);
+}
+
+bool Playback::stopPlayback(std_srvs::Trigger::Request  &req,
+                            std_srvs::Trigger::Response &res) {
+  if(started_) {
+    // Stop the threads
+    load_thread_->interrupt();
+    pickup_thread_->interrupt();
+
+    // Wait for things to finish cleanly
+    if (load_thread_->joinable())   load_thread_->join();
+    if (pickup_thread_->joinable())   pickup_thread_->join();
+
+    ROS_INFO("[Playback] Stopped playback");
+    res.message = "Playback stopped";
+    res.success = true;
+  } else {
+    ROS_INFO("[Playback] Playback not started yet cannot stop, doing nothing!");
+    res.message = "Playback not started yet cannot stop, doing nothing!";
+    res.success = false;
+  }
+  started_ = false;
+  return true;
+}
+
+bool Playback::publishTimeExtent(gear_data_handler::TimeExtent::Request &req,
+                                 gear_data_handler::TimeExtent::Response &res) {
+  if(clock_info_.size() != 0) {
+    res.start_time = clock_info_.front();
+    res.stop_time = clock_info_.back();
+    res.success = true;
+    return true;
+  } else {
+    res.success = false;
+    return false;
+  }
 }
 
 void Playback::initializePlayback() {
@@ -79,45 +133,29 @@ void Playback::initializePlayback() {
   ROS_INFO("[Playback] Loaded clock information: %d messages", int(clock_info_.size()));
 }
 
-void Playback::play() {
-  boost::mutex::scoped_lock(enable_lock_);
-  if(enabled_) {
-    ROS_INFO_ONCE("[Playback] Starting playback ...");
-
-    // Create threads
-    boost::thread load_thread(boost::bind(&Playback::loadMsg, this));
-    boost::thread pickup_thread(boost::bind(&Playback::pickupMsg, this));
-
-    load_thread.join();
-    done_ = true;
-    pickup_thread.join();
-
-    ROS_INFO_STREAM("Loaded messages: " << loaded_msgs_);
-    ROS_INFO_STREAM("Published messages: " << published_msgs_);
-  }
-}
-
 bool Playback::startPlayback(std_srvs::Trigger::Request  &req,
                              std_srvs::Trigger::Response &res) {
-  boost::mutex::scoped_lock(enable_lock_);
-  if (!enabled_) {
-    // Set the enable parameter based on service call value
-    ROS_INFO("[Playback] Starting playback");
-    res.message = "Playback ON";
-    enabled_ = true;
+  if (!started_ && !finished_) {
 
     // Initialize playback
-    if (!initialized_) {
-      initialized_ = true;
-      initializePlayback();
-    }
+    ROS_INFO("[Playback] Initializing playback ...");
+    initialize();
+    initializePlayback();
 
+    // Create threads
+    load_thread_.reset(new boost::thread(boost::bind(&Playback::loadMsg, this)));
+    pickup_thread_.reset(new boost::thread(boost::bind(&Playback::pickupMsg, this)));
+    ROS_INFO("[Playback] Started playback");
+
+    started_ = true;
+    res.message = "Playback ON";
     res.success = true;
   } else {
+    ROS_WARN("[Playback] Playback already started, doing nothing!");
     res.message = "Playback already started, doing nothing!";
     res.success = false;
   }
-  return res.success;
+  return true;
 }
 
 void Playback::loadParams() {
@@ -544,59 +582,66 @@ void Playback::loadMsg(){
 
   bool all_done = image_it == image_info_.end() && audio_it == audio_info_.end() && clock_it == clock_info_.end();
 
-  while (!all_done) {
-    ros::Time image_time = (image_it != image_info_.end()) ? image_it->first: ros::TIME_MAX;
-    ros::Time audio_time = (audio_it != audio_info_.end()) ? audio_it->first: ros::TIME_MAX;
-    ros::Time clock_time = (clock_it != clock_info_.end()) ? *clock_it: ros::TIME_MAX;
+  try {
+    while (!all_done) {
+      boost::this_thread::interruption_point();
 
-    // Get the current time vector
-    std::vector<ros::Time> curr_time = {image_time, audio_time, clock_time};
+      ros::Time image_time = (image_it != image_info_.end()) ? image_it->first: ros::TIME_MAX;
+      ros::Time audio_time = (audio_it != audio_info_.end()) ? audio_it->first: ros::TIME_MAX;
+      ros::Time clock_time = (clock_it != clock_info_.end()) ? *clock_it: ros::TIME_MAX;
 
-    // Get the minimum element
-    std::vector<ros::Time>::iterator min_time = std::min_element(curr_time.begin(), curr_time.end());
-    std::vector<ros::Time>::iterator::difference_type index = std::distance(curr_time.begin(), min_time);
+      // Get the current time vector
+      std::vector<ros::Time> curr_time = {image_time, audio_time, clock_time};
 
-    // Create message wrapper based on message type
-    MessageWrapper msg_wrapper;
-    switch(index){
-    // Image message
-    case 0: {
-      ROS_DEBUG("[Playback] Loading image message into queue ...");
-      sensor_msgs::ImageConstPtr image_msg_ptr(createImageMsg(image_it));
-      msg_wrapper.setImageData(image_msg_ptr, image_it->second);
-      image_it++;
-      break;
+      // Get the minimum element
+      std::vector<ros::Time>::iterator min_time = std::min_element(curr_time.begin(), curr_time.end());
+      std::vector<ros::Time>::iterator::difference_type index = std::distance(curr_time.begin(), min_time);
+
+      // Create message wrapper based on message type
+      MessageWrapper msg_wrapper;
+      switch(index){
+      // Image message
+      case 0: {
+        ROS_DEBUG("[Playback] Loading image message into queue ...");
+        sensor_msgs::ImageConstPtr image_msg_ptr(createImageMsg(image_it));
+        msg_wrapper.setImageData(image_msg_ptr, image_it->second);
+        image_it++;
+        break;
+      }
+      case 1: {
+        ROS_DEBUG("[Playback] Loading audio message queue ...");
+        msg_wrapper.setAudioData(audio_it->second);
+        audio_it++;
+        break;
+      }
+      case 2: {
+        ROS_DEBUG("[Playback] Loading clock message into queue ...");
+        rosgraph_msgs::Clock clk;
+        clk.clock = *clock_it;
+        rosgraph_msgs::ClockConstPtr clk_ptr(new rosgraph_msgs::Clock(clk));
+        msg_wrapper.setClockData(clk_ptr);
+        clock_it++;
+        break;
+      }
+      default: {
+        ROS_ERROR("[Playback] Unknown message type, not loading message");
+        loaded_msgs_++;
+        all_done = image_it == image_info_.end() && audio_it == audio_info_.end() && clock_it == clock_info_.end();
+        continue;
+      }
     }
-    case 1: {
-      ROS_DEBUG("[Playback] Loading audio message queue ...");
-      msg_wrapper.setAudioData(audio_it->second);
-      audio_it++;
-      break;
-    }
-    case 2: {
-      ROS_DEBUG("[Playback] Loading clock message into queue ...");
-      rosgraph_msgs::Clock clk;
-      clk.clock = *clock_it;
-      rosgraph_msgs::ClockConstPtr clk_ptr(new rosgraph_msgs::Clock(clk));
-      msg_wrapper.setClockData(clk_ptr);
-      clock_it++;
-      break;
-    }
-    default: {
-      ROS_ERROR("[Playback] Unknown message type, not loading message");
+
+      // Push into message queue
+      ROS_DEBUG("[Playback] Pushing message into queue (has data: %d)", msg_wrapper.hasData());
+      while (!msg_queue_->push(msg_wrapper));
       loaded_msgs_++;
+
       all_done = image_it == image_info_.end() && audio_it == audio_info_.end() && clock_it == clock_info_.end();
-      continue;
     }
-    }
-
-    // Push into message queue
-    ROS_DEBUG("[Playback] Pushing message into queue (has data: %d)", msg_wrapper.hasData());
-    while (!msg_queue_->push(msg_wrapper));
-    loaded_msgs_++;
-
-    all_done = image_it == image_info_.end() && audio_it == audio_info_.end() && clock_it == clock_info_.end();
+  } catch (boost::thread_interrupted&) {
+    ROS_WARN("[Playback] Interrupted loading messages");
   }
+  finished_ = true;
 }
 
 sensor_msgs::ImageConstPtr
@@ -635,8 +680,12 @@ void Playback::pickupMsg(){
   ros::Time t_prev(clock_info_.front());
   ros::Time t_next(clock_info_.front());
 
-  while (!done_) {
-      while (!msg_queue_->pop(msg_wrapper));
+  try {
+    while (!finished_) {
+      boost::this_thread::interruption_point();
+      while (!msg_queue_->pop(msg_wrapper)) {
+        boost::this_thread::interruption_point();
+      }
 
       // Get the time of current message
       t_next = msg_wrapper.getMessageTime();
@@ -652,9 +701,16 @@ void Playback::pickupMsg(){
 
       // Publish message
       publishMsg(msg_wrapper);
+    }
+    while (!msg_queue_->pop(msg_wrapper)) {
+      boost::this_thread::interruption_point();
+    }
+    publishMsg(msg_wrapper);
+  } catch (boost::thread_interrupted&) {
+    ROS_WARN("[Playback] Interrupted pickup messages");
   }
-  while (!msg_queue_->pop(msg_wrapper));
-  publishMsg(msg_wrapper);
+  ROS_INFO_STREAM("Loaded messages: " << loaded_msgs_);
+  ROS_INFO_STREAM("Published messages: " << published_msgs_);
 }
 
 void Playback::publishMsg(const MessageWrapper &msg_wrapper) const{
@@ -749,14 +805,3 @@ rosgraph_msgs::ClockConstPtr MessageWrapper::getClockData() const{
 }
 
 };
-
-int main(int argc, char **argv){
-  ros::init(argc, argv, "playback");
-  ros::NodeHandle nh;
-  ros::NodeHandle pnh("~");
-  gear_data_handler::Playback player(nh, pnh);
-  while(ros::ok()) {
-    player.play();
-    ros::spinOnce();
-  }
-}
