@@ -8,7 +8,7 @@ import yaml
 import os
 from rospkg import RosPack
 from gear_data_handler.log_calibration_data import CalibrationLogger
-from std_srvs.srv._Trigger import Trigger, TriggerResponse
+from std_srvs.srv._Trigger import Trigger, TriggerResponse, TriggerRequest
 
 rospack = RosPack()
 DEFAULT_TF_DIR = os.path.join(rospack.get_path("gear_launch"), "calibration")
@@ -29,7 +29,8 @@ class PublishTF(object):
         
         # Publish TF if requested
         if not self.playback_mode:
-            self.load_and_publish_tf()
+            req = TriggerRequest()
+            self.load_and_publish_tf(req)
             
         return
     
@@ -87,7 +88,7 @@ class PublishTF(object):
          
         # Publish transform berween vicon frame and world frame
         pose_obj = {"translation":{"x":0, "y":0, "z":0}, "rotation":{"x":0, "y":0, "z":0, "w":1}}
-        tf_transform_list.append(publish_tf_transform(WORLD_FRAME, VICON_FRAME, pose_obj))
+        tf_transform_list.append(self.create_tf_transform(WORLD_FRAME, VICON_FRAME, pose_obj))
         
         # Publish tf that was loaded from file
         for k,v in tf_info["poses"].iteritems():
