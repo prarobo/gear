@@ -93,33 +93,35 @@
     </include>
 
     <!-- Launch Audio -->
-    <include file="$(find gear_launch)/launch/audio_gear.launch" if="$(arg enable_audio)"/>
+    <include file="$(find gear_launch)/launch/audio_gear.launch" if="$(arg enable_audio)">
+      <arg name="use_sim_time"        value="$(arg use_sim_time)"/>
+    </include>
   </group>
 
   <!-- Launch diagnostics -->
   <include file="$(find gear_diagnostics)/launch/diagnostics.launch" if="$(arg enable_diagnostics)">
-    <arg name="frame_rate"          value="$(arg frame_rate)"/>
-    <arg name="use_sim_time"        value="$(arg use_sim_time)"/>
+    <arg name="frame_rate"            value="$(arg frame_rate)"/>
+    <arg name="use_sim_time"          value="$(arg use_sim_time)"/>
   </include>
 
   <!-- Launch trackers -->
   <include file="$(find gear_launch)/launch/tracker_gear.launch" if="$(arg enable_trackers)">
-    <arg name="start_manager"       value="$(arg start_indiv_manager)"/>
-    <arg name="nodelet_manager"     value="$(arg nodelet_manager)"/>
-    <arg name="use_sim_time"        value="$(arg use_sim_time)"/>
+    <arg name="start_manager"         value="$(arg start_indiv_manager)"/>
+    <arg name="nodelet_manager"       value="$(arg nodelet_manager)"/>
+    <arg name="use_sim_time"          value="$(arg use_sim_time)"/>
   </include> 
 
   <!-- Launch TF -->
   <include file="$(find gear_tf)/launch/tf_broadcaster.launch" if="$(arg enable_tf)">
-    <arg name="playback_mode"       value="true" if="$(arg use_sim_time)"/>
-    <arg name="use_sim_time"        value="$(arg use_sim_time)"/>
+    <arg name="playback_mode"         value="true" if="$(arg use_sim_time)"/>
+    <arg name="use_sim_time"          value="$(arg use_sim_time)"/>
   </include>  
 
   <!-- Launch nodelet manager -->
   <node pkg="nodelet" type="nodelet" name="$(arg nodelet_manager)"  
           args="manager" output="screen" if="$(arg start_manager)">
-    <param name="num_worker_threads" value="$(arg threads)"/>
-    <param name="use_sim_time"       value="$(arg use_sim_time)"/>
+    <param name="num_worker_threads"  value="$(arg threads)"/>
+    <param name="use_sim_time"        value="$(arg use_sim_time)"/>
   </node>
 
 </launch>
