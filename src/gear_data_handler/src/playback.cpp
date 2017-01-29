@@ -70,6 +70,9 @@ void Playback::onInit() {
 
   // Create service to send time extents
   time_extent_service_ = nh_->advertiseService("playback_time_extents", &Playback::publishTimeExtent, this);
+
+  // Setting up dynamic reconfigure
+  server_.setCallback(boost::bind(&Playback::reconfigureCallback, this, _1, _2));
 }
 
 bool Playback::stopPlayback(std_srvs::Trigger::Request  &req,
@@ -80,8 +83,18 @@ bool Playback::stopPlayback(std_srvs::Trigger::Request  &req,
     pickup_thread_->interrupt();
 
     // Wait for things to finish cleanly
-    if (load_thread_->joinable())   load_thread_->join();
-    if (pickup_thread_->joinable())   pickup_thread_->join();
+    if (load_thread_->joinable()) {
+      ROS_INFO("[Playback] Waiting for load thread to stop ...");
+      load_thread_->join();
+    } else {
+      ROS_WARN("[Playback] Failed to join load");
+    }
+    if (pickup_thread_->joinable()) {
+      ROS_INFO("[Playback] Waiting for pickup thread to stop ...");
+      pickup_thread_->join();
+    } else {
+      ROS_WARN("[Playback] Failed to join pickup");
+    }
 
     ROS_INFO("[Playback] Stopped playback");
     res.message = "Playback stopped";
@@ -92,6 +105,7 @@ bool Playback::stopPlayback(std_srvs::Trigger::Request  &req,
     res.success = false;
   }
   started_ = false;
+  ROS_INFO_STREAM("[Playback] Started value: "<<started_);
   return true;
 }
 
@@ -136,7 +150,7 @@ void Playback::initializePlayback() {
 
 bool Playback::startPlayback(std_srvs::Trigger::Request  &req,
                              std_srvs::Trigger::Response &res) {
-  if (!started_ && !finished_) {
+  if (!started_ || finished_) {
 
     // Initialize playback
     ROS_INFO("[Playback] Initializing playback ...");
@@ -173,9 +187,13 @@ void Playback::loadParams() {
   pnh_->param<std::string>("image_def_color", image_def_color_, "hd");
   pnh_->param<std::string>("image_def_depth", image_def_depth_, "sd");
   pnh_->param<int>("clock_frequency", clock_frequency_, 100);
-  pnh_->param<double>("rate", rate_, 1.0);
   pnh_->param<bool>("publish_tf", publish_tf_, true);
   //pnh_->param<int>("queue_size", queue_size_, 1000);
+
+  // Getting rate
+  double rate;
+  pnh_->param<double>("rate", rate, 1.0);
+  rate_ = rate;
 
   // Print
   ROS_INFO_STREAM("[Playback] Parameters loaded");
@@ -638,7 +656,9 @@ void Playback::loadMsg(){
       // Push into message queue
       if(msg_wrapper.hasData()) {
         ROS_DEBUG("[Playback] Pushing message into queue (has data: %d)", msg_wrapper.hasData());
-        while (!msg_queue_->push(msg_wrapper));
+        while (!msg_queue_->push(msg_wrapper)) {
+          boost::this_thread::interruption_point();
+        }
         loaded_msgs_++;
       }
 
@@ -698,9 +718,10 @@ void Playback::pickupMsg(){
 
       // Wait for sometime
       ros::Duration t_diff = t_next-t_prev;
-      ROS_DEBUG("[Playback] Times computed (t_prev, t_next, t_diff) = (%f, %f, %f)",
-                t_prev.toSec(), t_next.toSec(), t_diff.toSec());
-      ros::Time::sleepUntil(ros::Time::now()+t_diff);
+      ros::Duration t_rate_diff(t_diff.toSec()/rate_);
+      ROS_DEBUG("[Playback] Times computed (t_prev, t_next, rate, t_diff, t_rate_diff) = (%f, %f, %f, %f, %f)",
+                t_prev.toSec(), t_next.toSec(), rate_.load(), t_diff.toSec(), t_rate_diff.toSec());
+      ros::Time::sleepUntil(ros::Time::now()+t_rate_diff);
       t_prev = t_next;
 
       published_msgs_++;
@@ -739,6 +760,12 @@ void Playback::publishMsg(const MessageWrapper &msg_wrapper) const{
     ROS_DEBUG("[Playback] Publishing clock data ...");
     clock_pub_.publish(msg_wrapper.getClockData());
   }
+}
+
+void Playback::reconfigureCallback(gear_data_handler::PlaybackConfig &config, uint32_t level) {
+  ROS_INFO("Rate reconfigure requested: %f", config.rate);
+  pnh_->setParam("rate", config.rate);
+  rate_ = config.rate;
 }
 
 MessageWrapper::MessageWrapper() : has_data_(false), has_audio_data_(false),

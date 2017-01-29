@@ -18,7 +18,6 @@ from decimal import Decimal
 
 DEFAULT_DATA_DIR = "/mnt/md0/gear_data"
 PLAYBACK_START_SERVICE_NAME = "/start_playback"
-PLAYBACK_PAUSE_SERVICE_NAME = "/pause_playback"
 PLAYBACK_STOP_SERVICE_NAME = "/stop_playback"
 PLAYBACK_TIME_SERVICE_NAME  = "/playback_time_extents"
                               
@@ -255,7 +254,9 @@ class PlaybackGUI(Plugin):
     def _onclicked_btnReset(self):
         '''
         Reset everything to default
-        '''               
+        ''' 
+        self._widget.txtFilepath.setText(DEFAULT_DATA_DIR)
+              
         if not os.path.isdir(self._widget.txtFilepath.text()):
             self._disable_all()
         else:
@@ -350,7 +351,6 @@ class PlaybackGUI(Plugin):
         rospy.loginfo("[GearPlayback] Setting parameter activity_id: "+activity_id)
         rospy.loginfo("[GearPlayback] Setting parameter condition_id: "+condition_id)
         rospy.loginfo("[GearPlayback] Setting parameter trial_id: "+trial_id)
-        sleep(2)
         return
         
     def _compute_time_sec(self, time_obj):
