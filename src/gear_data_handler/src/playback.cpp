@@ -24,11 +24,12 @@
 #define KINECT_CALIB_ROTATION "rotation"
 #define KINECT_CALIB_TRANSLATION "translation"
 #define POSES_FILE_SUFFIX "_pose"
+#define SPSC_QUEUE_SIZE 250
 
 namespace gear_data_handler {
 Playback::Playback():
-    publish_tf_(true), queue_size_(1000),
-    clock_frequency_(100), rate_(1.0), trial_id_(1) {
+    publish_tf_(true), queue_size_(SPSC_QUEUE_SIZE),
+    clock_frequency_(50), rate_(1.0), trial_id_(1) {
   initialize();
 };
 
@@ -600,41 +601,46 @@ void Playback::loadMsg(){
       // Create message wrapper based on message type
       MessageWrapper msg_wrapper;
       switch(index){
-      // Image message
-      case 0: {
-        ROS_DEBUG("[Playback] Loading image message into queue ...");
-        sensor_msgs::ImageConstPtr image_msg_ptr(createImageMsg(image_it));
-        msg_wrapper.setImageData(image_msg_ptr, image_it->second);
-        image_it++;
-        break;
+        case 0: {
+          ROS_DEBUG("[Playback] Loading image message into queue ...");
+
+          // Check if someone needs image data before loading
+          if (image_pub_.at(image_it->second)->getNumSubscribers() > 0) {
+            sensor_msgs::ImageConstPtr image_msg_ptr(createImageMsg(image_it));
+            msg_wrapper.setImageData(image_msg_ptr, image_it->second);
+          }
+          image_it++;
+          break;
+        }
+        case 1: {
+          ROS_DEBUG("[Playback] Loading audio message queue ...");
+          msg_wrapper.setAudioData(audio_it->second);
+          audio_it++;
+          break;
+        }
+        case 2: {
+          ROS_DEBUG("[Playback] Loading clock message into queue ...");
+          rosgraph_msgs::Clock clk;
+          clk.clock = *clock_it;
+          rosgraph_msgs::ClockConstPtr clk_ptr(new rosgraph_msgs::Clock(clk));
+          msg_wrapper.setClockData(clk_ptr);
+          clock_it++;
+          break;
+        }
+        default: {
+          ROS_ERROR("[Playback] Unknown message type, not loading message");
+          loaded_msgs_++;
+          all_done = image_it == image_info_.end() && audio_it == audio_info_.end() && clock_it == clock_info_.end();
+          continue;
+        }
       }
-      case 1: {
-        ROS_DEBUG("[Playback] Loading audio message queue ...");
-        msg_wrapper.setAudioData(audio_it->second);
-        audio_it++;
-        break;
-      }
-      case 2: {
-        ROS_DEBUG("[Playback] Loading clock message into queue ...");
-        rosgraph_msgs::Clock clk;
-        clk.clock = *clock_it;
-        rosgraph_msgs::ClockConstPtr clk_ptr(new rosgraph_msgs::Clock(clk));
-        msg_wrapper.setClockData(clk_ptr);
-        clock_it++;
-        break;
-      }
-      default: {
-        ROS_ERROR("[Playback] Unknown message type, not loading message");
-        loaded_msgs_++;
-        all_done = image_it == image_info_.end() && audio_it == audio_info_.end() && clock_it == clock_info_.end();
-        continue;
-      }
-    }
 
       // Push into message queue
-      ROS_DEBUG("[Playback] Pushing message into queue (has data: %d)", msg_wrapper.hasData());
-      while (!msg_queue_->push(msg_wrapper));
-      loaded_msgs_++;
+      if(msg_wrapper.hasData()) {
+        ROS_DEBUG("[Playback] Pushing message into queue (has data: %d)", msg_wrapper.hasData());
+        while (!msg_queue_->push(msg_wrapper));
+        loaded_msgs_++;
+      }
 
       all_done = image_it == image_info_.end() && audio_it == audio_info_.end() && clock_it == clock_info_.end();
     }
