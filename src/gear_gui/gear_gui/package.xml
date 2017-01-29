@@ -19,6 +19,7 @@
   <run_depend>gear_image_capture</run_depend>
   <run_depend>gear_session_duration</run_depend>
   <run_depend>gear_postprocess</run_depend>
+  <run_depend>gear_playback</run_depend>
   <export>
     <metapackage/>
   </export>

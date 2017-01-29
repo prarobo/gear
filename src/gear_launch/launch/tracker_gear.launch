@@ -6,6 +6,7 @@
   <arg name="topic_name"            default="image_color"/>
   <arg name="start_manager"         default="true"/>
   <arg name="nodelet_manager"       default="gear_tracker"/>
+  <arg name="use_sim_time"          default="false"/>
 
   <!--kinect1 -->
   <include file="$(find gear_launch)/launch/$(arg tag_type)_tag_tracker.launch">
@@ -14,6 +15,7 @@
     <arg name="base_name"       value="k1"/>
     <arg name="image_def"       value="$(arg image_def)"/>
     <arg name="topic_name"      value="$(arg topic_name)"/>
+    <arg name="use_sim_time"    value="$(arg use_sim_time)"/>
   </include>
 
   <!--kinect2 -->
@@ -23,6 +25,7 @@
     <arg name="base_name"       value="k2"/>
     <arg name="image_def"       value="$(arg image_def)"/>
     <arg name="topic_name"      value="$(arg topic_name)"/>
+    <arg name="use_sim_time"    value="$(arg use_sim_time)"/>
   </include>
 
   <!--kinect3 -->
@@ -32,6 +35,7 @@
     <arg name="base_name"       value="k3"/>
     <arg name="image_def"       value="$(arg image_def)"/>
     <arg name="topic_name"      value="$(arg topic_name)"/>
+    <arg name="use_sim_time"    value="$(arg use_sim_time)"/>
   </include>
 
   <!--pointgrey1 -->
@@ -41,6 +45,7 @@
     <arg name="base_name"       value="p1"/>
     <arg name="image_def"       value="$(arg image_def)"/>
     <arg name="topic_name"      value="$(arg topic_name)"/>
+    <arg name="use_sim_time"    value="$(arg use_sim_time)"/>
   </include>
 
   <!--pointgrey2 -->
@@ -50,5 +55,6 @@
     <arg name="base_name"       value="p2"/>
     <arg name="image_def"       value="$(arg image_def)"/>
     <arg name="topic_name"      value="$(arg topic_name)"/>
+    <arg name="use_sim_time"    value="$(arg use_sim_time)"/>
   </include>
 </launch>

@@ -15,6 +15,11 @@ find_package(catkin REQUIRED COMPONENTS
   apriltags_ros
   ar_track_alvar_msgs
   rosbag
+  camera_info_manager
+  tf2
+  tf2_ros
+  message_generation
+  rostime
 )
 
 find_package(OpenCV REQUIRED)
@@ -25,6 +30,16 @@ add_definitions(-std=gnu++0x)
 
 catkin_python_setup()
 
+add_service_files(
+  FILES
+  TimeExtent.srv
+)
+
+generate_messages(
+  DEPENDENCIES
+  std_msgs
+)
+
 ###################################
 ## catkin specific configuration ##
 ###################################
@@ -33,7 +48,7 @@ catkin_package(
   # LIBRARIES gear_data_handler
   CATKIN_DEPENDS pluginlib nodelet cv_bridge roscpp rospy sensor_msgs std_msgs 
   std_srvs pcl_ros pcl_conversions apriltags_ros rosbag ar_track_alvar_msgs
-  audio_common_msgs
+  camera_info_manager tf2 tf2_ros audio_common_msgs message_runtime
   # DEPENDS system_lib
 )
 
@@ -59,6 +74,7 @@ add_library(data_handler
   src/synchronize_images.cpp
   src/logger.cpp
   src/log_bags.cpp
+  src/playback.cpp
 )
 
 target_link_libraries(data_handler
