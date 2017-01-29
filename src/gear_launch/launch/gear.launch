@@ -12,12 +12,19 @@
   <arg name="enable_kinect1"        default="true"/>
   <arg name="enable_kinect2"        default="true"/>
   <arg name="enable_kinect3"        default="true"/>
-  <arg name="enable_pointgrey1"     default="true"/>
-  <arg name="enable_pointgrey2"     default="true"/>
+  <arg name="enable_kinect4"        default="true"/>
+  <arg name="enable_kinect5"        default="true"/>
+  <arg name="enable_kinect1_depth"  default="true"/>
+  <arg name="enable_kinect2_depth"  default="true"/>
+  <arg name="enable_kinect3_depth"  default="true"/>
+  <arg name="enable_kinect4_depth"  default="true"/>
+  <arg name="enable_kinect5_depth"  default="true"/>
+  <arg name="enable_pointgrey1"     default="false"/>
+  <arg name="enable_pointgrey2"     default="false"/>
   <arg name="enable_audio"          default="true"/>
   <arg name="enable_loggers"        default="true"/>
   <arg name="enable_diagnostics"    default="true"/>
-  <arg name="enable_tf"    	    default="true"/>
+  <arg name="enable_tf"    	        default="true"/>
   <arg name="enable_trackers"       default="true"/>
 
   <!-- Parameters -->
@@ -51,6 +58,8 @@
       <arg name="enable_kinect1"      value="$(arg enable_kinect1)"/>
       <arg name="enable_kinect2"      value="$(arg enable_kinect2)"/>
       <arg name="enable_kinect3"      value="$(arg enable_kinect3)"/>
+      <arg name="enable_kinect4"      value="$(arg enable_kinect4)"/>
+      <arg name="enable_kinect5"      value="$(arg enable_kinect5)"/>
       <arg name="frame_rate"          value="$(arg frame_rate)"/>
       <arg name="start_manager"       value="$(arg start_indiv_manager)"/>
       <arg name="nodelet_manager"     value="$(arg nodelet_manager)"/>
@@ -75,6 +84,8 @@
       <arg name="enable_kinect1"      value="$(arg enable_kinect1)"/>
       <arg name="enable_kinect2"      value="$(arg enable_kinect2)"/>
       <arg name="enable_kinect3"      value="$(arg enable_kinect3)"/>
+      <arg name="enable_kinect4"      value="$(arg enable_kinect4)"/>
+      <arg name="enable_kinect5"      value="$(arg enable_kinect5)"/>
       <arg name="enable_pointgrey1"   value="$(arg enable_pointgrey1)"/>
       <arg name="enable_pointgrey2"   value="$(arg enable_pointgrey2)"/>
       <arg name="enable_audio"        value="$(arg enable_audio)"/>

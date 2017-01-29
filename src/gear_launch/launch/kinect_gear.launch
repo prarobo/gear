@@ -11,6 +11,8 @@
   <arg name="enable_kinect1"    default="true"/>
   <arg name="enable_kinect2"    default="true"/>
   <arg name="enable_kinect3"    default="true"/>
+  <arg name="enable_kinect4"    default="true"/>
+  <arg name="enable_kinect5"    default="true"/>
 
   <!--kinect1 parameters-->
   <arg name="k1_base_name"      value="k1"/>
@@ -24,6 +26,14 @@
   <!--kinect3 parameters-->
   <arg name="k3_base_name"      value="k3"/>
   <arg name="k3_sensor"         value="025872444747"/>
+
+  <!--kinect4 parameters-->
+  <arg name="k4_base_name"      value="k4"/>
+  <arg name="k4_sensor"         value="001532335047"/>
+
+  <!--kinect5 parameters-->
+  <arg name="k5_base_name"      value="k5"/>
+  <arg name="k5_sensor"         value="105581140847"/>
     
   <!--kinect1-->
   <include file="$(find gear_launch)/launch/kinect.launch" if="$(arg enable_kinect1)">        
@@ -51,6 +61,28 @@
   <include file="$(find gear_launch)/launch/kinect.launch" if="$(arg enable_kinect3)">
     <arg name="base_name"       value="$(arg k3_base_name)"/>
     <arg name="sensor"          value="$(arg k3_sensor)"/>
+    <arg name="fps_limit"       value="$(arg frame_rate)"/>
+    <arg name="do_pointcloud"   value="$(arg do_pointcloud)"/>
+    <arg name="do_acquisition"  value="$(arg do_acquisition)"/>
+    <arg name="start_manager"   value="$(arg start_manager)"/>
+    <arg name="nodelet_manager" value="$(arg nodelet_manager)" unless="$(arg start_manager)"/>
+  </include>
+
+  <!--kinect4-->
+  <include file="$(find gear_launch)/launch/kinect.launch" if="$(arg enable_kinect4)">
+    <arg name="base_name"       value="$(arg k4_base_name)"/>
+    <arg name="sensor"          value="$(arg k4_sensor)"/>
+    <arg name="fps_limit"       value="$(arg frame_rate)"/>
+    <arg name="do_pointcloud"   value="$(arg do_pointcloud)"/>
+    <arg name="do_acquisition"  value="$(arg do_acquisition)"/>
+    <arg name="start_manager"   value="$(arg start_manager)"/>
+    <arg name="nodelet_manager" value="$(arg nodelet_manager)" unless="$(arg start_manager)"/>
+  </include>
+
+  <!--kinect5-->
+  <include file="$(find gear_launch)/launch/kinect.launch" if="$(arg enable_kinect5)">
+    <arg name="base_name"       value="$(arg k5_base_name)"/>
+    <arg name="sensor"          value="$(arg k5_sensor)"/>
     <arg name="fps_limit"       value="$(arg frame_rate)"/>
     <arg name="do_pointcloud"   value="$(arg do_pointcloud)"/>
     <arg name="do_acquisition"  value="$(arg do_acquisition)"/>

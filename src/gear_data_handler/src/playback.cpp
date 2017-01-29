@@ -61,7 +61,7 @@ void Playback::onInit() {
   // Create service to start playback
   start_playback_ = nh_->advertiseService("start_playback", &Playback::startPlayback, this);
 
-  // Create service to pause playback
+  // Create service to stop playback
   stop_playback_ = nh_->advertiseService("stop_playback", &Playback::stopPlayback, this);
 
   // Create audio publisher

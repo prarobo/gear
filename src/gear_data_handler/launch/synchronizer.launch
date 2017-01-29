@@ -7,12 +7,11 @@
   <arg name="data_topics"       default="[/k1/$(arg color_def)/image_color,
                                           /k2/$(arg color_def)/image_color,
                                           /k3/$(arg color_def)/image_color,
+                                          /k4/$(arg color_def)/image_color,
+                                          /k5/$(arg color_def)/image_color,
                                           /k1/$(arg depth_def)/image_depth,
                                           /k2/$(arg depth_def)/image_depth,
-                                          /k3/$(arg depth_def)/image_depth,
-                                          /p1/$(arg color_def)/image_color,
-                                          /p2/$(arg color_def)/image_color]"/>
-
+                                          /k3/$(arg depth_def)/image_depth]"/>
 
   <arg name="nodelet_manager"   default="synchronizer_manager" if="$(arg start_manager)"/>
   <arg name="nodelet_manager"   default="gear" unless="$(arg start_manager)"/>
