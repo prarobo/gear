@@ -11,6 +11,6 @@ sleep 8
 
 rqt -f -l --perspective-file `rosstack find gear_gui`/config/caili.perspective &
 rqt -f -l --perspective-file `rosstack find gear_gui`/config/adam.perspective &
-rqt -f -l --perspective-file `rosstack find gear_gui`/config/controller.perspective
+rqt -f -l --perspective-file `rosstack find gear_gui`/config/controller_simple.perspective
 
 fg
