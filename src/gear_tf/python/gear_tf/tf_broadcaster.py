@@ -103,7 +103,7 @@ class PublishTF(object):
         resp.success = True
         resp.message = "Published TF successfully"
         
-        return
+        return resp
     
 if __name__ == '__main__':
     rospy.init_node('tf_broadcaster')

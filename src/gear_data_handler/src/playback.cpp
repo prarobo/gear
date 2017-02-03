@@ -753,7 +753,10 @@ void Playback::publishMsg(const MessageWrapper &msg_wrapper) const{
 
     // Publish image data
     ROS_DEBUG("[Playback] Publishing image data ...");
-    image_pub_.at(pub_name)->publish(*msg_wrapper.getImageData(), *camera_info_.at(pub_name));
+    sensor_msgs::ImageConstPtr img_msg = msg_wrapper.getImageData();
+    boost::shared_ptr<sensor_msgs::CameraInfo> cam_info(camera_info_.at(pub_name));
+    cam_info->header.stamp = img_msg->header.stamp;
+    image_pub_.at(pub_name)->publish(*img_msg, *cam_info);
   } else if (msg_wrapper.hasClockData()) {
 
     // Publish clock data

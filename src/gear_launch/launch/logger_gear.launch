@@ -11,6 +11,7 @@
   <arg name="color_extn"        default=".jpg"/>
   <arg name="depth_extn"        default=".png"/>  
   <arg name="do_pointcloud"     default="true"/>  
+  <arg name="use_sim_time"      default="false"/>
 
   <!-- Parameters to control sensor -->
   <arg name="enable_kinect1"    default="true"/>
@@ -24,16 +25,16 @@
   <arg name="enable_trackers"   default="true"/>
 
   <!-- Parameters to control sensor -->
-  <arg name="enable_kinect1_depth"    default="true"    if="enable_kinect1"/>
-  <arg name="enable_kinect1_depth"    default="false"   unless="enable_kinect1"/>
-  <arg name="enable_kinect2_depth"    default="true"    if="enable_kinect2"/>
-  <arg name="enable_kinect2_depth"    default="false"   unless="enable_kinect2"/>
-  <arg name="enable_kinect3_depth"    default="true"    if="enable_kinect3"/>
-  <arg name="enable_kinect3_depth"    default="false"   unless="enable_kinect3"/>
-  <arg name="enable_kinect4_depth"    default="true"    if="enable_kinect4"/>
-  <arg name="enable_kinect4_depth"    default="false"   unless="enable_kinect4"/>
-  <arg name="enable_kinect5_depth"    default="true"    if="enable_kinect5"/>
-  <arg name="enable_kinect5_depth"    default="false"   unless="enable_kinect5"/>
+  <arg name="enable_kinect1_depth"    default="true"    if="$(arg enable_kinect1)"/>
+  <arg name="enable_kinect1_depth"    default="false"   unless="$(arg enable_kinect1)"/>
+  <arg name="enable_kinect2_depth"    default="true"    if="$(arg enable_kinect2)"/>
+  <arg name="enable_kinect2_depth"    default="false"   unless="$(arg enable_kinect2)"/>
+  <arg name="enable_kinect3_depth"    default="true"    if="$(arg enable_kinect3)"/>
+  <arg name="enable_kinect3_depth"    default="false"   unless="$(arg enable_kinect3)"/>
+  <arg name="enable_kinect4_depth"    default="true"    if="$(arg enable_kinect4)"/>
+  <arg name="enable_kinect4_depth"    default="false"   unless="$(arg enable_kinect4)"/>
+  <arg name="enable_kinect5_depth"    default="true"    if="$(arg enable_kinect5)"/>
+  <arg name="enable_kinect5_depth"    default="false"   unless="$(arg enable_kinect5)"/>
 
   <!-- Synchronizer -->
   <include file="$(find gear_data_handler)/launch/synchronizer.launch" if="$(arg synchronize)">
@@ -51,6 +52,7 @@
   <include file="$(find gear_data_handler)/launch/tracking_logger.launch" if="$(arg enable_trackers)">
     <arg name="start_manager"   value="$(arg start_manager)"/>
     <arg name="nodelet_manager" value="$(arg nodelet_manager)" unless="$(arg start_manager)"/>
+    <arg name="use_sim_time"    value="$(arg use_sim_time)"/>
   </include>
 
   <!-- Audio logger-->

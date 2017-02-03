@@ -18,7 +18,6 @@
   <arg name="k1_base_name"      value="k1"/>
   <arg name="k1_sensor"         value="308780235147"/>
 
-
   <!--kinect2 parameters-->
   <arg name="k2_base_name"      value="k2"/>
   <arg name="k2_sensor"         value="024208544747"/>

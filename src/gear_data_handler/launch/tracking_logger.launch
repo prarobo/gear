@@ -6,6 +6,7 @@
   <arg name="start_manager"     default="true"/>  
   <arg name="image_type"        default="tracking"/>
   <arg name="image_prefix"      default="tracking"/>      
+  <arg name="use_sim_time"      default="false"/>
 
   <arg name="nodelet_manager"   default="$(arg base_name)_logger_manager" if="$(arg start_manager)"/>
   <arg name="nodelet_manager"   default="$(arg base_name)" unless="$(arg start_manager)"/>     
@@ -13,6 +14,7 @@
   <node pkg="nodelet" type="nodelet" name="$(arg nodelet_manager)"  
         output="screen" args="manager" if="$(arg start_manager)">
     <param name="num_worker_threads" value="4"/>
+    <param name="use_sim_time" value="$(arg use_sim_time)"/>
   </node>
 
   <!-- Tracking logging node -->
@@ -25,6 +27,7 @@
     <param name="image_extn"          value="$(arg image_extn)"/>
     <param name="image_type"          value="$(arg image_type)"/>
     <param name="image_prefix"        value="$(arg image_prefix)"/>
+    <param name="use_sim_time"        value="$(arg use_sim_time)"/>
   </node>
 
 </launch>

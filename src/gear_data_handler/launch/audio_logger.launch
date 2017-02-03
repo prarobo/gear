@@ -19,7 +19,7 @@
   <node pkg="nodelet" type="nodelet" name="$(arg base_name)_logger"
         args="load gear_data_handler/AudioLogger $(arg nodelet_manager)" output="screen">
     <remap from="/log_audio"          to="/audio/audio" />
-    <remap from="/image_count"        to="/audio_count" />
+    <remap from="/image_count"        to="/audio/audio_count" />
     <param name="sensor_id"           value="$(arg base_name)"/>
     <param name="data_dir"            value="$(arg data_dir)"/>
     <param name="image_extn"          value="$(arg image_extn)"/>

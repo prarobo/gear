@@ -8,8 +8,16 @@
   <arg name="nodelet_manager"       default="gear_tracker"/>
   <arg name="use_sim_time"          default="false"/>
 
+  <arg name="enable_kinect1"    default="true"/>
+  <arg name="enable_kinect2"    default="true"/>
+  <arg name="enable_kinect3"    default="true"/>
+  <arg name="enable_kinect4"    default="true"/>
+  <arg name="enable_kinect5"    default="true"/>
+  <arg name="enable_pointgrey1" default="false"/>
+  <arg name="enable_pointgrey2" default="false"/>
+
   <!--kinect1 -->
-  <include file="$(find gear_launch)/launch/$(arg tag_type)_tag_tracker.launch">
+  <include file="$(find gear_launch)/launch/$(arg tag_type)_tag_tracker.launch" if="$(arg enable_kinect1)">
     <arg name="start_manager"   value="$(arg start_manager)"/>
     <arg name="nodelet_manager" value="$(arg nodelet_manager)" unless="$(arg start_manager)"/>
     <arg name="base_name"       value="k1"/>
@@ -19,7 +27,7 @@
   </include>
 
   <!--kinect2 -->
-  <include file="$(find gear_launch)/launch/$(arg tag_type)_tag_tracker.launch">
+  <include file="$(find gear_launch)/launch/$(arg tag_type)_tag_tracker.launch" if="$(arg enable_kinect2)">
     <arg name="start_manager"   value="$(arg start_manager)"/>
     <arg name="nodelet_manager" value="$(arg nodelet_manager)" unless="$(arg start_manager)"/>
     <arg name="base_name"       value="k2"/>
@@ -29,7 +37,7 @@
   </include>
 
   <!--kinect3 -->
-  <include file="$(find gear_launch)/launch/$(arg tag_type)_tag_tracker.launch">
+  <include file="$(find gear_launch)/launch/$(arg tag_type)_tag_tracker.launch" if="$(arg enable_kinect3)">
     <arg name="start_manager"   value="$(arg start_manager)"/>
     <arg name="nodelet_manager" value="$(arg nodelet_manager)" unless="$(arg start_manager)"/>
     <arg name="base_name"       value="k3"/>
@@ -38,8 +46,28 @@
     <arg name="use_sim_time"    value="$(arg use_sim_time)"/>
   </include>
 
+  <!--kinect4 -->
+  <include file="$(find gear_launch)/launch/$(arg tag_type)_tag_tracker.launch" if="$(arg enable_kinect4)">
+    <arg name="start_manager"   value="$(arg start_manager)"/>
+    <arg name="nodelet_manager" value="$(arg nodelet_manager)" unless="$(arg start_manager)"/>
+    <arg name="base_name"       value="k4"/>
+    <arg name="image_def"       value="$(arg image_def)"/>
+    <arg name="topic_name"      value="$(arg topic_name)"/>
+    <arg name="use_sim_time"    value="$(arg use_sim_time)"/>
+  </include>
+
+  <!--kinect5 -->
+  <include file="$(find gear_launch)/launch/$(arg tag_type)_tag_tracker.launch" if="$(arg enable_kinect5)">
+    <arg name="start_manager"   value="$(arg start_manager)"/>
+    <arg name="nodelet_manager" value="$(arg nodelet_manager)" unless="$(arg start_manager)"/>
+    <arg name="base_name"       value="k5"/>
+    <arg name="image_def"       value="$(arg image_def)"/>
+    <arg name="topic_name"      value="$(arg topic_name)"/>
+    <arg name="use_sim_time"    value="$(arg use_sim_time)"/>
+  </include>
+
   <!--pointgrey1 -->
-  <include file="$(find gear_launch)/launch/$(arg tag_type)_tag_tracker.launch">
+  <include file="$(find gear_launch)/launch/$(arg tag_type)_tag_tracker.launch" if="$(arg enable_pointgrey1)">
     <arg name="start_manager"   value="$(arg start_manager)"/>
     <arg name="nodelet_manager" value="$(arg nodelet_manager)" unless="$(arg start_manager)"/>
     <arg name="base_name"       value="p1"/>
@@ -49,7 +77,7 @@
   </include>
 
   <!--pointgrey2 -->
-  <include file="$(find gear_launch)/launch/$(arg tag_type)_tag_tracker.launch">
+  <include file="$(find gear_launch)/launch/$(arg tag_type)_tag_tracker.launch" if="$(arg enable_pointgrey2)">
     <arg name="start_manager"   value="$(arg start_manager)"/>
     <arg name="nodelet_manager" value="$(arg nodelet_manager)" unless="$(arg start_manager)"/>
     <arg name="base_name"       value="p2"/>

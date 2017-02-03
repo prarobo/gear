@@ -17,8 +17,8 @@
   <arg name="enable_kinect1_depth"  default="true"/>
   <arg name="enable_kinect2_depth"  default="true"/>
   <arg name="enable_kinect3_depth"  default="true"/>
-  <arg name="enable_kinect4_depth"  default="true"/>
-  <arg name="enable_kinect5_depth"  default="true"/>
+  <arg name="enable_kinect4_depth"  default="false"/>
+  <arg name="enable_kinect5_depth"  default="false"/>
   <arg name="enable_pointgrey1"     default="false"/>
   <arg name="enable_pointgrey2"     default="false"/>
   <arg name="enable_audio"          default="true"/>
@@ -77,19 +77,24 @@
 
     <!-- Launch loggers -->
     <include file="$(find gear_launch)/launch/logger_gear.launch" if="$(arg enable_loggers)">
-      <arg name="start_manager"       value="$(arg start_indiv_manager)"/>
-      <arg name="nodelet_manager"     value="$(arg nodelet_manager)"/>
-      <arg name="synchronize"         value="$(arg synchronize)"/>
-      <arg name="data_dir"            value="$(arg data_dir)"/>
-      <arg name="enable_kinect1"      value="$(arg enable_kinect1)"/>
-      <arg name="enable_kinect2"      value="$(arg enable_kinect2)"/>
-      <arg name="enable_kinect3"      value="$(arg enable_kinect3)"/>
-      <arg name="enable_kinect4"      value="$(arg enable_kinect4)"/>
-      <arg name="enable_kinect5"      value="$(arg enable_kinect5)"/>
-      <arg name="enable_pointgrey1"   value="$(arg enable_pointgrey1)"/>
-      <arg name="enable_pointgrey2"   value="$(arg enable_pointgrey2)"/>
-      <arg name="enable_audio"        value="$(arg enable_audio)"/>
-      <arg name="enable_trackers"     value="$(arg enable_trackers)"/>    
+      <arg name="start_manager"         value="$(arg start_indiv_manager)"/>
+      <arg name="nodelet_manager"       value="$(arg nodelet_manager)"/>
+      <arg name="synchronize"           value="$(arg synchronize)"/>
+      <arg name="data_dir"              value="$(arg data_dir)"/>
+      <arg name="enable_kinect1"        value="$(arg enable_kinect1)"/>
+      <arg name="enable_kinect2"        value="$(arg enable_kinect2)"/>
+      <arg name="enable_kinect3"        value="$(arg enable_kinect3)"/>
+      <arg name="enable_kinect4"        value="$(arg enable_kinect4)"/>
+      <arg name="enable_kinect5"        value="$(arg enable_kinect5)"/>
+      <arg name="enable_kinect1_depth"  value="$(arg enable_kinect1_depth)"/>
+      <arg name="enable_kinect2_depth"  value="$(arg enable_kinect2_depth)"/>
+      <arg name="enable_kinect3_depth"  value="$(arg enable_kinect3_depth)"/>
+      <arg name="enable_kinect4_depth"  value="$(arg enable_kinect4_depth)"/>
+      <arg name="enable_kinect5_depth"  value="$(arg enable_kinect5_depth)"/>
+      <arg name="enable_pointgrey1"     value="$(arg enable_pointgrey1)"/>
+      <arg name="enable_pointgrey2"     value="$(arg enable_pointgrey2)"/>
+      <arg name="enable_audio"          value="$(arg enable_audio)"/>
+      <arg name="enable_trackers"       value="$(arg enable_trackers)"/>    
     </include>
 
     <!-- Launch Audio -->
@@ -98,9 +103,34 @@
     </include>
   </group>
 
+  <!-- Exclude some loggers while playback -->
+  <group if="$(arg use_sim_time)">
+    <!-- Launch loggers -->
+    <include file="$(find gear_launch)/launch/logger_gear.launch" if="$(arg enable_loggers)">
+      <arg name="start_manager"         value="$(arg start_indiv_manager)"/>
+      <arg name="nodelet_manager"       value="$(arg nodelet_manager)"/>
+      <arg name="synchronize"           value="false"/>
+      <arg name="data_dir"              value="$(arg data_dir)"/>
+      <arg name="enable_kinect1"        value="false"/>
+      <arg name="enable_kinect2"        value="false"/>
+      <arg name="enable_kinect3"        value="false"/>
+      <arg name="enable_kinect4"        value="false"/>
+      <arg name="enable_kinect5"        value="false"/>
+      <arg name="enable_kinect1_depth"  value="false"/>
+      <arg name="enable_kinect2_depth"  value="false"/>
+      <arg name="enable_kinect3_depth"  value="false"/>
+      <arg name="enable_kinect4_depth"  value="false"/>
+      <arg name="enable_kinect5_depth"  value="false"/>
+      <arg name="enable_pointgrey1"     value="false"/>
+      <arg name="enable_pointgrey2"     value="false"/>
+      <arg name="enable_audio"          value="false"/>
+      <arg name="enable_trackers"       value="$(arg enable_trackers)"/>    
+      <arg name="use_sim_time"          value="$(arg use_sim_time)"/>
+    </include>  
+  </group>
+  
   <!-- Launch diagnostics -->
   <include file="$(find gear_diagnostics)/launch/diagnostics.launch" if="$(arg enable_diagnostics)">
-    <arg name="frame_rate"            value="$(arg frame_rate)"/>
     <arg name="use_sim_time"          value="$(arg use_sim_time)"/>
   </include>
 
@@ -108,6 +138,12 @@
   <include file="$(find gear_launch)/launch/tracker_gear.launch" if="$(arg enable_trackers)">
     <arg name="start_manager"         value="$(arg start_indiv_manager)"/>
     <arg name="nodelet_manager"       value="$(arg nodelet_manager)"/>
+    <arg name="use_sim_time"          value="$(arg use_sim_time)"/>
+    <arg name="enable_kinect1"        value="$(arg enable_kinect1)"/>
+    <arg name="enable_kinect2"        value="$(arg enable_kinect2)"/>
+    <arg name="enable_kinect3"        value="$(arg enable_kinect3)"/>
+    <arg name="enable_kinect4"        value="$(arg enable_kinect4)"/>
+    <arg name="enable_kinect5"        value="$(arg enable_kinect5)"/>
     <arg name="use_sim_time"          value="$(arg use_sim_time)"/>
   </include> 
 
