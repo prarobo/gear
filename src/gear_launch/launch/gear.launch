@@ -45,7 +45,8 @@
   <param name="session_id"          value="$(arg session_id)"/>
   <param name="activity_id"         value="$(arg activity_id)"/>
   <param name="condition_id"        value="$(arg condition_id)"/>
-  <param name="trial_id"            value="$(arg trial_id)"/>  
+  <param name="trial_id"            value="$(arg trial_id)"/> 
+  <param name="use_sim_time"        value="$(arg use_sim_time)"/>  
 
   <!-- Launch playback -->
   <include file="$(find gear_data_handler)/launch/playback.launch" if="$(arg use_sim_time)"/>
@@ -98,9 +99,7 @@
     </include>
 
     <!-- Launch Audio -->
-    <include file="$(find gear_launch)/launch/audio_gear.launch" if="$(arg enable_audio)">
-      <arg name="use_sim_time"        value="$(arg use_sim_time)"/>
-    </include>
+    <include file="$(find gear_launch)/launch/audio_gear.launch" if="$(arg enable_audio)"/>
   </group>
 
   <!-- Exclude some loggers while playback -->
@@ -125,39 +124,32 @@
       <arg name="enable_pointgrey2"     value="false"/>
       <arg name="enable_audio"          value="false"/>
       <arg name="enable_trackers"       value="$(arg enable_trackers)"/>    
-      <arg name="use_sim_time"          value="$(arg use_sim_time)"/>
     </include>  
   </group>
   
   <!-- Launch diagnostics -->
-  <include file="$(find gear_diagnostics)/launch/diagnostics.launch" if="$(arg enable_diagnostics)">
-    <arg name="use_sim_time"          value="$(arg use_sim_time)"/>
-  </include>
+  <include file="$(find gear_diagnostics)/launch/diagnostics.launch" if="$(arg enable_diagnostics)"/>
 
   <!-- Launch trackers -->
   <include file="$(find gear_launch)/launch/tracker_gear.launch" if="$(arg enable_trackers)">
     <arg name="start_manager"         value="$(arg start_indiv_manager)"/>
     <arg name="nodelet_manager"       value="$(arg nodelet_manager)"/>
-    <arg name="use_sim_time"          value="$(arg use_sim_time)"/>
     <arg name="enable_kinect1"        value="$(arg enable_kinect1)"/>
     <arg name="enable_kinect2"        value="$(arg enable_kinect2)"/>
     <arg name="enable_kinect3"        value="$(arg enable_kinect3)"/>
     <arg name="enable_kinect4"        value="$(arg enable_kinect4)"/>
     <arg name="enable_kinect5"        value="$(arg enable_kinect5)"/>
-    <arg name="use_sim_time"          value="$(arg use_sim_time)"/>
   </include> 
 
   <!-- Launch TF -->
   <include file="$(find gear_tf)/launch/tf_broadcaster.launch" if="$(arg enable_tf)">
     <arg name="playback_mode"         value="true" if="$(arg use_sim_time)"/>
-    <arg name="use_sim_time"          value="$(arg use_sim_time)"/>
   </include>  
 
   <!-- Launch nodelet manager -->
   <node pkg="nodelet" type="nodelet" name="$(arg nodelet_manager)"  
           args="manager" output="screen" if="$(arg start_manager)">
     <param name="num_worker_threads"  value="$(arg threads)"/>
-    <param name="use_sim_time"        value="$(arg use_sim_time)"/>
   </node>
 
 </launch>

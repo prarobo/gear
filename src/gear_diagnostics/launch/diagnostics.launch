@@ -12,7 +12,6 @@
   <arg name="slow_update_interval"     default="5"/>
   <arg name="low_free_space"			 		 default="500"/>
   <arg name="critical_free_space"			 default="100"/>
-  <arg name="use_sim_time"             default="false"/>
   <arg name="aggregator_file"          default="gear_analyzers_5k.yaml"/>
   <arg name="audio_freq_tolerance"     default="0.3"/>
   <arg name="audio_min_frequency"      default="27"/>
@@ -51,7 +50,6 @@
     <arg name="update_interval"        value="$(arg update_interval)"/>
     <arg name="min_frequency"          value="$(arg image_min_frequency)"/>
     <arg name="max_frequency"          value="$(arg image_max_frequency)"/>
-    <arg name="use_sim_time"           value="$(arg use_sim_time)"/>
   </include>       
 
   <!-- Image logger diagnostics -->
@@ -64,7 +62,6 @@
 	  <arg name="update_interval"        value="$(arg update_interval)"/>
 	  <arg name="min_frequency"		       value="$(arg image_min_frequency)"/>
 	  <arg name="max_frequency"		       value="$(arg image_max_frequency)"/>
-    <arg name="use_sim_time"           value="$(arg use_sim_time)"/>
   </include>       
 
   <!-- Audio logger diagnostics -->
@@ -77,7 +74,6 @@
     <arg name="update_interval"        value="$(arg update_interval)"/>
     <arg name="min_frequency"          value="$(arg audio_min_frequency)"/>
     <arg name="max_frequency"          value="$(arg audio_max_frequency)"/>
-    <arg name="use_sim_time"           value="$(arg use_sim_time)"/>
   </include>       
 
   <!-- Disk diagnostics -->
@@ -86,12 +82,10 @@
 	  <arg name="update_interval"     	 value="$(arg slow_update_interval)"/>
 	  <arg name="low_free_space"			 	 value="$(arg low_free_space)"/>
 	  <arg name="critical_free_space"		 value="$(arg critical_free_space)"/>
-    <arg name="use_sim_time"           value="$(arg use_sim_time)"/>
   </include>       
 
 	<!-- Dignostics aggregator -->
 	<node pkg="diagnostic_aggregator" type="aggregator_node" name="diagnostics_aggregator" output="screen">
 	  <rosparam command="load" file="$(find gear_diagnostics)/config/$(arg aggregator_file)" />
-    <param  name="use_sim_time"       value="$(arg use_sim_time)"/>
 	</node>
 </launch>

@@ -9,8 +9,6 @@
   <arg name="bitrate"        default="128"/>
   <arg name="format" 		     default="mp3"/>
   <arg name="ns" 			       default="audio"/>
-  <arg name="use_sim_time"   default="false"/>
-
 
   <group ns="$(arg ns)">
     <node name="audio_capture" pkg="audio_capture" type="audio_capture" output="screen">
@@ -20,7 +18,6 @@
       <param name="sample_rate"  value="$(arg sample_rate)"/>
       <param name="format" 		   value="$(arg format)"/>
       <param name="quality"      value="$(arg quality)"/>
-      <param name="use_sim_time" value="$(arg use_sim_time)"/>
     </node>
   </group>
 </launch>

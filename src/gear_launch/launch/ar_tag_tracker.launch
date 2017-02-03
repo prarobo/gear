@@ -13,7 +13,6 @@
   <arg name="cam_info_topic"        default="/$(arg base_name)/$(arg image_def)/camera_info" /> 
   <arg name="output_frame"          default="/$(arg base_name)_link" />
   <arg name="max_frequency"         default="10" />
-  <arg name="use_sim_time"          default="false"/>
   
   <group ns="$(arg base_name)/$(arg image_def)/">
     <!-- Using global nodelet manager -->
@@ -25,7 +24,6 @@
 
         <!-- Describe the tags -->
         <rosparam command="load" file="$(arg tag_file)" />
-        <param  name="use_sim_time"  value="$(arg use_sim_time)"/>
     </node>
 </group>
 </launch>
