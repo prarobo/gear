@@ -24,16 +24,16 @@
   <arg name="enable_trackers"   default="true"/>
 
   <!-- Parameters to control sensor -->
-  <arg name="enable_kinect1_depth"    default="true"    if="enable_kinect1"/>
-  <arg name="enable_kinect1_depth"    default="false"   unless="enable_kinect1"/>
-  <arg name="enable_kinect2_depth"    default="true"    if="enable_kinect2"/>
-  <arg name="enable_kinect2_depth"    default="false"   unless="enable_kinect2"/>
-  <arg name="enable_kinect3_depth"    default="true"    if="enable_kinect3"/>
-  <arg name="enable_kinect3_depth"    default="false"   unless="enable_kinect3"/>
-  <arg name="enable_kinect4_depth"    default="true"    if="enable_kinect4"/>
-  <arg name="enable_kinect4_depth"    default="false"   unless="enable_kinect4"/>
-  <arg name="enable_kinect5_depth"    default="true"    if="enable_kinect5"/>
-  <arg name="enable_kinect5_depth"    default="false"   unless="enable_kinect5"/>
+  <arg name="enable_kinect1_depth"    default="true"    if="$(arg enable_kinect1)"/>
+  <arg name="enable_kinect1_depth"    default="false"   unless="$(arg enable_kinect1)"/>
+  <arg name="enable_kinect2_depth"    default="true"    if="$(arg enable_kinect2)"/>
+  <arg name="enable_kinect2_depth"    default="false"   unless="$(arg enable_kinect2)"/>
+  <arg name="enable_kinect3_depth"    default="true"    if="$(arg enable_kinect3)"/>
+  <arg name="enable_kinect3_depth"    default="false"   unless="$(arg enable_kinect3)"/>
+  <arg name="enable_kinect4_depth"    default="true"    if="$(arg enable_kinect4)"/>
+  <arg name="enable_kinect4_depth"    default="false"   unless="$(arg enable_kinect4)"/>
+  <arg name="enable_kinect5_depth"    default="true"    if="$(arg enable_kinect5)"/>
+  <arg name="enable_kinect5_depth"    default="false"   unless="$(arg enable_kinect5)"/>
 
   <!-- Synchronizer -->
   <include file="$(find gear_data_handler)/launch/synchronizer.launch" if="$(arg synchronize)">
@@ -53,7 +53,7 @@
     <arg name="nodelet_manager" value="$(arg nodelet_manager)" unless="$(arg start_manager)"/>
   </include>
 
-  <!-- Tracking logger-->
+  <!-- Audio logger-->
   <include file="$(find gear_data_handler)/launch/audio_logger.launch" if="$(arg enable_audio)">
     <arg name="start_manager"   value="$(arg start_manager)"/>
     <arg name="nodelet_manager" value="$(arg nodelet_manager)" unless="$(arg start_manager)"/>

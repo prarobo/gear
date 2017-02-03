@@ -23,7 +23,7 @@
  
   <node pkg="nodelet" type="nodelet" name="synchronizer"
         args="load gear_data_handler/ImageSynchronizer $(arg nodelet_manager)" output="screen">
-    <param name="~data_topics" value="$(arg data_topics)"/>
+    <rosparam param="data_topics"    subst_value="True">$(arg data_topics)</rosparam>
   </node>  
 
   <!-- Synchronized logger python node -->

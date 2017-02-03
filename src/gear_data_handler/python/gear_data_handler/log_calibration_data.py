@@ -10,6 +10,7 @@ import rospkg
 from std_srvs.srv._SetBool import SetBool, SetBoolResponse
 
 CALIBRATION_DIR_NAME = "calibration"
+CONFIGURATION_DIR_NAME = "config"
 DEFAULT_DATA_DIR = "/mnt/md0/gear_data"
 
 class CalibrationLogger(object):
@@ -31,6 +32,9 @@ class CalibrationLogger(object):
         
         # Move calibration information
         self._move_calib_info()
+
+        # Move configuration information
+        self._move_config_info()
         
         # Load sensor information
         kinect_info, pointgrey_info = self._load_sensor_info()
@@ -62,7 +66,7 @@ class CalibrationLogger(object):
         Move raw calibration information
         '''
         # Get the calibration data directory
-        src_calib_dir = os.path.join(rospkg.RosPack().get_path("gear_launch"), "calibration")
+        src_calib_dir = os.path.join(rospkg.RosPack().get_path("gear_launch"), CALIBRATION_DIR_NAME)
         
         # Check if calibration data exists
         if not os.path.exists(src_calib_dir):
@@ -79,31 +83,81 @@ class CalibrationLogger(object):
         # Copy raw calibration information
         shutil.copytree(src_calib_dir, self.dest_raw_calib_dir)
         return
-    
+
+    def _move_config_info(self):
+        '''
+        Move raw configuration information
+        '''
+        # Get the configuration data directory
+        src_config_dir = os.path.join(rospkg.RosPack().get_path("gear_launch"), CONFIGURATION_DIR_NAME)
+        
+        # Check if configuration data exists
+        if not os.path.exists(src_config_dir):
+            rospy.logerr("[CalibrationLogger] Missing configuration data: "+src_config_dir)
+            
+        # Get the destination configuration directories
+        self.dest_config_dir = self.get_playback_configuration_directory()
+
+        # Check any existing old configuration data
+        if os.path.exists(self.dest_config_dir):
+            rospy.logwarn("[CalibrationLogger] Old configuration data removed: "+self.dest_config_dir)
+            shutil.rmtree(self.dest_config_dir)        
+                
+        # Copy raw configuration information
+        shutil.copytree(src_config_dir, self.dest_config_dir)
+        return
+
     @classmethod
     def get_playback_calibration_directory(self):
         '''
         Get the calibration directory while playback
         '''
         
-        # Get the parameters
-        subject, session, activity, condition, trial, data_dir = self.load_params()
-        
         # Get the calibration data directory
-        src_calib_dir = os.path.join(rospkg.RosPack().get_path("gear_launch"), "calibration")
+        src_calib_dir = os.path.join(rospkg.RosPack().get_path("gear_launch"), CALIBRATION_DIR_NAME)
         
         # Check if calibration data exists
         if not os.path.exists(src_calib_dir):
             rospy.logerr("[CalibrationLogger] Missing calibration data: "+src_calib_dir)
         
+        # Get the trial directory
+        trial_dir = self.get_trial_dir()
+
         # Get the destination calibration directory
-        dest_calib_dir = os.path.join(data_dir, subject, session, '_'.join([activity, condition, trial]), "calibration")
+        dest_calib_dir = os.path.join(trial_dir, CALIBRATION_DIR_NAME)
         
         # Create the destination directory
         dest_raw_calib_dir = os.path.join(dest_calib_dir, "raw_calib")
         
         return dest_calib_dir, dest_raw_calib_dir
-    
+
+    @classmethod
+    def get_trial_dir(self):
+        '''
+        Get the trial directory
+        '''
+        
+        # Get the parameters
+        subject, session, activity, condition, trial, data_dir = self.load_params()
+
+        # Get the trial directory
+        trial_dir = os.path.join(data_dir, subject, session, '_'.join([activity, condition, trial]))
+
+        return trial_dir
+
+    @classmethod
+    def get_playback_configuration_directory(self):
+        '''
+        Get the configuration directory while playback
+        '''
+        # Get the trial directory
+        trial_dir = self.get_trial_dir()
+
+        # Get the destination calibration directory
+        dest_config_dir = os.path.join(trial_dir, CONFIGURATION_DIR_NAME)
+
+        return dest_config_dir
+
     def _load_sensor_info(self):
         '''
         Find sensors in setup
@@ -169,6 +223,11 @@ class CalibrationLogger(object):
         # Load extrinsic calibration information
         src_file = os.path.join(self.dest_raw_calib_dir, "camera_poses.yaml")
         dest_file = os.path.join(self.dest_calib_dir, "camera_poses.yaml")
+        self._copy_file(src_file, dest_file)
+
+        # Load vicon calibration information
+        src_file = os.path.join(self.dest_raw_calib_dir, "vicon2k2.yaml")
+        dest_file = os.path.join(self.dest_calib_dir, "vicon2k2.yaml")
         self._copy_file(src_file, dest_file)
         return    
         

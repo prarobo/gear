@@ -3,5 +3,5 @@
 roscore &
 sleep 3
 
-rosrun gear_postprocess gear_postprocess
+roslaunch gear_gui_launch postprocess_gui.launch
 fg

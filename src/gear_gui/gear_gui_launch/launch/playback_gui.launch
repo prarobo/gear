@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<launch>
+	<arg name="data_dir"          						default="/mnt/md0/gear_data"/>
+	<arg name="playback_start_service_name"   default="/start_playback"/>
+	<arg name="playback_stop_service_name"    default="/stop_playback"/>
+	<arg name="playback_time_service_name"    default="/playback_time_extents"/>
+	<arg name="tf_service_name"    						default="/trigger_tf"/>
+
+	<!-- Playback window -->
+  <node pkg="rqt_gui" type="rqt_gui" name="playback_gui"  
+  	args="-f -l --perspective-file $(find gear_gui_launch)/config/playback.perspective" output="screen">
+  	<param name="data_dir"      								value="$(arg data_dir)"/>
+  	<param name="playback_start_service_name"   value="$(arg playback_start_service_name)"/>
+  	<param name="playback_stop_service_name"    value="$(arg playback_stop_service_name)"/>
+  	<param name="playback_time_service_name"    value="$(arg playback_time_service_name)"/>
+  	<param name="tf_service_name"      					value="$(arg tf_service_name)"/>
+  </node>   
+</launch>

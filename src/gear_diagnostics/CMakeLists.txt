@@ -5,6 +5,7 @@ find_package(catkin REQUIRED COMPONENTS
   roscpp
   rospy
   std_msgs
+  sensor_msgs
   diagnostic_updater
 )
 find_package(Boost REQUIRED COMPONENTS system)
@@ -20,7 +21,7 @@ catkin_python_setup()
 catkin_package(
   INCLUDE_DIRS include
   # LIBRARIES gear_diagnostics
-  CATKIN_DEPENDS roscpp rospy std_msgs diagnostic_updater
+  CATKIN_DEPENDS roscpp rospy std_msgs sensor_msgs diagnostic_updater
   # DEPENDS system_lib
 )
 
@@ -35,9 +36,16 @@ include_directories(
   ${Boost_INCLUDE_DIRS}
 )
 
-add_executable(message_monitor src/message_monitor.cpp)
+add_executable(camera_monitor src/camera_monitor.cpp src/message_monitor.cpp)
 
-target_link_libraries(message_monitor
+target_link_libraries(camera_monitor
+  ${catkin_LIBRARIES}
+  ${Boost_LIBRARIES}
+)
+
+add_executable(logger_monitor src/logger_monitor.cpp src/message_monitor.cpp)
+
+target_link_libraries(logger_monitor
   ${catkin_LIBRARIES}
   ${Boost_LIBRARIES}
 )

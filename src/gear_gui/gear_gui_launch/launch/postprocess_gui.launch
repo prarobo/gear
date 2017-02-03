@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<launch>
+	<arg name="data_dir"          					default="/mnt/md0/gear_data"/>
+	<arg name="frame_rate"          				default="15"/>
+	<arg name="num_worker_threads"          default="8"/>
+	<arg name="video_extn"          				default=".avi"/>
+	<arg name="video_blacklist"          		default="[depth]"/>
+	<arg name="composition"          				default="[('k2', 'color'), ('k4', 'color'), ('k5', 'color')]"/>
+	<arg name="crop_params"          				default="[('k4', 'color', 560, 180, 1550, 750), ('k5', 'color', 410, 260, 1550, 910)]"/>
+
+	<!-- Postprocess window -->
+  <node pkg="gear_postprocess" type="gear_postprocess" name="gear_postprocess" output="screen">
+  	<rosparam param="video_blacklist" subst_value="True">$(arg video_blacklist)</rosparam>
+  	<param name="data_dir"      				value="$(arg data_dir)"/>
+  	<param name="frame_rate"      			value="$(arg frame_rate)"/>
+  	<param name="num_worker_threads"    value="$(arg num_worker_threads)"/>
+  	<param name="video_extn"      			value="$(arg video_extn)"/>
+  	<param name="composition"      			value="$(arg composition)"/>
+  	<param name="crop_params"      			value="$(arg crop_params)"/>
+  </node>   
+</launch>

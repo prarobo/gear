@@ -14,6 +14,7 @@
 #include <nodelet/nodelet.h>
 #include <pluginlib/class_list_macros.h>
 #include <gear_data_handler/TimeExtent.h>
+#include <dynamic_reconfigure/server.h>
 
 // Boost dependencies
 #include <boost/thread/mutex.hpp>
@@ -22,6 +23,7 @@
 #include <boost/lockfree/spsc_queue.hpp>
 #include <boost/atomic.hpp>
 #include <boost/thread/thread.hpp>
+#include <gear_data_handler/PlaybackConfig.h>
 
 // OpenCV dependencies
 #include <opencv2/core/core.hpp>
@@ -236,7 +238,7 @@ public:
   geometry_msgs::TransformStamped createTransformMsg(const std::string &parent_frame,
                                                      const std::string &child_frame,
                                                      const tf2::Vector3 &trans = tf2::Vector3(0,0,0),
-                                                     const tf2::Quaternion &quat = tf2::Quaternion(0,0,0,0),
+                                                     const tf2::Quaternion &quat = tf2::Quaternion(0,0,0,1),
                                                      const ros::Time &stamp = ros::Time::now()) const;
 
   /**
@@ -265,6 +267,7 @@ public:
   sensor_msgs::ImageConstPtr
   createImageMsg(const std::multimap <ros::Time, std::string>::iterator &image_it);
 
+  void reconfigureCallback(gear_data_handler::PlaybackConfig &config, uint32_t level);
 
 private:
   boost::shared_ptr<ros::NodeHandle> nh_, pnh_;
@@ -275,6 +278,8 @@ private:
   ros::Publisher audio_pub_;
   boost::shared_ptr<image_transport::ImageTransport> it_;
   tf2_ros::StaticTransformBroadcaster tf_pub_;
+  dynamic_reconfigure::Server<gear_data_handler::PlaybackConfig> server_;
+  ros::ServiceServer time_extent_service_;
 
   std::string data_dir_;
   std::string subject_id_;
@@ -283,7 +288,7 @@ private:
   std::string condition_id_;
   int trial_id_;
 
-  double rate_;
+  boost::atomic<double> rate_;
   int clock_frequency_;
 
   int published_msgs_, loaded_msgs_;
@@ -306,8 +311,6 @@ private:
 
   boost::atomic<bool> finished_, started_;
   boost::shared_ptr<boost::thread> load_thread_, pickup_thread_;
-
-  ros::ServiceServer time_extent_service_;
 };
 
 PLUGINLIB_DECLARE_CLASS(gear_data_handler, Playback,

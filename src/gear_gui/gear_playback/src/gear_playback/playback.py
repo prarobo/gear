@@ -17,11 +17,17 @@ from rosgraph_msgs.msg._Clock import Clock
 from decimal import Decimal
 
 DEFAULT_DATA_DIR = "/mnt/md0/gear_data"
-PLAYBACK_START_SERVICE_NAME = "/start_playback"
-PLAYBACK_PAUSE_SERVICE_NAME = "/pause_playback"
-PLAYBACK_STOP_SERVICE_NAME = "/stop_playback"
-PLAYBACK_TIME_SERVICE_NAME  = "/playback_time_extents"
-                              
+DEFAULT_PLAYBACK_START_SERVICE_NAME = "/start_playback"
+DEFAULT_PLAYBACK_STOP_SERVICE_NAME = "/stop_playback"
+DEFAULT_PLAYBACK_TIME_SERVICE_NAME  = "/playback_time_extents"
+DEFAULT_TF_SERVICE_NAME = "/trigger_tf"
+
+class ProgressBarHelper(QtCore.QObject):
+    update_progress = QtCore.pyqtSignal(int)
+    
+    def __init__(self):
+        super(ProgressBarHelper, self).__init__()
+                                          
 class PlaybackGUI(Plugin):
 
     def __init__(self, context):
@@ -80,6 +86,14 @@ class PlaybackGUI(Plugin):
         Configure node specific paarameters
         '''
         rospy.Subscriber("/clock", Clock, self._update_time)
+
+        # Load prameters
+        self._data_dir = rospy.get_param("~data_dir", DEFAULT_DATA_DIR)
+        self._playback_start_service_name = rospy.get_param("~playback_start_service_name", DEFAULT_PLAYBACK_START_SERVICE_NAME)
+        self._playback_stop_service_name = rospy.get_param("~playback_stop_service_name", DEFAULT_PLAYBACK_STOP_SERVICE_NAME)
+        self._playback_time_service_name = rospy.get_param("~playback_time_service_name", DEFAULT_PLAYBACK_TIME_SERVICE_NAME)
+        self._tf_service_name = rospy.get_param("~tf_service_name", DEFAULT_TF_SERVICE_NAME)
+
         return
            
     def _configure_gui(self):
@@ -87,7 +101,7 @@ class PlaybackGUI(Plugin):
         Configure the gui elements on startup
         '''        
         # Just call reset callback
-        self._widget.txtFilepath.setText(DEFAULT_DATA_DIR)
+        self._widget.txtFilepath.setText(self._data_dir)
         self._onclicked_btnReset()
         self._onchanged_txtFilepath()
 
@@ -104,6 +118,9 @@ class PlaybackGUI(Plugin):
         self._widget.comboActivity.currentIndexChanged.connect(self._onchanged_comboActivity);  
         self._widget.comboCondition.currentIndexChanged.connect(self._onchanged_comboCondition);  
         self._widget.comboTrial.currentIndexChanged.connect(self._onchanged_comboTrial);
+        
+        self.progressBarHelper = ProgressBarHelper()
+        self.progressBarHelper.update_progress.connect(self._widget.progressBar.setValue)
                 
         return
     
@@ -123,7 +140,7 @@ class PlaybackGUI(Plugin):
         '''
         self._curr_time = clock_time.clock
         val  = self._compute_time_sec(clock_time.clock) - self._compute_time_sec(self._start_time)
-        self._widget.progressBar.setValue(val)
+        self.progressBarHelper.update_progress.emit(val)
         return
         
     def _update_combobox(self, q_obj, item_list):
@@ -174,11 +191,11 @@ class PlaybackGUI(Plugin):
         if os.path.isdir(str(self._widget.txtFilepath.text())):
             start_dir = str(self._widget.txtFilepath.text())
         else:
-            start_dir = DEFAULT_DATA_DIR
+            start_dir = self._data_dir
             
         root_dir = QFileDialog.getExistingDirectory(self._widget, "Open a folder", start_dir, QFileDialog.ShowDirsOnly)
         if root_dir == "":
-            root_dir = DEFAULT_DATA_DIR
+            root_dir = self._data_dir
         self._update_textbox(self._widget.txtFilepath, root_dir)
         self._onchanged_txtFilepath()
         return
@@ -255,7 +272,9 @@ class PlaybackGUI(Plugin):
     def _onclicked_btnReset(self):
         '''
         Reset everything to default
-        '''               
+        ''' 
+        self._widget.txtFilepath.setText(self._data_dir)
+              
         if not os.path.isdir(self._widget.txtFilepath.text()):
             self._disable_all()
         else:
@@ -308,13 +327,19 @@ class PlaybackGUI(Plugin):
         # Setting ros parameters
         if not self._started:
             self._set_ros_parameters()
-        
+            
+        # Start tf
+        tf_service = rospy.ServiceProxy(self._tf_service_name, Trigger)
+        resp = tf_service()        
+        if not resp.success:
+            rospy.logerr("[GearPlayback] Failed to trigger TF")
+
         # Start playback node
-        playback_start_service = rospy.ServiceProxy(PLAYBACK_START_SERVICE_NAME, Trigger)
+        playback_start_service = rospy.ServiceProxy(self._playback_start_service_name, Trigger)
         resp = playback_start_service()
         if resp.success:
             rospy.loginfo("[GearPlayback] Playback started: "+str(resp.success))
-            playback_time_service = rospy.ServiceProxy(PLAYBACK_TIME_SERVICE_NAME, TimeExtent)
+            playback_time_service = rospy.ServiceProxy(self._playback_time_service_name, TimeExtent)
             resp = playback_time_service()
             time_diff = self._compute_time_sec(resp.stop_time)-self._compute_time_sec(resp.start_time)
             self._start_time = resp.start_time
@@ -350,7 +375,6 @@ class PlaybackGUI(Plugin):
         rospy.loginfo("[GearPlayback] Setting parameter activity_id: "+activity_id)
         rospy.loginfo("[GearPlayback] Setting parameter condition_id: "+condition_id)
         rospy.loginfo("[GearPlayback] Setting parameter trial_id: "+trial_id)
-        sleep(2)
         return
         
     def _compute_time_sec(self, time_obj):
@@ -369,7 +393,7 @@ class PlaybackGUI(Plugin):
         self._widget.btnStop.setEnabled(False)
 
         # Stop playback node
-        playback_stop_service = rospy.ServiceProxy(PLAYBACK_STOP_SERVICE_NAME, Trigger)
+        playback_stop_service = rospy.ServiceProxy(self._playback_stop_service_name, Trigger)
         resp = playback_stop_service()
         if resp.success:
             rospy.loginfo("[GearPlayback] Playback stopped: "+str(resp.success))

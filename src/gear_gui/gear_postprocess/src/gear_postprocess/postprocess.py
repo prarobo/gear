@@ -15,8 +15,8 @@ from gear_data_handler.postprocessor import PostProcessor
 import funcy
 
 DEFAULT_DATA_DIR = "/mnt/md0/gear_data"
-DEFAULT_COMPOSITION = [("k2", "color"), ("p1", "color"), ("p2", "color")]
-VIDEO_BLACKLIST = ["depth"]
+DEFAULT_COMPOSITION = '[("k2", "color"), ("p1", "color"), ("p2", "color")]'
+DEFAULT_VIDEO_BLACKLIST = ["depth"]
 DEFAULT_VIDEO_EXTN = ".avi"
 DEFAULT_FRAME_RATE = 15
 DEFAULT_WORKER_THREADS = 8
@@ -26,15 +26,17 @@ class TaskThread(QtCore.QThread):
     
     def __init__(self, tid):
         super(TaskThread, self).__init__()
-        self.tid = tid
+        self._tid = tid
      
-    def initialize(self, root_dir, task, task_type):
+    def initialize(self, root_dir, task, task_type, video_extn, frame_rate):
         '''
         Constructor
         '''
-        self.root_dir = root_dir
-        self.task = task
-        self.task_type = task_type
+        self._root_dir = root_dir
+        self._task = task
+        self._task_type = task_type
+        self._video_extn = video_extn
+        self._frame_rate = frame_rate
         return
 
     @QtCore.pyqtSlot()     
@@ -43,17 +45,17 @@ class TaskThread(QtCore.QThread):
         Interface with the backend postprocessing
         '''
         # Create postprocessing object
-        post_processor_obj = PostProcessor(self.root_dir, DEFAULT_VIDEO_EXTN, DEFAULT_FRAME_RATE)
+        post_processor_obj = PostProcessor(self.root_dir, self._video_extn, self._frame_rate)
          
         # Generate video or composition
-        if self.task_type == "video":
-            post_processor_obj.create_video(self.task)
+        if self._task_type == "video":
+            post_processor_obj.create_video(self._task)
             task_size = 1
-        elif self.task_type == "composition":
-            post_processor_obj.create_composition(self.task)
-            task_size = len(self.task)
+        elif self._task_type == "composition":
+            post_processor_obj.create_composition(self._task)
+            task_size = len(self._task)
 
-        self.task_finished.emit(self.tid, task_size)
+        self.task_finished.emit(self._tid, task_size)
         return
                      
 class PostprocessGUI(Plugin):
@@ -95,12 +97,37 @@ class PostprocessGUI(Plugin):
 
         # Add widget to the user interface
         context.add_widget(self._widget)
+
+        # Configure gui
+        self._configure_node()
         
         # Configure gui
         self._configure_gui()
                 
         return      
-            
+
+    def _configure_node(self):
+        '''
+        Configure ros specific stuff
+        '''
+        self._data_dir = rospy.get_param("~data_dir", DEFAULT_DATA_DIR)
+        self._video_extn = rospy.get_param("~video_extn", DEFAULT_VIDEO_EXTN)
+        self._frame_rate = rospy.get_param("~frame_rate", DEFAULT_FRAME_RATE)
+        self._worker_threads = rospy.get_param("~num_worker_threads", DEFAULT_WORKER_THREADS)
+        self._video_blacklist = rospy.get_param("~video_blacklist", DEFAULT_VIDEO_BLACKLIST)
+        self._composition = eval(rospy.get_param("~composition", DEFAULT_COMPOSITION))
+        self._crop_params = eval(rospy.get_param("~crop_params", DEFAULT_CROP_PARAMS))
+
+        rospy.loginfo("[GearPostprocess] Data directory: "+self._data_dir)
+        rospy.loginfo("[GearPostprocess] Video extension: "+self._video_extn)
+        rospy.loginfo("[GearPostprocess] Frame rate: "+str(self._frame_rate))
+        rospy.loginfo("[GearPostprocess] Worker threads: "+str(self._worker_threads))
+        rospy.loginfo("[GearPostprocess] Video blacklist: "+str(self._video_blacklist))
+        rospy.loginfo("[GearPostprocess] Composition: "+str(self._composition))
+        rospy.loginfo("[GearPostprocess] Crop params: "+str(self._crop_params))
+
+        return
+
     def _configure_gui(self):
         '''
         Configure the gui elements on startup
@@ -132,8 +159,8 @@ class PostprocessGUI(Plugin):
         self._widget.chkVideoAll.stateChanged.connect(self._onchanged_chkVideoAll);  
         
         # Create worker thread
-        self.task_threads = [TaskThread(i) for i in xrange(DEFAULT_WORKER_THREADS)]
-        self.thread_idle = [True]*DEFAULT_WORKER_THREADS
+        self.task_threads = [TaskThread(i) for i in xrange(self._worker_threads)]
+        self.thread_idle = [True]*self._worker_threads
         for t in self.task_threads: 
             t.task_finished.connect(self._onfinished_task)
         
@@ -154,7 +181,7 @@ class PostprocessGUI(Plugin):
         if self.tasks:
             task_started = True
             self._output_statustext("Processing task "+PostProcessor.build_video_name(self.tasks[-1])+" ...")
-            self.task_threads[tid].initialize(self.root_dir, self.tasks.pop(), "video")
+            self.task_threads[tid].initialize(self.root_dir, self.tasks.pop(), "video", self._video_extn, self._frame_rate)
             self.task_threads[tid].start()
             self.thread_idle[tid] = False
         
@@ -162,7 +189,7 @@ class PostprocessGUI(Plugin):
         if not task_started and self.composition_tasks:
             composition_started = True
             self._output_statustext("Processing composition "+PostProcessor.build_composition_name(self.composition_tasks[-1])+" ...")
-            self.task_threads[tid].initialize(self.root_dir, self.composition_tasks.pop(), "composition")
+            self.task_threads[tid].initialize(self.root_dir, self.composition_tasks.pop(), "composition", self._video_extn, self._frame_rate)
             self.task_threads[tid].start()  
             self.thread_idle[tid] = False      
         
@@ -280,11 +307,11 @@ class PostprocessGUI(Plugin):
         if os.path.isdir(str(self._widget.txtFilepath.text())):
             start_dir = str(self._widget.txtFilepath.text())
         else:
-            start_dir = DEFAULT_DATA_DIR
+            start_dir = self._data_dir
             
         root_dir = QFileDialog.getExistingDirectory(self._widget, "Open a folder", start_dir, QFileDialog.ShowDirsOnly)
         if root_dir == "":
-            root_dir = DEFAULT_DATA_DIR
+            root_dir = self._data_dir
         self._update_textbox(self._widget.txtFilepath, root_dir)
         self._onchanged_txtFilepath()
         return
@@ -384,7 +411,7 @@ class PostprocessGUI(Plugin):
             self.sensor = set([str(self._widget.comboSensor.currentText())])
         
         video_list = self._get_sensor_video_list('video')
-        video_list.difference_update(set(VIDEO_BLACKLIST))        
+        video_list.difference_update(set(self._video_blacklist))        
         if not video_list:
             return
         
@@ -398,7 +425,7 @@ class PostprocessGUI(Plugin):
         '''
         if self._widget.chkVideoAll.isChecked():
             self.video = self._get_sensor_video_list('video')
-            self.video.difference_update(set(VIDEO_BLACKLIST))        
+            self.video.difference_update(set(self._video_blacklist))        
         else:
             self._update_combobox(self._widget.comboVideo, [str(self._widget.comboVideo.currentText())])
         return
@@ -408,7 +435,7 @@ class PostprocessGUI(Plugin):
         '''
         Reset everything to default
         '''
-        self._widget.txtFilepath.setText(DEFAULT_DATA_DIR)
+        self._widget.txtFilepath.setText(self._data_dir)
 
         if not os.path.isdir(self._widget.txtFilepath.text()):
             self._disable_all()
@@ -485,7 +512,7 @@ class PostprocessGUI(Plugin):
         self._widget.txtOutput.clear()
         self._output_statustext("Total videos: "+str(len(self.tasks)))
         self._output_statustext("Total compositions: "+str(len(self.composition_tasks)))
-        self._output_statustext("Starting tasks on {num_workers} workers...".format(num_workers=DEFAULT_WORKER_THREADS))
+        self._output_statustext("Starting tasks on {num_workers} workers...".format(num_workers=self._worker_threads))
         
         # Process tasks
         for t in self.task_threads:
@@ -532,7 +559,7 @@ class PostprocessGUI(Plugin):
         # All possible compositions
         compositions = []
         for t in trials:
-            temp = itertools.product([t], DEFAULT_COMPOSITION)
+            temp = itertools.product([t], self._composition)
 
             compositions.append([t1[0]+t1[1] for t1 in temp])
         

@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<launch>
+	<arg name="data_dir"          					default="/mnt/md0/gear_data"/>
+	<arg name="services_to_enable"          default="[/k1_color_enable,
+											                              /k2_color_enable,
+											                              /k3_color_enable,
+											                              /k4_color_enable,
+											                              /k5_color_enable,
+											                              /k1_depth_enable,
+											                              /k2_depth_enable,
+											                              /k3_depth_enable,
+											                              /k1_points_enable,
+											                              /k2_points_enable,
+											                              /k3_points_enable,
+											                              /track_tracking_enable,
+											                              /log_calibration_data_enable,
+											                              /audio_audio_enable]"/>
+	<arg name="services_session_info"       default="[/k1_color_session_info,
+										                                /k2_color_session_info,
+										                                /k3_color_session_info,
+										                                /k4_color_session_info,
+										                                /k5_color_session_info,
+										                                /k1_depth_session_info,
+										                                /k2_depth_session_info,
+										                                /k3_depth_session_info,
+										                                /k1_points_session_info,
+										                                /k2_points_session_info,
+										                                /k3_points_session_info,
+										                                /track_tracking_session_info,
+										                                /audio_audio_session_info]"/>
+
+	<!-- Controller window -->
+  <node pkg="rqt_gui" type="rqt_gui" name="controller"  
+  	args="-f -l --perspective-file $(find gear_gui_launch)/config/controller_simple.perspective" output="screen">
+  	<rosparam param="services_to_enable"    subst_value="True">$(arg services_to_enable)</rosparam>
+  	<rosparam param="services_session_info" subst_value="True">$(arg services_session_info)</rosparam>
+  	<param name="data_dir"      value="$(arg data_dir)"/>
+  </node>
+
+	<!-- Adam window -->  
+  <node pkg="rqt_gui" type="rqt_gui" name="adam"  
+  	args="-f -l --perspective-file $(find gear_gui_launch)/config/adam.perspective" output="screen">
+  </node>  
+
+	<!-- Caili window -->  
+  <node pkg="rqt_gui" type="rqt_gui" name="caili"  
+  	args="-f -l --perspective-file $(find gear_gui_launch)/config/caili.perspective" output="screen">
+  </node>    
+</launch>
