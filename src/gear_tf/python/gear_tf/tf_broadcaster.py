@@ -100,8 +100,8 @@ class PublishTF(object):
         vicon_tf_info = yaml.load(open(self.vicon_tf_path))
          
         # Publish transform berween vicon frame and world frame
-        pose_obj = {"translation":{"x":0, "y":0, "z":0}, "rotation":{"x":0, "y":0, "z":0, "w":1}}
-        tf_transform_list.append(self.create_tf_transform(WORLD_FRAME, VICON_FRAME, pose_obj))
+        dummy_pose_obj = {"translation":{"x":0, "y":0, "z":0}, "rotation":{"x":0, "y":0, "z":0, "w":1}}
+        tf_transform_list.append(self.create_tf_transform(WORLD_FRAME, VICON_FRAME, dummy_pose_obj))
         
         # Publish the vicon tf
         pose_obj = {"translation":vicon_tf_info["translation"], "rotation":vicon_tf_info["rotation"]}
@@ -111,6 +111,7 @@ class PublishTF(object):
         for k,v in tf_info["poses"].iteritems():
             if k != vicon_tf_info["root_frame"]:
                 tf_transform_list.append(self.create_tf_transform(vicon_tf_info["root_frame"], k, v))
+            tf_transform_list.append(self.create_tf_transform(k, k+"_link", dummy_pose_obj))
     
         # Publish tfs    
         rospy.loginfo("[TFBroadcaster] Publishing TF")

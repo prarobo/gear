@@ -238,7 +238,7 @@ public:
   geometry_msgs::TransformStamped createTransformMsg(const std::string &parent_frame,
                                                      const std::string &child_frame,
                                                      const tf2::Vector3 &trans = tf2::Vector3(0,0,0),
-                                                     const tf2::Quaternion &quat = tf2::Quaternion(0,0,0,0),
+                                                     const tf2::Quaternion &quat = tf2::Quaternion(0,0,0,1),
                                                      const ros::Time &stamp = ros::Time::now()) const;
 
   /**

@@ -1,13 +1,12 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <launch>
   <arg name="image_def"             default="hd"/>
-  <arg name="base_name"             default="k1"/>
   <arg name="tag_type"              default="ar"/>
   <arg name="topic_name"            default="image_color"/>
   <arg name="start_manager"         default="true"/>
-  <arg name="nodelet_manager"       default="gear_tracker"/>
   <arg name="use_sim_time"          default="false"/>
-
+  <arg name="nodelet_manager"       default="gear_tracker"/>
+  
   <arg name="enable_kinect1"    default="true"/>
   <arg name="enable_kinect2"    default="true"/>
   <arg name="enable_kinect3"    default="true"/>
