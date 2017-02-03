@@ -20,8 +20,8 @@ DEFAULT_SERVICES_TO_ENABLE = ["/k1_color_enable",
                               "/k3_color_enable",
                               "/k4_color_enable",
                               "/k5_color_enable",
-                              #"/p1_color_enable",
-                              #"/p2_color_enable",
+                              "/p1_color_enable",
+                              "/p2_color_enable",
                               "/k1_depth_enable",
                               "/k2_depth_enable",
                               "/k3_depth_enable",
@@ -37,8 +37,8 @@ DEFAULT_SERVICES_SESSION_INFO = ["/k1_color_session_info",
                                  "/k3_color_session_info",
                                  "/k4_color_session_info",
                                  "/k5_color_session_info",
-                                 #"/p1_color_session_info",
-                                 #"/p2_color_session_info",
+                                 "/p1_color_session_info",
+                                 "/p2_color_session_info",
                                  "/k1_depth_session_info",
                                  "/k2_depth_session_info",
                                  "/k3_depth_session_info",
@@ -129,11 +129,18 @@ class ImageCaptureGUI(Plugin):
         '''
         self.session_timer_start_pub = rospy.Publisher("/gui/start_session_timer", Bool, queue_size=1)
         self.session_timer_stop_pub = rospy.Publisher("/gui/stop_session_timer", Bool, queue_size=1)
-        
-        self.services_to_enable = rospy.get_param("services_to_enable", DEFAULT_SERVICES_TO_ENABLE)
-        self.services_session_info = rospy.get_param("services_session_info", DEFAULT_SERVICES_SESSION_INFO)
         self.data_dir = rospy.get_param("/data_dir", DEFAULT_DATA_DIR)
-            
+ 
+        self.services_to_enable = DEFAULT_SERVICES_TO_ENABLE
+        if rospy.has_param("~services_to_enable"):
+            self.services_to_enable = rospy.get_param("~services_to_enable", DEFAULT_SERVICES_TO_ENABLE)
+        pprint.pprint(self.services_to_enable)
+ 
+        self.services_session_info = DEFAULT_SERVICES_SESSION_INFO
+        if rospy.has_param("~services_session_info"):
+            self.services_session_info = rospy.get_param("~services_session_info", DEFAULT_SERVICES_SESSION_INFO)
+        pprint.pprint(self.services_session_info)
+
     def _configure_gui(self):
         '''
         Configure the gui element on startup
