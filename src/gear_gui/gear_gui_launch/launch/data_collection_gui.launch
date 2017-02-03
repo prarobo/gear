@@ -44,6 +44,6 @@
 
 	<!-- Caili window -->  
   <node pkg="rqt_gui" type="rqt_gui" name="caili"  
-  	args="-f -l --perspective-file $(find gear_gui_launch)/config/adam.perspective" output="screen">
+  	args="-f -l --perspective-file $(find gear_gui_launch)/config/caili.perspective" output="screen">
   </node>    
 </launch>
