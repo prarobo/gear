@@ -2,42 +2,96 @@
 <launch>
   <arg name="frame_rate"               default="15"/>
   <arg name="window_size"              default="30"/>
-  <arg name="frequency_tolerance"			 default="0.2"/>
+  <arg name="image_freq_tolerance"		 default="0.2"/>
   <arg name="min_acceptable_delay"     default="0"/>
   <arg name="max_acceptable_delay"		 default="0.2"/>
   <arg name="update_interval"          default="0.1"/>
-  <arg name="min_frequency"			 			 default="15"/>
-  <arg name="max_frequency"			 			 default="15"/>
+  <arg name="image_min_frequency"			 default="15"/>
+  <arg name="image_max_frequency"			 default="15"/>
   <arg name="mount_point"              default="/mnt/md0"/>
   <arg name="slow_update_interval"     default="5"/>
   <arg name="low_free_space"			 		 default="500"/>
   <arg name="critical_free_space"			 default="100"/>
   <arg name="use_sim_time"             default="false"/>
+  <arg name="aggregator_file"          default="gear_analyzers_5k.yaml"/>
+  <arg name="audio_freq_tolerance"     default="0.3"/>
+  <arg name="audio_min_frequency"      default="27"/>
+  <arg name="audio_max_frequency"      default="27"/>
+
+  <arg name="logger_data_topics"       default="[/k1/color_image_count,
+                                                 /k2/color_image_count,
+                                                 /k3/color_image_count,
+                                                 /k4/color_image_count,
+                                                 /k5/color_image_count,
+                                                 /k1/depth_image_count,
+                                                 /k4/depth_image_count,
+                                                 /k5/depth_image_count,
+                                                 /synchronizer/image_count]"/>
+
+  <arg name="image_data_topics"        default="[/k1/hd/camera_info,
+                                                 /k2/hd/camera_info,
+                                                 /k3/hd/camera_info,
+                                                 /k4/hd/camera_info,
+                                                 /k5/hd/camera_info,
+                                                 /k1/sd/camera_info,
+                                                 /k2/sd/camera_info,
+                                                 /k3/sd/camera_info,
+                                                 /k4/sd/camera_info,
+                                                 /k5/sd/camera_info]"/>
+
+  <arg name="audio_data_topics"        default="[/audio/audio_count]"/>
+
+  <!-- Kinect sensor diagnostics -->
+  <include file="$(find gear_diagnostics)/launch/camera_diagnostics.launch"> 
+    <arg name="data_topics"            value="$(arg image_data_topics)"/>
+    <arg name="window_size"            value="$(arg window_size)"/>
+    <arg name="frequency_tolerance"    value="$(arg image_freq_tolerance)"/>
+    <arg name="min_acceptable_delay"   value="$(arg min_acceptable_delay)"/>
+    <arg name="max_acceptable_delay"   value="$(arg max_acceptable_delay)"/>
+    <arg name="update_interval"        value="$(arg update_interval)"/>
+    <arg name="min_frequency"          value="$(arg image_min_frequency)"/>
+    <arg name="max_frequency"          value="$(arg image_max_frequency)"/>
+    <arg name="use_sim_time"           value="$(arg use_sim_time)"/>
+  </include>       
 
   <!-- Image logger diagnostics -->
-  <include file="$(find gear_diagnostics)/launch/diagnostics_image_logger.launch"> 
-	  <arg name="frame_rate"             value="$(arg frame_rate)"/>
+  <include file="$(find gear_diagnostics)/launch/logger_diagnostics.launch"> 
+    <arg name="data_topics"            value="$(arg logger_data_topics)"/>
 	  <arg name="window_size"            value="$(arg window_size)"/>
-	  <arg name="frequency_tolerance"		 value="$(arg frequency_tolerance)"/>
+	  <arg name="frequency_tolerance"		 value="$(arg image_freq_tolerance)"/>
 	  <arg name="min_acceptable_delay"   value="$(arg min_acceptable_delay)"/>
 	  <arg name="max_acceptable_delay"	 value="$(arg max_acceptable_delay)"/>
 	  <arg name="update_interval"        value="$(arg update_interval)"/>
-	  <arg name="min_frequency"			 		 value="$(arg min_frequency)"/>
-	  <arg name="max_frequency"			 		 value="$(arg max_frequency)"/>
+	  <arg name="min_frequency"		       value="$(arg image_min_frequency)"/>
+	  <arg name="max_frequency"		       value="$(arg image_max_frequency)"/>
+    <arg name="use_sim_time"           value="$(arg use_sim_time)"/>
+  </include>       
+
+  <!-- Audio logger diagnostics -->
+  <include file="$(find gear_diagnostics)/launch/logger_diagnostics.launch"> 
+    <arg name="data_topics"            value="$(arg audio_data_topics)"/>
+    <arg name="window_size"            value="$(arg window_size)"/>
+    <arg name="frequency_tolerance"    value="$(arg audio_freq_tolerance)"/>
+    <arg name="min_acceptable_delay"   value="$(arg min_acceptable_delay)"/>
+    <arg name="max_acceptable_delay"   value="$(arg max_acceptable_delay)"/>
+    <arg name="update_interval"        value="$(arg update_interval)"/>
+    <arg name="min_frequency"          value="$(arg audio_min_frequency)"/>
+    <arg name="max_frequency"          value="$(arg audio_max_frequency)"/>
     <arg name="use_sim_time"           value="$(arg use_sim_time)"/>
   </include>       
 
   <!-- Disk diagnostics -->
-  <include file="$(find gear_diagnostics)/launch/diagnostics_disk.launch"> 
+  <include file="$(find gear_diagnostics)/launch/disk_diagnostics.launch"> 
 	  <arg name="mount_point"            value="$(arg mount_point)"/>
 	  <arg name="update_interval"     	 value="$(arg slow_update_interval)"/>
 	  <arg name="low_free_space"			 	 value="$(arg low_free_space)"/>
 	  <arg name="critical_free_space"		 value="$(arg critical_free_space)"/>
+    <arg name="use_sim_time"           value="$(arg use_sim_time)"/>
   </include>       
 
 	<!-- Dignostics aggregator -->
 	<node pkg="diagnostic_aggregator" type="aggregator_node" name="diagnostics_aggregator" output="screen">
-	  <rosparam command="load" file="$(find gear_diagnostics)/config/gear_analyzers.yaml" />
+	  <rosparam command="load" file="$(find gear_diagnostics)/config/$(arg aggregator_file)" />
     <param  name="use_sim_time"       value="$(arg use_sim_time)"/>
 	</node>
 </launch>

@@ -1,0 +1,24 @@
+analyzers:
+  synchronizer:
+    type: diagnostic_aggregator/GenericAnalyzer
+    path: Synchronizer
+    name: message_monitor
+    contains: synchronizer
+  kinect_sensor:
+    type: diagnostic_aggregator/GenericAnalyzer
+    path: Sensor
+    contains: camera_info
+  kinect_logger:
+    type: diagnostic_aggregator/GenericAnalyzer
+    path: Logger
+    contains: _image_count
+  audio_logger:
+    type: diagnostic_aggregator/GenericAnalyzer
+    path: Logger
+    contains: audio_count
+  disk:
+    type: diagnostic_aggregator/GenericAnalyzer
+    path: Disk
+    name: disk_monitor
+    contains: disk
+
