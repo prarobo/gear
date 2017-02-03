@@ -11,7 +11,7 @@ def main(info):
     post_processor_obj = PostProcessor(info.root_dir, info.video_extn, info.fps)
 
     # Create a video task
-    task = (info.subject, info.session, info.activity, info.condition, str(info.trial), info.sensor, info.video)
+    task = (info.subject, info.session, info.activity, info.condition, str(info.trial), info.sensor, info.video, {})
     
     # Generate videos
     if info.do_video:
@@ -23,7 +23,7 @@ def main(info):
     if info.do_composition:
         composition_task = []
         for c in COMPOSITION_PAIRS:
-            composition_task.append((info.subject, info.session, info.activity, info.condition, str(info.trial))+c)
+            composition_task.append((info.subject, info.session, info.activity, info.condition, str(info.trial))+c+({}))
     
         # Do composition video
         post_processor_obj.create_composition(composition_task)        

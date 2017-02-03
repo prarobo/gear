@@ -20,6 +20,7 @@ DEFAULT_VIDEO_BLACKLIST = ["depth"]
 DEFAULT_VIDEO_EXTN = ".avi"
 DEFAULT_FRAME_RATE = 15
 DEFAULT_WORKER_THREADS = 8
+DEFAULT_CROP_PARAMS = []
          
 class TaskThread(QtCore.QThread):
     task_finished = QtCore.pyqtSignal(int, int)
@@ -540,6 +541,30 @@ class PostprocessGUI(Plugin):
         self._widget.txtOutput.ensureCursorVisible()
         return
     
+    def _generate_task_params(self, task):
+        '''
+        Generate the parameters for a task
+        '''
+        task_param = {}
+        crop_param = ()
+        
+        # Create crop param
+        for k in self._crop_params:
+            if k[0:2] == task[5:7]:
+                crop_param = k[3:]
+        task_param["crop"] = crop_param        
+        
+        return task_param
+    
+    def _fill_task_param(self, task):
+        '''
+        Add task params to a task
+        '''
+        task_param = self._generate_task_params(t)
+        filled_task = task+(task_param)
+        
+        return filled_task
+    
     def _generate_tasks(self):
         '''
         Interface with the backend postprocessing
@@ -548,6 +573,7 @@ class PostprocessGUI(Plugin):
         tasks = itertools.product([self.subject], [self.session], 
                                   self.activity, self.condition, self.trial, 
                                   self.sensor, self.video)
+        tasks = [self._fill_task_param(t) for t in tasks]
         
         # Find all valid tasks
         valid_tasks = [t for t in tasks if self._validate_task(t)]
@@ -560,8 +586,7 @@ class PostprocessGUI(Plugin):
         compositions = []
         for t in trials:
             temp = itertools.product([t], self._composition)
-
-            compositions.append([t1[0]+t1[1] for t1 in temp])
+            compositions.append([self._fill_task_param(t1[0]+t1[1]) for t1 in temp])
         
         # Get valid compositions
         valid_compositions = [c for c in compositions if self._validate_composition(c)]
@@ -572,7 +597,7 @@ class PostprocessGUI(Plugin):
         '''
         Validate if a given task is possible
         '''
-        path = os.path.join(self.root_dir, task[0], task[1], '_'.join(task[2:5]), "images", '_'.join(task[5:]))
+        path = os.path.join(self.root_dir, task[0], task[1], '_'.join(task[2:5]), "images", '_'.join(task[5:7]))
         return os.path.exists(path)
     
     def _validate_composition(self, composition):
