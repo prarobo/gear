@@ -13,6 +13,7 @@ from std_srvs.srv._Trigger import Trigger, TriggerResponse, TriggerRequest
 rospack = RosPack()
 DEFAULT_TF_DIR = os.path.join(rospack.get_path("gear_launch"), "calibration")
 DEFAULT_TF_FILE = "camera_poses.yaml"
+DEFAULT_VICON_TF_FILE = "vicon2k2.yaml"
 VICON_FRAME = "vicon_world"
 WORLD_FRAME = "world"
 
@@ -46,6 +47,9 @@ class PublishTF(object):
         
         # Get tf_file
         self.tf_file = rospy.get_param("~tf_file", DEFAULT_TF_FILE)
+
+        # Get vicon tf_file
+        self.vicon_tf_file = rospy.get_param("~vicon_tf_file", DEFAULT_VICON_TF_FILE)
         return
         
     def create_tf_transform(self, parent, frame, pose_obj):
@@ -82,17 +86,31 @@ class PublishTF(object):
         rospy.loginfo("[TFBroadcaster] Loading tf from file: "+self.tf_path)
         if not os.path.exists(self.tf_path):
             rospy.logerr("[TFBroadcaster] Invalid tf file")
+
+        # Check if the vicon tf file exists
+        self.vicon_tf_path = os.path.join(self.tf_dir, self.vicon_tf_file)
+        rospy.loginfo("[TFBroadcaster] Loading vicon tf from file: "+self.vicon_tf_path)
+        if not os.path.exists(self.vicon_tf_path):
+            rospy.logerr("[TFBroadcaster] Invalid vicon tf file")
     
         # Load tf information from file
         tf_info = yaml.load(open(self.tf_path))
+
+        # Load vicon tf information from file
+        vicon_tf_info = yaml.load(open(self.vicon_tf_path))
          
         # Publish transform berween vicon frame and world frame
         pose_obj = {"translation":{"x":0, "y":0, "z":0}, "rotation":{"x":0, "y":0, "z":0, "w":1}}
         tf_transform_list.append(self.create_tf_transform(WORLD_FRAME, VICON_FRAME, pose_obj))
         
+        # Publish the vicon tf
+        pose_obj = {"translation":vicon_tf_info["translation"], "rotation":vicon_tf_info["rotation"]}
+        tf_transform_list.append(self.create_tf_transform(VICON_FRAME, vicon_tf_info["root_frame"], pose_obj))
+        
         # Publish tf that was loaded from file
         for k,v in tf_info["poses"].iteritems():
-            tf_transform_list.append(self.create_tf_transform(VICON_FRAME, k, v))
+            if k != vicon_tf_info["root_frame"]:
+                tf_transform_list.append(self.create_tf_transform(vicon_tf_info["root_frame"], k, v))
     
         # Publish tfs    
         rospy.loginfo("[TFBroadcaster] Publishing TF")
