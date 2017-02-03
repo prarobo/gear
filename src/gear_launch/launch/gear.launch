@@ -26,6 +26,7 @@
   <arg name="enable_diagnostics"    default="true"/>
   <arg name="enable_tf"    	        default="true"/>
   <arg name="enable_trackers"       default="true"/>
+  <arg name="enable_playback"       default="false"/>
 
   <!-- Parameters -->
   <arg name="frame_rate"            default="15"/>
@@ -47,10 +48,7 @@
   <param name="condition_id"        value="$(arg condition_id)"/>
   <param name="trial_id"            value="$(arg trial_id)"/> 
   <param name="use_sim_time"        value="$(arg use_sim_time)"/>  
-
-  <!-- Launch playback -->
-  <include file="$(find gear_data_handler)/launch/playback.launch" if="$(arg use_sim_time)"/>
-  
+ 
   <!-- Exclude some nodes while playback -->
   <group unless="$(arg use_sim_time)">
     
@@ -104,6 +102,10 @@
 
   <!-- Exclude some loggers while playback -->
   <group if="$(arg use_sim_time)">
+
+    <!-- Launch playback -->
+    <include file="$(find gear_data_handler)/launch/playback.launch" if="$(arg enable_playback)"/>
+ 
     <!-- Launch loggers -->
     <include file="$(find gear_launch)/launch/logger_gear.launch" if="$(arg enable_loggers)">
       <arg name="start_manager"         value="$(arg start_indiv_manager)"/>

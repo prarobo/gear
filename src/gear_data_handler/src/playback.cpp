@@ -718,10 +718,10 @@ void Playback::pickupMsg(){
 
       // Wait for sometime
       ros::Duration t_diff = t_next-t_prev;
-      ros::Duration t_rate_diff(t_diff.toSec()/rate_);
+      ros::WallDuration t_rate_diff(t_diff.toSec()/rate_);
       ROS_DEBUG("[Playback] Times computed (t_prev, t_next, rate, t_diff, t_rate_diff) = (%f, %f, %f, %f, %f)",
                 t_prev.toSec(), t_next.toSec(), rate_.load(), t_diff.toSec(), t_rate_diff.toSec());
-      ros::Time::sleepUntil(ros::Time::now()+t_rate_diff);
+      ros::WallTime::sleepUntil(ros::WallTime::now()+t_rate_diff);
       t_prev = t_next;
 
       published_msgs_++;
