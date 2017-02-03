@@ -23,13 +23,11 @@ ImageSynchronizer::ImageSynchronizer():
   default_data_topics_ = {"/k1/hd/image_color",
                           "/k2/hd/image_color",
                           "/k3/hd/image_color",
-                          "/k4/hd/image_color",
-                          "/k5/hd/image_color",
                           "/k1/sd/image_depth",
                           "/k2/sd/image_depth",
-                          "/k3/sd/image_depth"};//,
-                          //"/p1/hd/image_color",
-                          //"/p2/hd/image_color"};
+                          "/k3/sd/image_depth",
+                          "/p1/hd/image_color",
+                          "/p2/hd/image_color"};
 };
 
 void ImageSynchronizer::onInit(){
@@ -40,7 +38,11 @@ void ImageSynchronizer::onInit(){
 
   // Getting topic names
   std::vector<std::string> data_topics;
-  pnh.param<std::vector<std::string>>("data_topics", data_topics, default_data_topics_);
+  if (pnh.hasParam("data_topics")) {
+    pnh.getParam("data_topics", data_topics);
+  } else {
+    data_topics = default_data_topics_;
+  }
 
   // Create image subscribers and publishers
   for(const std::string &t: data_topics) {
