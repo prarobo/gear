@@ -187,7 +187,8 @@ class PostprocessGUI(Plugin):
         if self.tasks:
             task_started = True
             self._output_statustext("Processing task "+PostProcessor.build_video_name(self.tasks[-1])+" ...")
-            self.task_threads[tid].initialize(self.root_dir, self.tasks.pop(), "video", self._video_extn, self._frame_rate)
+            self.task_threads[tid].initialize(self.root_dir, self.tasks.pop(), "video", self._video_extn, 
+                                              self._frame_rate, self._composition_scale_factor)
             self.task_threads[tid].start()
             self.thread_idle[tid] = False
         
@@ -552,7 +553,7 @@ class PostprocessGUI(Plugin):
         Generate the parameters for a task
         '''
         task_param = {}
-        crop_param = ()
+        crop_param = []
         
         # Create crop param
         for k in self._crop_params:
