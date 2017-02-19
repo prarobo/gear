@@ -15,21 +15,22 @@ from gear_data_handler.postprocessor import PostProcessor
 import funcy
 
 DEFAULT_DATA_DIR = "/mnt/md0/gear_data"
-DEFAULT_COMPOSITION = '[("k2", "color"), ("p1", "color"), ("p2", "color")]'
+DEFAULT_COMPOSITION = '[["k2", "color"], ["k4", "color"], ["k5", "color"]]'
 DEFAULT_VIDEO_BLACKLIST = ["depth"]
 DEFAULT_VIDEO_EXTN = ".avi"
 DEFAULT_FRAME_RATE = 15
 DEFAULT_WORKER_THREADS = 8
-DEFAULT_CROP_PARAMS = []
+DEFAULT_CROP_PARAMS = '[]'#'[["k4", "color", 0, 0, 500, 500]]'
+DEFAULT_COMPOSITION_SCALING_FACTOR = "[0.1, 0.25, 0.25]"
          
 class TaskThread(QtCore.QThread):
     task_finished = QtCore.pyqtSignal(int, int)
     
     def __init__(self, tid):
         super(TaskThread, self).__init__()
-        self._tid = tid
+        self.tid = tid
      
-    def initialize(self, root_dir, task, task_type, video_extn, frame_rate):
+    def initialize(self, root_dir, task, task_type, video_extn, frame_rate, composition_scale_factor):
         '''
         Constructor
         '''
@@ -38,6 +39,7 @@ class TaskThread(QtCore.QThread):
         self._task_type = task_type
         self._video_extn = video_extn
         self._frame_rate = frame_rate
+        self._composition_scale_factor = composition_scale_factor
         return
 
     @QtCore.pyqtSlot()     
@@ -46,7 +48,8 @@ class TaskThread(QtCore.QThread):
         Interface with the backend postprocessing
         '''
         # Create postprocessing object
-        post_processor_obj = PostProcessor(self.root_dir, self._video_extn, self._frame_rate)
+        post_processor_obj = PostProcessor(self._root_dir, self._video_extn, self._frame_rate, 
+                                           self._composition_scale_factor)
          
         # Generate video or composition
         if self._task_type == "video":
@@ -56,7 +59,7 @@ class TaskThread(QtCore.QThread):
             post_processor_obj.create_composition(self._task)
             task_size = len(self._task)
 
-        self.task_finished.emit(self._tid, task_size)
+        self.task_finished.emit(self.tid, task_size)
         return
                      
 class PostprocessGUI(Plugin):
@@ -118,6 +121,7 @@ class PostprocessGUI(Plugin):
         self._video_blacklist = rospy.get_param("~video_blacklist", DEFAULT_VIDEO_BLACKLIST)
         self._composition = eval(rospy.get_param("~composition", DEFAULT_COMPOSITION))
         self._crop_params = eval(rospy.get_param("~crop_params", DEFAULT_CROP_PARAMS))
+        self._composition_scale_factor = eval(rospy.get_param("~composition_scale_factor", DEFAULT_COMPOSITION_SCALING_FACTOR))
 
         rospy.loginfo("[GearPostprocess] Data directory: "+self._data_dir)
         rospy.loginfo("[GearPostprocess] Video extension: "+self._video_extn)
@@ -126,6 +130,7 @@ class PostprocessGUI(Plugin):
         rospy.loginfo("[GearPostprocess] Video blacklist: "+str(self._video_blacklist))
         rospy.loginfo("[GearPostprocess] Composition: "+str(self._composition))
         rospy.loginfo("[GearPostprocess] Crop params: "+str(self._crop_params))
+        rospy.loginfo("[GearPostprocess] Composition scaling factor: "+str(self._composition_scale_factor))
 
         return
 
@@ -190,7 +195,8 @@ class PostprocessGUI(Plugin):
         if not task_started and self.composition_tasks:
             composition_started = True
             self._output_statustext("Processing composition "+PostProcessor.build_composition_name(self.composition_tasks[-1])+" ...")
-            self.task_threads[tid].initialize(self.root_dir, self.composition_tasks.pop(), "composition", self._video_extn, self._frame_rate)
+            self.task_threads[tid].initialize(self.root_dir, self.composition_tasks.pop(), "composition", self._video_extn, 
+                                              self._frame_rate, self._composition_scale_factor)
             self.task_threads[tid].start()  
             self.thread_idle[tid] = False      
         
@@ -551,7 +557,7 @@ class PostprocessGUI(Plugin):
         # Create crop param
         for k in self._crop_params:
             if k[0:2] == task[5:7]:
-                crop_param = k[3:]
+                crop_param = k[2:]
         task_param["crop"] = crop_param        
         
         return task_param
@@ -560,8 +566,8 @@ class PostprocessGUI(Plugin):
         '''
         Add task params to a task
         '''
-        task_param = self._generate_task_params(t)
-        filled_task = task+(task_param)
+        task_param = self._generate_task_params(task)
+        filled_task = list(task)+[task_param]
         
         return filled_task
     
@@ -573,7 +579,7 @@ class PostprocessGUI(Plugin):
         tasks = itertools.product([self.subject], [self.session], 
                                   self.activity, self.condition, self.trial, 
                                   self.sensor, self.video)
-        tasks = [self._fill_task_param(t) for t in tasks]
+        tasks = [self._fill_task_param(list(t)) for t in tasks]
         
         # Find all valid tasks
         valid_tasks = [t for t in tasks if self._validate_task(t)]
@@ -586,7 +592,7 @@ class PostprocessGUI(Plugin):
         compositions = []
         for t in trials:
             temp = itertools.product([t], self._composition)
-            compositions.append([self._fill_task_param(t1[0]+t1[1]) for t1 in temp])
+            compositions.append([self._fill_task_param(list(t1[0])+list(t1[1])) for t1 in temp])
         
         # Get valid compositions
         valid_compositions = [c for c in compositions if self._validate_composition(c)]
