@@ -62,15 +62,18 @@ void TrackingLogger::arTrackingCallback(const ar_track_alvar_msgs::AlvarMarkers&
 }
 
 void TrackingLogger::logText(const geometry_msgs::PoseStamped& msg) {
-  // Get the tf transformation
-  geometry_msgs::PoseStamped pose_out;
-  tf_listener_.transformPose("world", msg, pose_out);
 
-  // Write to text file
-  text_fp_<<msg.header.stamp.toSec()
-          <<"\t"<<msg.pose.position.x<<"\t"<<msg.pose.position.y<<"\t"<<msg.pose.position.z
-          <<"\t"<<msg.pose.orientation.x<<"\t"<<msg.pose.orientation.y<<"\t"<<msg.pose.orientation.z
-          <<"\t"<<msg.pose.orientation.w<<std::endl;
+  if (!msg.header.frame_id.compare("")==0) {
+    // Get the tf transformation
+    geometry_msgs::PoseStamped pose_out;
+    tf_listener_.transformPose("world", msg, pose_out);
+
+    // Write to text file
+    text_fp_<<msg.header.stamp.toSec()
+            <<"\t"<<msg.pose.position.x<<"\t"<<msg.pose.position.y<<"\t"<<msg.pose.position.z
+            <<"\t"<<msg.pose.orientation.x<<"\t"<<msg.pose.orientation.y<<"\t"<<msg.pose.orientation.z
+            <<"\t"<<msg.pose.orientation.w<<std::endl;
+  }
 }
 
 bool TrackingLogger::toggleLogger(std_srvs::SetBool::Request  &req,
