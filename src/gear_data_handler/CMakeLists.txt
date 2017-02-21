@@ -17,6 +17,7 @@ find_package(catkin REQUIRED COMPONENTS
   rosbag
   camera_info_manager
   tf2
+  tf
   tf2_ros
   message_generation
   rostime
@@ -53,7 +54,7 @@ catkin_package(
   # LIBRARIES gear_data_handler
   CATKIN_DEPENDS pluginlib nodelet cv_bridge roscpp rospy sensor_msgs std_msgs 
   std_srvs pcl_ros pcl_conversions apriltags_ros rosbag ar_track_alvar_msgs
-  camera_info_manager tf2 tf2_ros audio_common_msgs message_runtime dynamic_reconfigure
+  camera_info_manager tf2 tf tf2_ros audio_common_msgs message_runtime dynamic_reconfigure
   # DEPENDS system_lib
 )
 
