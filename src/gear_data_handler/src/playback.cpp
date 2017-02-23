@@ -105,7 +105,6 @@ bool Playback::stopPlayback(std_srvs::Trigger::Request  &req,
     res.success = false;
   }
   started_ = false;
-  ROS_INFO_STREAM("[Playback] Started value: "<<started_);
   return true;
 }
 

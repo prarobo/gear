@@ -1,5 +1,8 @@
 #include <gear_data_handler/log_tracking.h>
 
+//c++ Dependencies
+#include <limits>
+
 // Boost Dependencies
 #include <boost/format.hpp>
 
@@ -55,6 +58,7 @@ void TrackingLogger::arTrackingCallback(const ar_track_alvar_msgs::AlvarMarkers&
       // Log to text file
       geometry_msgs::PoseStamped pose_msg = m.pose;
       pose_msg.header.frame_id = m.header.frame_id;
+      pose_msg.header.stamp = m.header.stamp;
       logText(pose_msg);
     }
 
@@ -71,6 +75,7 @@ void TrackingLogger::logText(const geometry_msgs::PoseStamped& msg) {
     tf_listener_.transformPose("/world", msg, pose_out);
 
     // Write to text file
+    text_fp_.precision(std::numeric_limits< double >::max_digits10);
     text_fp_<<msg.header.stamp.toSec()
             <<"\t"<<msg.pose.position.x<<"\t"<<msg.pose.position.y<<"\t"<<msg.pose.position.z
             <<"\t"<<msg.pose.orientation.x<<"\t"<<msg.pose.orientation.y<<"\t"<<msg.pose.orientation.z
@@ -81,15 +86,16 @@ void TrackingLogger::logText(const geometry_msgs::PoseStamped& msg) {
 bool TrackingLogger::toggleLogger(std_srvs::SetBool::Request  &req,
                                   std_srvs::SetBool::Response &res){
 
-  bool out = false;
+  bool out = BagLogger::toggleLogger(req, res);
 
   // Open rosbag
   if (req.data) {
-    out = BagLogger::toggleLogger(req, res);
     boost::filesystem::path text_path = image_dir_/boost::filesystem::path(image_type_+".txt");
     text_fp_.open(text_path.string());
   } else {
-    text_fp_.close();
+    if (text_fp_.is_open()) {
+      text_fp_.close();
+    }
   }
 
   return out;
