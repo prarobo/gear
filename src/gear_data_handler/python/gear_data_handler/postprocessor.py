@@ -13,7 +13,7 @@ import sys
 VIDEO_ENCODING = cv2.cv.CV_FOURCC('M','J','P','G')
 IMAGE_DIR = "images"
 VIDEO_DIR = "videos"
-SCALING_FACTOR = 0.25
+SCALING_FACTOR = 1
 RED = '\033[01;31m' 
 GREEN = '\033[92m'
 COLOR_RESET = '\x1B[0m'
@@ -21,13 +21,15 @@ COLOR_RESET = '\x1B[0m'
 class PostProcessor(object):
     def __init__(self, root_dir="/mnt/md0/gear_data", 
                  video_extn=".avi",
-                 fps="15"):
+                 fps="15", 
+                 composition_scaling_factor = [0.10, 0.25, 0.25]):
         
         # Record inputs
         self.root_dir = root_dir
         self.video_extn = video_extn
         self.fps = fps
         self.video_enc = VIDEO_ENCODING
+        self.composition_scaling_factor = composition_scaling_factor
                                     
         return
         
@@ -76,7 +78,7 @@ class PostProcessor(object):
         '''
         Build video name from task
         '''
-        return '_'.join(task) 
+        return '_'.join(task[:-1]) 
     
     def compute_time_seq_statistics(self, time_seq):
         '''
@@ -186,7 +188,7 @@ class PostProcessor(object):
         min_time, max_time = self.get_min_max_time_seq(time_seq_list)
         return min_time, max_time
             
-    def _get_video_information(self, time_seq, min_time, max_time, image_dir, image_type):
+    def _get_video_information(self, time_seq, min_time, max_time, image_dir, image_type, params):
         '''
         Get information about the video to be generated
         '''
@@ -219,7 +221,16 @@ class PostProcessor(object):
         else:
             is_color = cv2.CV_LOAD_IMAGE_UNCHANGED
             
-        return frame_size, is_color, current_fps, image_extn, image_prefix
+        # Set field of view crop limits
+        if not params.has_key("crop") or params["crop"] == []:
+            fov_pt1 = (0,0)
+            fov_pt2 = frame_size
+        else:
+            fov_pt1 = tuple(params["crop"][0:2])
+            fov_pt2 = tuple(params["crop"][2:])
+            frame_size = (fov_pt2[0]-fov_pt1[0], fov_pt2[1]-fov_pt1[1])
+            
+        return frame_size, is_color, current_fps, image_extn, image_prefix, fov_pt1, fov_pt2
         
     def _initialize_video_info(self, task):
         '''
@@ -228,7 +239,7 @@ class PostProcessor(object):
         # Initialize directories
         image_root_dir = self.get_image_root_dir(task)
         video_root_dir = self.get_video_root_dir(task)
-        image_dir = os.path.join(image_root_dir, '_'.join(task[-2:]))
+        image_dir = os.path.join(image_root_dir, '_'.join(task[5:7]))
         if not os.path.exists(video_root_dir):
             os.makedirs(video_root_dir)
         
@@ -237,11 +248,12 @@ class PostProcessor(object):
         time_seq = self._time_sequence_dir(image_dir)
                     
         # Get video information
-        frame_size, is_color, current_fps, image_extn, image_prefix \
-            = self._get_video_information(time_seq, min_time, max_time, image_dir, task[-1])
+        frame_size, is_color, current_fps, image_extn, image_prefix, fov_pt1, fov_pt2 \
+            = self._get_video_information(time_seq, min_time, max_time, image_dir, task[-2], task[-1])
                 
         return image_root_dir, video_root_dir, frame_size, is_color, current_fps, \
-                image_extn, image_prefix, time_seq, min_time, max_time, image_dir
+                image_extn, image_prefix, time_seq, min_time, max_time, image_dir, \
+                fov_pt1, fov_pt2
     
     def create_video(self, task):
         '''
@@ -249,7 +261,8 @@ class PostProcessor(object):
         '''
         # Initialize directories
         image_root_dir, video_root_dir, frame_size, is_color, current_fps, \
-            image_extn, image_prefix, time_seq, min_time, max_time, image_dir \
+            image_extn, image_prefix, time_seq, min_time, max_time, image_dir, \
+            fov_pt1, fov_pt2 \
             = self._initialize_video_info(task)
             
         # Get video file information
@@ -281,48 +294,43 @@ class PostProcessor(object):
                 image_name = self._build_image_name(t, image_extn, image_prefix)
                 image_path = os.path.join(image_dir, image_name)
                 image = cv2.imread(image_path, is_color)
+                image = image[fov_pt1[1]:fov_pt2[1], fov_pt1[0]:fov_pt2[0]]
                 video_writer.write(image)
+                
+        video_writer.release()
         return
     
     def create_composition(self, composition_task):
         '''
         Compose multiple videos into a single video
         '''       
+        image_root_dir, video_root_dir, frame_size, is_color, current_fps, \
+            image_extn, image_prefix, time_seq, min_time, max_time, image_dir, \
+            fov_pt1, fov_pt2 \
+            = self._initialize_video_info(composition_task[0])
+            
         # Initialization
         image_extn_list = []
         image_prefix_list = []
         time_seq_list = []
         image_dir_list = []
-        image_root_dir, video_root_dir, frame_size, is_color, current_fps, \
-            image_extn, image_prefix, time_seq, min_time, max_time, image_dir \
-            = self._initialize_video_info(composition_task[0])
-        frame_size_list = [np.round([f*SCALING_FACTOR for f in frame_size])]
-        image_extn_list.append(image_extn)
-        image_prefix_list.append(image_prefix)
-        time_seq_list.append(time_seq)
-        image_dir_list.append(image_dir)
+        fov_pt1_list = [] 
+        fov_pt2_list = []
+        frame_size_list = []
         
         # Get the composition frame sizes and other video specific parameters
-        for i in xrange(1,len(composition_task)):
-            _, _, frame_size, _, _, image_extn, image_prefix, time_seq, _, _, image_dir \
+        for i in xrange(len(composition_task)):
+            _, _, frame_size, _, _, image_extn, image_prefix, time_seq, _, _, image_dir, fov_pt1, fov_pt2 \
                 = self._initialize_video_info(composition_task[i])
-            scaling_factor = frame_size_list[0][1]/frame_size[1]
-            dim2 = round(frame_size[0]*scaling_factor)
-            frame_size_list.append(np.array([dim2, frame_size_list[0][1]]))
+            frame_size_list.append(np.round([f*SCALING_FACTOR for f in frame_size]))
             time_seq_list.append(time_seq)
             image_extn_list.append(image_extn)
             image_prefix_list.append(image_prefix)
             image_dir_list.append(image_dir)
+            fov_pt1_list.append(fov_pt1)
+            fov_pt2_list.append(fov_pt2)        
         
-        # Create video writer object
-        video_frame_size = tuple([int(sum([f[0] for f in frame_size_list])), int(frame_size_list[0][1])])                                     
-        video_name = self.build_composition_name(composition_task)
-        video_path = os.path.join(video_root_dir, video_name+self.video_extn)
-        video_writer = cv2.VideoWriter(video_path, self.video_enc, float(current_fps), video_frame_size, is_color)
-        if not video_writer.isOpened():
-            sys.stderr.out(RED+"Failed to load video"+COLOR_RESET)
-            sys.stderr.flush()
-            return
+        video_writer = None
         
         # Cleanup unwanted values from time sequences
         for t in time_seq_list:
@@ -336,10 +344,7 @@ class PostProcessor(object):
             if len(time_seq_list[i-1]) != len(time_seq_list[i]):
                 sys.stderr.write(RED+"Time sequence list does not match\n"+COLOR_RESET)
                 sys.stderr.flush()
-        
-        sys.stdout.write(GREEN+"Processing composition video "+video_name+self.video_extn+" ...\n"+COLOR_RESET)
-        sys.stdout.flush()
-        
+            
         for t in time_seq_list[0]:
             if min_time<=t<=max_time:
                 images = []
@@ -347,12 +352,67 @@ class PostProcessor(object):
                     image_name = self._build_image_name(t, image_extn_list[i], image_prefix_list[i])
                     image_path = os.path.join(image_dir_list[i], image_name)
                     image = cv2.imread(image_path, is_color)
+                    image = image[fov_pt1_list[i][1]:fov_pt2_list[i][1], fov_pt1_list[i][0]:fov_pt2_list[i][0]]
                     image_resized = cv2.resize(image, tuple([int(f) for f in frame_size_list[i]]))
                     images.append(image_resized)
 
-                composed_image = np.concatenate(tuple(images), axis=1)
+                composed_image = self._compose_frame(images, mode="custom")
+                
+                # Debug
+                #cv2.imshow('image',composed_image)
+                #cv2.waitKey(10)
+                
+                # Create video writer object if it does not exist
+                if not video_writer:
+                    video_frame_size = tuple([composed_image.shape[1],composed_image.shape[0]])                                     
+                    video_name = self.build_composition_name(composition_task)
+                    video_path = os.path.join(video_root_dir, video_name+self.video_extn)
+                    video_writer = cv2.VideoWriter(video_path, self.video_enc, float(current_fps), video_frame_size, is_color)
+                    if not video_writer.isOpened():
+                        sys.stderr.out(RED+"Failed to load video"+COLOR_RESET)
+                        sys.stderr.flush()
+                        return
+
+                    sys.stdout.write(GREEN+"Processing composition video "+video_name+self.video_extn+" ...\n"+COLOR_RESET)
+                    sys.stdout.flush()
+                    
                 video_writer.write(composed_image)
+                
+        video_writer.release()
         return
+    
+    def _compose_frame(self, images, mode="horizontal"):
+        '''
+        Compose a list of images into a single frame
+        '''
+        resized_images = []
+        for i in xrange(len(images)):
+            im_size = tuple([int(images[i].shape[1]*self.composition_scaling_factor[i]), 
+                             int(images[i].shape[0]*self.composition_scaling_factor[i])])
+            resized_images.append(cv2.resize(images[i], im_size))
+ 
+        if mode == "custom":       
+            
+            # Create bottom row of frame 
+            scale_factor = float(resized_images[1].shape[0])/float(resized_images[2].shape[0])
+            im_size = tuple([int(resized_images[2].shape[1]*scale_factor), resized_images[1].shape[0]])
+            im2 = cv2.resize(resized_images[1], im_size)     
+            bottom_frame = np.concatenate(tuple([resized_images[1], im2]), axis=1)
+            
+            # Create top row of frame
+            top_frame = np.zeros([resized_images[0].shape[0], bottom_frame.shape[1], bottom_frame.shape[2]],dtype=np.uint8)            
+            column_skip = int((bottom_frame.shape[1]-resized_images[0].shape[1])/2)
+            top_frame[:,column_skip:resized_images[0].shape[1]+column_skip] = resized_images[0]
+            
+            # Create image frame
+            image_frame = np.concatenate(tuple([top_frame, bottom_frame]), axis=0)
+            
+        elif mode == "horizontal":
+            image_frame = np.concatenate(tuple(resized_images), axis=1)
+        else:           
+            image_frame = np.concatenate(tuple(resized_images), axis=1)
+             
+        return image_frame
     
     @classmethod
     def build_composition_name(self, composition_task):
@@ -360,7 +420,8 @@ class PostProcessor(object):
         Get the name of composition from composition task
         '''
         c_name = []
-        for i in zip(*composition_task):
+        temp_task = [c[:-1] for c in composition_task]
+        for i in zip(*temp_task):
             c_name.append(''.join(sorted(set(list(i)))))
         video_name = "composition_"+'_'.join(c_name)
         return video_name
