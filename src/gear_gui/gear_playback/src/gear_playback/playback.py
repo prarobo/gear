@@ -12,6 +12,7 @@ from time import sleep
 import shutil
 from glob import glob
 from std_srvs.srv._Trigger import Trigger
+from std_srvs.srv._SetBool import SetBool, SetBoolRequest
 from gear_data_handler.srv._TimeExtent import TimeExtent
 from rosgraph_msgs.msg._Clock import Clock
 from decimal import Decimal
@@ -21,6 +22,8 @@ DEFAULT_PLAYBACK_START_SERVICE_NAME = "/start_playback"
 DEFAULT_PLAYBACK_STOP_SERVICE_NAME = "/stop_playback"
 DEFAULT_PLAYBACK_TIME_SERVICE_NAME  = "/playback_time_extents"
 DEFAULT_TF_SERVICE_NAME = "/trigger_tf"
+DEFAULT_TRACKING_SESSION_SERVICE_NAME = "/track_tracking_session_info"
+DEFAULT_TRACKING_TRIGGER_SERVICE_NAME = "/track_tracking_enable"
 
 class ProgressBarHelper(QtCore.QObject):
     update_progress = QtCore.pyqtSignal(int)
@@ -93,6 +96,8 @@ class PlaybackGUI(Plugin):
         self._playback_stop_service_name = rospy.get_param("~playback_stop_service_name", DEFAULT_PLAYBACK_STOP_SERVICE_NAME)
         self._playback_time_service_name = rospy.get_param("~playback_time_service_name", DEFAULT_PLAYBACK_TIME_SERVICE_NAME)
         self._tf_service_name = rospy.get_param("~tf_service_name", DEFAULT_TF_SERVICE_NAME)
+        self._tracking_session_service_name = rospy.get_param("~tracking_session_service_name", DEFAULT_TRACKING_SESSION_SERVICE_NAME)
+        self._tracking_trigger_service_name = rospy.get_param("~tracking_trigger_service_name", DEFAULT_TRACKING_TRIGGER_SERVICE_NAME)        
 
         return
            
@@ -121,7 +126,7 @@ class PlaybackGUI(Plugin):
         
         self.progressBarHelper = ProgressBarHelper()
         self.progressBarHelper.update_progress.connect(self._widget.progressBar.setValue)
-                
+
         return
     
     def _check_completion(self):
@@ -130,7 +135,7 @@ class PlaybackGUI(Plugin):
         '''
         if self._started:
             if self._prev_time != rospy.Time(0) and self._curr_time == self._prev_time:
-                self._widget.btnReset.clicked.emit(True)                 
+                self._widget.btnStop.clicked.emit(True)                 
             self._prev_time = self._curr_time
         return
     
@@ -289,6 +294,8 @@ class PlaybackGUI(Plugin):
             self._widget.btnStop.setEnabled(False)
             self._widget.btnFileselect.setEnabled(True)
             self._widget.txtFilepath.setEnabled(True)   
+            self._widget.chkTracking.setEnabled(True)
+            self._widget.chkTracking.setChecked(False)
             
         self._curr_time = rospy.Time(0)
         self._prev_time = rospy.Time(0)
@@ -308,6 +315,7 @@ class PlaybackGUI(Plugin):
         self._widget.comboSession.setEnabled(False)
         self._widget.btnStart.setEnabled(False)
         self._widget.btnStop.setEnabled(False)
+        self._widget.chkTracking.setEnabled(False)
         return
 
     @QtCore.pyqtSlot()            
@@ -320,6 +328,7 @@ class PlaybackGUI(Plugin):
         self._widget.btnFileselect.setEnabled(False)
         self._widget.txtFilepath.setEnabled(False)
         self._widget.btnStart.setEnabled(False)
+        self._widget.btnReset.setEnabled(False)
         self.progress_value = 0
         self._widget.txtOutput.clear()
         self._output_statustext("Starting playback ...")
@@ -333,6 +342,21 @@ class PlaybackGUI(Plugin):
         resp = tf_service()        
         if not resp.success:
             rospy.logerr("[GearPlayback] Failed to trigger TF")
+        
+        if self._widget.chkTracking.isChecked():    
+            # Setting tracking logger session information
+            tracking_session_service = rospy.ServiceProxy(self._tracking_session_service_name, Trigger)
+            resp = tracking_session_service()        
+            if not resp.success:
+                rospy.logerr("[GearPlayback] Failed to set tracking logger session information")
+            
+            # Starting tracking logger
+            tracking_trigger_service = rospy.ServiceProxy(self._tracking_trigger_service_name, SetBool)
+            req = SetBoolRequest()
+            req.data = True
+            resp = tracking_trigger_service(req)        
+            if not resp.success:
+                rospy.logerr("[GearPlayback] Failed to start tracking logger")
 
         # Start playback node
         playback_start_service = rospy.ServiceProxy(self._playback_start_service_name, Trigger)
@@ -391,6 +415,16 @@ class PlaybackGUI(Plugin):
         '''
         self._output_statustext("Stopping playback ...")
         self._widget.btnStop.setEnabled(False)
+        self._started = False
+        
+        if self._widget.chkTracking.isChecked():
+            # Stopping tracking logger
+            tracking_trigger_service = rospy.ServiceProxy(self._tracking_trigger_service_name, SetBool)
+            req = SetBoolRequest()
+            req.data = False
+            resp = tracking_trigger_service(req)        
+            if not resp.success:
+                rospy.logerr("[GearPlayback] Failed to stop tracking logger")
 
         # Stop playback node
         playback_stop_service = rospy.ServiceProxy(self._playback_stop_service_name, Trigger)
@@ -399,6 +433,7 @@ class PlaybackGUI(Plugin):
             rospy.loginfo("[GearPlayback] Playback stopped: "+str(resp.success))
             self._widget.btnReset.setEnabled(True)
             self._widget.btnStart.setEnabled(True)
+            self._widget.chkTracking.setChecked(False)
             self._output_statustext("Stopped playback")
         else:                                
             rospy.logerr("[GearPlayback] Playback stopping failed")

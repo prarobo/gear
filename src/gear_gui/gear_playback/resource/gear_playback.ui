@@ -129,9 +129,9 @@
          <string>Select Directory</string>
         </property>
        </widget>
-       <widget class="QLabel" name="label_3">
+       <widget class="QCheckBox" name="chkTracking">
         <property name="text">
-         <string/>
+         <string>tracking</string>
         </property>
        </widget>
        <widget class="QLabel" name="label_2">

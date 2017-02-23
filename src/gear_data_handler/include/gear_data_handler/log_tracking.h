@@ -8,6 +8,8 @@
 #include <ar_track_alvar_msgs/AlvarMarkers.h>
 #include <gear_data_handler/log_bags.h>
 #include <rosbag/bag.h>
+#include <fstream>
+#include <tf/transform_listener.h>
 
 namespace gear_data_handler {
 
@@ -33,8 +35,21 @@ public:
    **/
   void arTrackingCallback(const ar_track_alvar_msgs::AlvarMarkers& msg);
 
+  /**
+   * Overrides default toggling of bag logger
+   */
+  virtual bool toggleLogger(std_srvs::SetBool::Request  &req,
+                            std_srvs::SetBool::Response &res);
+
+  /**
+   * Function to log text information of bag data
+   */
+  void logText(const geometry_msgs::PoseStamped& msg);
+
 private:
   std::string tag_type_;
+  std::ofstream text_fp_;
+  tf::TransformListener tf_listener_;
 
 }; //class PointcloudLogger
 
