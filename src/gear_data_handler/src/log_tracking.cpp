@@ -53,7 +53,9 @@ void TrackingLogger::arTrackingCallback(const ar_track_alvar_msgs::AlvarMarkers&
 
     for(const auto &m: msg.markers) {
       // Log to text file
-      logText(m.pose);
+      geometry_msgs::PoseStamped pose_msg = m.pose;
+      pose_msg.header.frame_id = m.header.frame_id;
+      logText(pose_msg);
     }
 
     // Publish running image counts
@@ -66,7 +68,7 @@ void TrackingLogger::logText(const geometry_msgs::PoseStamped& msg) {
   if (!msg.header.frame_id.compare("")==0) {
     // Get the tf transformation
     geometry_msgs::PoseStamped pose_out;
-    tf_listener_.transformPose("world", msg, pose_out);
+    tf_listener_.transformPose("/world", msg, pose_out);
 
     // Write to text file
     text_fp_<<msg.header.stamp.toSec()
