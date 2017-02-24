@@ -23,8 +23,8 @@
                                                  /k4/color_image_count,
                                                  /k5/color_image_count,
                                                  /k1/depth_image_count,
-                                                 /k4/depth_image_count,
-                                                 /k5/depth_image_count,
+                                                 /k2/depth_image_count,
+                                                 /k3/depth_image_count,
                                                  /synchronizer/image_count]"/>
 
   <arg name="image_data_topics"        default="[/k1/hd/camera_info,

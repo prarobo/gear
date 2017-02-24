@@ -44,7 +44,7 @@ public:
   /**
    * Function to log text information of bag data
    */
-  void logText(const geometry_msgs::PoseStamped& msg);
+  void logText(const geometry_msgs::PoseStamped& msg, const int &id);
 
 private:
   std::string tag_type_;
