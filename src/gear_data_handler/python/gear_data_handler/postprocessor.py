@@ -396,7 +396,7 @@ class PostProcessor(object):
             # Create bottom row of frame 
             scale_factor = float(resized_images[1].shape[0])/float(resized_images[2].shape[0])
             im_size = tuple([int(resized_images[2].shape[1]*scale_factor), resized_images[1].shape[0]])
-            im2 = cv2.resize(resized_images[1], im_size)     
+            im2 = cv2.resize(resized_images[2], im_size)     
             bottom_frame = np.concatenate(tuple([resized_images[1], im2]), axis=1)
             
             # Create top row of frame

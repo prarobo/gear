@@ -37,7 +37,7 @@ void TrackingLogger::aprilTrackingCallback(const apriltags_ros::AprilTagDetectio
 
     for(const auto &m: msg.detections) {
       // Log to text file
-      logText(m.pose);
+      logText(m.pose, m.id);
     }
 
     // Publish running image counts
@@ -59,7 +59,7 @@ void TrackingLogger::arTrackingCallback(const ar_track_alvar_msgs::AlvarMarkers&
       geometry_msgs::PoseStamped pose_msg = m.pose;
       pose_msg.header.frame_id = m.header.frame_id;
       pose_msg.header.stamp = m.header.stamp;
-      logText(pose_msg);
+      logText(pose_msg, m.id);
     }
 
     // Publish running image counts
@@ -67,7 +67,7 @@ void TrackingLogger::arTrackingCallback(const ar_track_alvar_msgs::AlvarMarkers&
   }
 }
 
-void TrackingLogger::logText(const geometry_msgs::PoseStamped& msg) {
+void TrackingLogger::logText(const geometry_msgs::PoseStamped& msg, const int &id) {
 
   if (!msg.header.frame_id.compare("")==0) {
     // Get the tf transformation
@@ -76,7 +76,7 @@ void TrackingLogger::logText(const geometry_msgs::PoseStamped& msg) {
 
     // Write to text file
     text_fp_.precision(std::numeric_limits< double >::max_digits10);
-    text_fp_<<msg.header.stamp.toSec()
+    text_fp_<<msg.header.stamp.toSec()<<"\t"<<id<<"\t"<<msg.header.frame_id
             <<"\t"<<msg.pose.position.x<<"\t"<<msg.pose.position.y<<"\t"<<msg.pose.position.z
             <<"\t"<<msg.pose.orientation.x<<"\t"<<msg.pose.orientation.y<<"\t"<<msg.pose.orientation.z
             <<"\t"<<msg.pose.orientation.w<<std::endl;
