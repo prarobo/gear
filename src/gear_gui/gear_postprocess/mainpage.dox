@@ -1,0 +1,9 @@
+/**
+\mainpage
+\htmlinclude manifest.html
+
+\b %gear_postprocess provides the GUI interface that controls video generation.
+
+\section codeapi Code API
+
+*/

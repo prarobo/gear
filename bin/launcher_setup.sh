@@ -1,7 +1,7 @@
 #!/bin/bash
 
-LAUNCHER_DIR=$HOME/gear/launchers
-ICON_DIR=$HOME/gear/icons
+LAUNCHER_DIR=$GEAR_DIR/launchers
+ICON_DIR=$GEAR_DIR/icons
 SYS_LAUNCHER_DIR=$HOME/.local/share/applications
 
 cp ${LAUNCHER_DIR}/gear.desktop ${SYS_LAUNCHER_DIR}/gear.desktop

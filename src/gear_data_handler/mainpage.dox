@@ -1,0 +1,14 @@
+/**
+\mainpage
+\htmlinclude manifest.html
+
+
+\b %gear_data_handler provides all tools required to handle the collected data. It includes:
+
+- postprocessing, video generation and data-statistics tools
+- logging tools to save the data to disk
+- data synchronization tools
+
+\section codeapi Code API
+
+*/

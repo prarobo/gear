@@ -1,0 +1,9 @@
+/**
+\mainpage
+\htmlinclude manifest.html
+
+\b %gear_session_duration provides the GUI interface that controls the graphical session clocks.
+
+\section codeapi Code API
+
+*/

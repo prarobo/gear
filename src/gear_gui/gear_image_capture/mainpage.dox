@@ -1,0 +1,9 @@
+/**
+\mainpage
+\htmlinclude manifest.html
+
+\b %gear_image_capture provides the GUI interface that allows to control the data-collection process.
+
+\section codeapi Code API
+
+*/

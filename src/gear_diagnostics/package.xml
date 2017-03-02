@@ -4,7 +4,7 @@
   <version>0.0.0</version>
   <description>The gear_diagnostics package</description>
   <maintainer email="kan.prasanna@gmail.com">Prasanna kannappan</maintainer>
-  <license>TODO</license>
+  <license>GPLv3</license>
 
   <buildtool_depend>catkin</buildtool_depend>
   <build_depend>roscpp</build_depend>
@@ -18,4 +18,8 @@
   <run_depend>std_msgs</run_depend>
   <run_depend>sensor_msgs</run_depend>
   <run_depend>diagnostic_updater</run_depend>
+
+  <export>
+    <rosdoc config="${prefix}/rosdoc.yaml" />
+  </export>  
 </package>

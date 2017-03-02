@@ -1,0 +1,9 @@
+/**
+\mainpage
+\htmlinclude manifest.html
+
+\b %gear_playback provides the GUI interface that allows playback of data from disk.
+
+\section codeapi Code API
+
+*/

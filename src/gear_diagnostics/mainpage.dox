@@ -1,0 +1,15 @@
+/**
+\mainpage
+\htmlinclude manifest.html
+
+
+\b %gear_diagnostics provides all tools required to monitor data-collection elements. It includes:
+
+- sensor state and performance monitors
+- disk space monitors
+- data synchronization rate monitor
+- logging rate monitors
+
+\section codeapi Code API
+
+*/
