@@ -21,9 +21,9 @@
   <arg name="sensor_4_name" default="k5" />
 
   <arg name="rows"          default="7" />
-  <arg name="cols"          default="7" />
-  <arg name="cell_width"    default="0.068" />
-  <arg name="cell_height"   default="0.068" />
+  <arg name="cols"          default="6" />
+  <arg name="cell_width"    default="0.07" />
+  <arg name="cell_height"   default="0.07" />
 
   <!-- Calibration parameters -->
   <arg name="fixed_sensor_id"   default="k2"/>
