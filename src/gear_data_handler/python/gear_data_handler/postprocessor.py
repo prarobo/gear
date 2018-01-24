@@ -9,10 +9,12 @@ import cv2
 import shutil
 from decimal import Decimal, getcontext
 import sys
+import yaml
 
 VIDEO_ENCODING = cv2.cv.CV_FOURCC('M','J','P','G')
 IMAGE_DIR = "images"
 VIDEO_DIR = "videos"
+INFO_DIR = "video_info"
 SCALING_FACTOR = 1
 RED = '\033[01;31m' 
 GREEN = '\033[92m'
@@ -22,11 +24,13 @@ class PostProcessor(object):
     def __init__(self, root_dir="/mnt/md0/gear_data", 
                  video_extn=".avi",
                  fps="15", 
-                 composition_scaling_factor = [0.10, 0.25, 0.25]):
+                 composition_scaling_factor = [0.10, 0.25, 0.25],
+                 info_extn=".yaml"):
         
         # Record inputs
         self.root_dir = root_dir
         self.video_extn = video_extn
+        self.info_extn = info_extn
         self.fps = fps
         self.video_enc = VIDEO_ENCODING
         self.composition_scaling_factor = composition_scaling_factor
@@ -160,7 +164,13 @@ class PostProcessor(object):
         Get the image root directory from task
         '''
         return os.path.join(self.root_dir, task[0], task[1], '_'.join(task[2:5]), VIDEO_DIR)
-    
+
+    def get_info_root_dir(self, task):
+        '''
+        Get the info root directory from task
+        '''
+        return os.path.join(self.root_dir, task[0], task[1], '_'.join(task[2:5]), INFO_DIR)
+
     def generate_time_seq_list(self, task):
         '''
         Get the time sequence for all sensor streams
@@ -239,6 +249,7 @@ class PostProcessor(object):
         # Initialize directories
         image_root_dir = self.get_image_root_dir(task)
         video_root_dir = self.get_video_root_dir(task)
+        info_root_dir = self.get_info_root_dir(task)
         image_dir = os.path.join(image_root_dir, '_'.join(task[5:7]))
         if not os.path.exists(video_root_dir):
             os.makedirs(video_root_dir)
@@ -251,7 +262,7 @@ class PostProcessor(object):
         frame_size, is_color, current_fps, image_extn, image_prefix, fov_pt1, fov_pt2 \
             = self._get_video_information(time_seq, min_time, max_time, image_dir, task[-2], task[-1])
                 
-        return image_root_dir, video_root_dir, frame_size, is_color, current_fps, \
+        return image_root_dir, video_root_dir, info_root_dir, frame_size, is_color, current_fps, \
                 image_extn, image_prefix, time_seq, min_time, max_time, image_dir, \
                 fov_pt1, fov_pt2
     
@@ -260,7 +271,7 @@ class PostProcessor(object):
         Generate videos for the given task
         '''
         # Initialize directories
-        image_root_dir, video_root_dir, frame_size, is_color, current_fps, \
+        image_root_dir, video_root_dir, info_root_dir, frame_size, is_color, current_fps, \
             image_extn, image_prefix, time_seq, min_time, max_time, image_dir, \
             fov_pt1, fov_pt2 \
             = self._initialize_video_info(task)
@@ -268,6 +279,7 @@ class PostProcessor(object):
         # Get video file information
         video_name = self.build_video_name(task)
         video_path = os.path.join(video_root_dir, video_name+self.video_extn)
+        info_path = os.path.join(info_root_dir, video_name+self.info_extn)
         sys.stdout.write(GREEN+"Processing video "+video_name+self.video_extn+" ...\n"+COLOR_RESET)
         sys.stdout.flush()
         
@@ -288,6 +300,21 @@ class PostProcessor(object):
         sys.stdout.write("Min time delay :\t\t"+str(min_delay)+"\n")
         sys.stdout.write("Max time delay :\t\t"+str(max_delay)+"\n")
         sys.stdout.flush()
+
+        # Info struct
+        info_stuct = {}
+        info_struct["video_path"] = video_path
+        info_struct["mean_fps"] = mean_fps
+        info_struct["mean_time_diff"] = mean_time_diff
+        info_struct["std_time_diff"] = std_time_diff
+        info_struct["max_delay"] = max_delay
+        info_struct["min_delay"] = min_delay
+        info_struct["time_seq"] = time_seq
+
+        # Write info struct to file
+        os.makedirs(os.path.dirname(info_path))       
+        with open(info_path, 'w') as outfile:
+            yaml.dump(info_struct, outfile, default_flow_style=False)
                                 
         for t in time_seq:
             if min_time<=t<=max_time:
@@ -304,7 +331,7 @@ class PostProcessor(object):
         '''
         Compose multiple videos into a single video
         '''       
-        image_root_dir, video_root_dir, frame_size, is_color, current_fps, \
+        image_root_dir, video_root_dir, info_root_dir, frame_size, is_color, current_fps, \
             image_extn, image_prefix, time_seq, min_time, max_time, image_dir, \
             fov_pt1, fov_pt2 \
             = self._initialize_video_info(composition_task[0])
